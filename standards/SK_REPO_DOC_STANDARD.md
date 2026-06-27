@@ -64,7 +64,7 @@ broken code. Example:
 ## Related projects / See also
 - ⬆️ **Depends on:** [sequoia-pgp](…) — the PQC OpenPGP engine `sk_pgp` binds.
 - ⬇️ **Used by:** [capauth](https://github.com/smilinTux/capauth) — issues the PQC signing root via `sk_pgp`.
-- ↔️ **Sibling:** [sk_pqc](https://github.com/smilinTux/sk_pqc) — the Dart hybrid-KEM companion.
+- ↔️ **Sibling:** [sk_pqc](https://github.com/smilinTux/sk-pqc-dart) — the Dart hybrid-KEM companion.
 - 📐 **Standards:** [sk-standards](https://github.com/smilinTux/sk-standards) — crypto, data-flow, version, doc/SOP.
 ```
 
