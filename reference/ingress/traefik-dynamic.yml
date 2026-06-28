@@ -1,0 +1,104 @@
+# =============================================================================
+# Unified :443 Sovereign Ingress — Traefik dynamic config reference
+# =============================================================================
+# Traefik is the "cluster-native" reverse-proxy choice: it is the SKStacks
+# (k3d / RKE2) cluster ingress, with label-based service auto-discovery. ONE
+# tunnel fronts the whole cluster and terminates at Traefik; Traefik does the
+# host + path + middleware vhosting that the tunnel cannot.
+#
+#   internet -> :443 TUNNEL -> Traefik (entrypoint web/websecure) -> Services
+#
+# Front-door (chosen per deployment at install time):
+#   * CF Tunnel:  cloudflared Deployment in-cluster -> Traefik ClusterIP:80,
+#                 host-routed by *.skworld.io (wildcard). (The proven sksso
+#                 pattern: see cloudflared-config.yml + sksso-cloudflared-setup.)
+#   * TS Funnel:  tailscale (sidecar/operator) Funnel on the node -> Traefik;
+#                 single hostname, PATH routing only (Funnel can't host-route),
+#                 so under Funnel use PathPrefix routers, not Host routers.
+#
+# This file is the *dynamic* (file-provider) half. In a real cluster most of
+# this is expressed as IngressRoute CRDs / labels; it is written out here as
+# explicit routers+services+middlewares so the routing is legible in one place.
+# Backends are ClusterIP / tailnet-only. The ONLY public surface is the tunnel.
+# =============================================================================
+
+http:
+  # ---------------------------------------------------------------------------
+  # Middlewares
+  # ---------------------------------------------------------------------------
+  middlewares:
+    # capauth-gate: forward_auth to the reference capauth sidecar. The sidecar
+    # returns 200 (allow) / 401 (no credential) / 403 (rejected). It mirrors
+    # reference/ingress/capauth_gate.py. Federation routers below DO NOT attach
+    # this middleware — they are public-by-design (envelope-authenticated).
+    capauth-gate:
+      forwardAuth:
+        address: "http://capauth-gate.ingress.svc:9719/authz"
+        authResponseHeaders:
+          - "X-CapAuth-Subject"   # sidecar may echo the verified subject
+        trustForwardHeader: true
+
+    # Defense-in-depth security headers for app vhosts.
+    sec-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        referrerPolicy: "no-referrer"
+
+  # ---------------------------------------------------------------------------
+  # Routers
+  # ---------------------------------------------------------------------------
+  routers:
+    # --- SKFed federation: PUBLIC-BY-DESIGN, no capauth-gate ------------------
+    # These ride the single public :443 and authenticate at the envelope layer
+    # (skcomms EnvelopeSigner/Verifier). Gating them at the edge breaks peer
+    # federation (peers hold a signed envelope, not an edge credential).
+    skfed-inbox:
+      rule: "Host(`skchat.skworld.io`) && Path(`/api/v1/inbox`)"
+      entryPoints: [websecure]
+      service: skcomms-api
+      priority: 100          # higher than the catch-all app router below
+
+    skfed-prekey:
+      rule: "Host(`skchat.skworld.io`) && Path(`/api/v1/prekey`)"
+      entryPoints: [websecure]
+      service: skcomms-api
+      priority: 100
+
+    skfed-wellknown:
+      rule: "Host(`skchat.skworld.io`) && PathPrefix(`/.well-known/`)"
+      entryPoints: [websecure]
+      service: skcomms-api
+      priority: 100          # covers /.well-known/did.json AND /.well-known/skfed/*
+
+    # --- App vhost: GATED -----------------------------------------------------
+    skchat-app:
+      rule: "Host(`skchat.skworld.io`)"     # catch-all for the host
+      entryPoints: [websecure]
+      service: skcomms-api
+      priority: 10
+      middlewares:
+        - capauth-gate
+        - sec-headers
+
+    # --- Existing SSO vhost ---------------------------------------------------
+    sksso:
+      rule: "Host(`sksso.skworld.io`)"
+      entryPoints: [websecure]
+      service: sksso
+      middlewares:
+        - sec-headers
+
+  # ---------------------------------------------------------------------------
+  # Services  (all ClusterIP / tailnet-only — never public)
+  # ---------------------------------------------------------------------------
+  services:
+    skcomms-api:
+      loadBalancer:
+        servers:
+          - url: "http://skcomms-api.skcomms.svc:8765"
+    sksso:
+      loadBalancer:
+        servers:
+          - url: "http://sksso.sksso.svc:9000"

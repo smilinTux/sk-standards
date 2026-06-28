@@ -1,0 +1,68 @@
+# =============================================================================
+# Unified :443 Sovereign Ingress — cloudflared (Cloudflare Tunnel) reference
+# =============================================================================
+# Cloudflare Tunnel is the "zero-inbound-ports" front door. cloudflared makes
+# an OUTBOUND connection to the CF edge, so NOTHING listens publicly on this
+# box — the firewall stays closed. CF terminates TLS at its edge and proxies
+# requests down the tunnel to the local reverse proxy.
+#
+#   internet --:443--> CF edge --[outbound tunnel]--> cloudflared --> reverse proxy
+#
+# Unlike Tailscale Funnel, CF Tunnel CAN host-route: the `ingress:` list below
+# matches by `hostname:` (incl. wildcards like *.skworld.io). But each hostname
+# still points at ONE origin service, so for path + middleware + capauth-gate we
+# point CF at Traefik/Caddy and let THAT do the real vhosting.
+#
+# DNS: each hostname is a proxied CNAME -> <tunnel-uuid>.cfargotunnel.com on the
+# skworld.io zone (zone id 8e77fcaf568c1d953db450861a9197a2). This is the proven
+# sksso pattern (runbooks/sksso-cloudflared-setup.sh / sksso-tunnel-create.py).
+#
+# Run:  cloudflared tunnel --config /etc/cloudflared/config.yml run
+# =============================================================================
+
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: /etc/cloudflared/creds/credentials.json
+no-autoupdate: true
+
+ingress:
+  # ---------------------------------------------------------------------------
+  # OPTION A (recommended): one wildcard hostname -> the reverse proxy, which
+  # does ALL host+path+middleware vhosting (incl. the SKFed federation routes
+  # and the capauth-gate). This keeps CF as a dumb transport and the routing
+  # sovereign + in-repo.
+  # ---------------------------------------------------------------------------
+  - hostname: "*.skworld.io"
+    service: http://127.0.0.1:8443        # Caddy (mode A) or Traefik web entrypoint
+    originRequest:
+      httpHostHeader: ""                  # PRESERVE the client Host header so the
+                                          # reverse proxy host-routes correctly.
+                                          # (Empty string = pass original Host.)
+
+  # ---------------------------------------------------------------------------
+  # OPTION B: per-hostname origins (the literal sksso pattern in production
+  # today). Each app gets its own ingress rule. Use when you are NOT fronting a
+  # shared reverse proxy. Federation still needs ONE host whose origin owns
+  # /api/v1/inbox, /api/v1/prekey, /.well-known/*.
+  # ---------------------------------------------------------------------------
+  - hostname: skchat.skworld.io
+    service: http://10.43.0.50:8765       # skcomms API ClusterIP (owns SKFed routes)
+    originRequest:
+      httpHostHeader: skchat.skworld.io
+
+  - hostname: sksso.skworld.io
+    service: http://10.43.41.151:9000     # sksso ClusterIP (proven live config)
+    originRequest:
+      httpHostHeader: sksso.skworld.io
+
+  # Catch-all — required last rule.
+  - service: http_status:404
+
+# -----------------------------------------------------------------------------
+# In-cluster deployment notes (from the proven sksso connector):
+#   * Run cloudflared as a Deployment (replicas: 2) for HA — "if you need one,
+#     get two".
+#   * Pin pod DNS to 1.1.1.1/1.0.0.1 (dnsPolicy: None + dnsConfig) so the
+#     connector can resolve the CF edge despite a captive cluster CoreDNS
+#     upstream; point `service:` at an IP so the origin needs no cluster DNS.
+#   * credentials.json is the tunnel secret — mount from a Secret, never bake in.
+# -----------------------------------------------------------------------------

@@ -1,0 +1,108 @@
+# =============================================================================
+# Unified :443 Sovereign Ingress — Caddy reference config
+# =============================================================================
+# Pattern:  internet -> :443 TUNNEL -> THIS reverse proxy -> localhost backends
+#
+# Caddy is the "sovereign-simple" reverse-proxy choice: auto-TLS, a few
+# host-routed vhosts, trivial to read. It sits BEHIND the tunnel and does the
+# host + path + middleware work that the tunnel cannot.
+#
+# Two front-door modes (pick at install time):
+#
+#   A. Cloudflare Tunnel front  (recommended for *.skworld.io public names)
+#      cloudflared (outbound, zero inbound ports) -> http://127.0.0.1:8443
+#      Caddy serves plaintext on :8443; TLS is terminated at the CF edge.
+#      Host header arrives intact (httpHostHeader set in cloudflared) so the
+#      `@host` matchers below host-route correctly.
+#
+#   B. Tailscale Funnel front   (sovereign, zero-dep, single hostname)
+#      Funnel gives ONE hostname (<node>.tail204f0c.ts.net) and can route by
+#      PATH ONLY — it cannot host-route. So under Funnel you get exactly ONE
+#      site block and you route by PATH. The per-app vhost blocks below only
+#      work behind a host-routing front (CF Tunnel, or Caddy terminating TLS
+#      directly on a box that actually owns :443).
+#
+# Every backend below is 127.0.0.1 / tailnet-only. The ONLY public surface is
+# the tunnel. Minimize port vectors = exactly ONE public :443.
+# =============================================================================
+
+{
+	# Global options. When fronted by CF Tunnel, terminate plaintext (edge does
+	# TLS) so we never open :443 ourselves:
+	#   http_port 8443
+	#   auto_https off
+	# When Caddy itself owns the public :443 (rare in this arch), drop the two
+	# lines above and let Caddy auto-provision certs.
+	admin off
+}
+
+# -----------------------------------------------------------------------------
+# Reusable snippet: the capauth-gate (forward_auth to the reference sidecar).
+# Federation endpoints are EXCLUDED from the gate (see UNIFIED_INGRESS_STANDARD
+# §capauth-gate) because they authenticate at the envelope layer.
+# -----------------------------------------------------------------------------
+(capauth_gate) {
+	# Public-by-design federation endpoints: NEVER gated at the edge.
+	@skfed_public {
+		path /.well-known/* /api/v1/inbox /api/v1/prekey
+	}
+	# Everything that is NOT public gets forward_auth'd to the capauth sidecar
+	# (capauth_gate.cli / a tiny FastAPI wrapper) which returns 200/401/403.
+	@needs_auth not path /.well-known/* /api/v1/inbox /api/v1/prekey
+	forward_auth @needs_auth 127.0.0.1:9719 {
+		uri /authz
+		copy_headers Authorization
+		# 401/403 from the sidecar are passed straight back to the client.
+	}
+}
+
+# =============================================================================
+# vhost: skchat.skworld.io  — the unified client + SKFed federation node
+# =============================================================================
+# Reachable only behind CF Tunnel (host-routing front). Backend = skcomms API
+# (FastAPI) on the tailnet loopback; it owns /api/v1/inbox, /api/v1/prekey,
+# /.well-known/did.json and the app routes.
+skchat.skworld.io {
+	import capauth_gate
+
+	# SKFed federation endpoints -> skcomms API. Public; envelope-authenticated.
+	handle /.well-known/skfed/* {
+		reverse_proxy 127.0.0.1:8765
+	}
+	handle /.well-known/did.json {
+		reverse_proxy 127.0.0.1:8765
+	}
+	handle /api/v1/inbox {
+		reverse_proxy 127.0.0.1:8765
+	}
+	handle /api/v1/prekey {
+		reverse_proxy 127.0.0.1:8765
+	}
+
+	# The app (gated by the capauth_gate snippet above for non-/.well-known,
+	# non-/api/v1/{inbox,prekey} paths).
+	handle /* {
+		reverse_proxy 127.0.0.1:8765
+	}
+}
+
+# =============================================================================
+# vhost: sksso.skworld.io   — existing SSO front (already CF-tunnelled today)
+# =============================================================================
+sksso.skworld.io {
+	reverse_proxy 127.0.0.1:9000
+}
+
+# =============================================================================
+# Funnel mode (single hostname, PATH routing only) — illustrative.
+# Behind Tailscale Funnel you collapse to ONE site and route by path. You
+# CANNOT split skchat/sksso by Host here; give each app a distinct PATH prefix
+# instead (or front Funnel with this Caddy and host-route nothing).
+# =============================================================================
+# :8080 {
+# 	handle /api/v1/inbox      { reverse_proxy 127.0.0.1:8765 }
+# 	handle /api/v1/prekey     { reverse_proxy 127.0.0.1:8765 }
+# 	handle /.well-known/*     { reverse_proxy 127.0.0.1:8765 }
+# 	handle /sso/*             { reverse_proxy 127.0.0.1:9000 }
+# 	handle /*                 { reverse_proxy 127.0.0.1:8765 }
+# }
