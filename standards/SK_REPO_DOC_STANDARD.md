@@ -100,6 +100,14 @@ Every section below is required; omit only with an explicit `N/A — <reason>` l
    Services → docker stack / k3d / VM deploy + redeploy + rollback.
    Libraries → "Build + publish" (pub.dev / PyPI), version bump, tag, changelog.
 
+   **Front-end / Exposure (REQUIRED for any service with a network surface)** —
+   per [`UNIFIED_INGRESS_STANDARD.md`](./UNIFIED_INGRESS_STANDARD.md), declare:
+   - **Tier:** `0 Direct (Funnel :443 path-route)` *(default)* | `1 Caddy` | `2 SKStacks/Traefik`
+   - **Public `:443` route(s)** it answers — e.g. `GET /api/v1/prekey/{peer}`, `POST /api/v1/inbox`
+   - **Bind address** — `127.0.0.1:PORT` or tailnet; **NEVER** a public port (the tunnel is the only ingress)
+
+   Pure libraries with no listener: `Front-end / Exposure: N/A — no network surface`.
+
 ## 6. Configuration / Usage
    Config files, env vars, secrets sourcing (never inline a live secret),
    per-consumer setup. Public-exposure rules if any.

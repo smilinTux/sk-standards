@@ -63,6 +63,36 @@ Three layers, each with one job:
 
 ---
 
+## 2a. Deployment tiers — runs DIRECT by default; add a layer only when you need it
+
+The three-layer pattern above is the *ceiling*, not the *floor*. A sovereign node
+**starts at Tier 0 and climbs only when a real need appears.** Every tier keeps the
+same `:443`-only, zero-extra-port principle — you add a reverse proxy or an
+orchestrator solely to gain **vhosting** or **clustering**, never to open a port.
+
+```mermaid
+flowchart TD
+    T0["Tier 0 — DIRECT (default)<br/>Funnel :443 path-route → service<br/>no reverse proxy"] -->|"need host-based vhosts /<br/>several services on one box"| T1
+    T1["Tier 1 — CADDY (simple host)<br/>:443 tunnel → Caddy → services<br/>auto-TLS, Host+path vhosts"] -->|"need clustering / HA /<br/>many services / custom domains"| T2
+    T2["Tier 2 — SKSTACKS (cluster)<br/>:443 tunnel → Traefik ingress → cluster<br/>k3d/RKE2, label-routed"]
+```
+
+| Tier | Use when | Front-end | How the service runs | Add by |
+|---|---|---|---|---|
+| **0 — Direct** *(DEFAULT)* | One node, a handful of endpoints | **Tailscale Funnel `:443` path-route straight to the service** — `tailscale funnel --bg --https=443 --set-path=/x http://localhost:PORT/x` (preserve the target path). No reverse proxy. | `systemd` user unit, binds `127.0.0.1` / tailnet | nothing — it's the default |
+| **1 — Caddy** *(simple host)* | Host-based vhosts, or more than a few services on one box | **Caddy** behind the `:443` tunnel (Funnel or CF) — auto-TLS, `Host`+path vhosts, tiny config | still `systemd`; Caddy fans out to them | `apt/brew install caddy` + a `Caddyfile` (reference in `../reference/ingress/`) |
+| **2 — SKStacks** *(cluster)* | Clustering, HA, many services, `*.skworld.io` custom domains | **Traefik** cluster ingress (k3d/RKE2) fronted by ONE tunnel — Funnel (sovereign) or CF-Tunnel (wildcard hosts) | cluster workloads; Traefik label-routes by service | `skstacks` install (ships Traefik + the tunnel adapter + per-deploy config) |
+
+**Golden rule.** Tier 0 is the default and is *sufficient* for the SKFed federation
+surface (S2S inbox, prekey, the SKFed directory) on a single node — that is exactly
+how `.158` and `.41` run today. Move to Tier 1 the moment you want two services at
+different **hostnames**; Tier 2 when you want a **cluster**. **Never open a second
+public port to avoid moving up a tier — moving tier IS the answer.** The choice of
+tier (and, at Tier 1/2, which tunnel) is a deployment config — for a cluster it is
+part of the `skstacks` install.
+
+---
+
 ## 3. Why a reverse proxy is *required* for vhosting
 
 The tunnel alone cannot do host-based virtual hosting in the sovereign case, and
