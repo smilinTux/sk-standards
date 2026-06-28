@@ -27,6 +27,12 @@ and a repo disagree, the standard wins (or the standard is wrong and we fix it h
 
 ## The project graph — wander the ecosystem
 
+> 🗺️ **Full navigable index: [ECOSYSTEM.md](./ECOSYSTEM.md)** — every repo in the
+> `sk-pqc` family (the three sibling crypto impls + vectors contract, `sk_pgp`,
+> capauth, sksecurity, skcomms, skchat, cloud9, skmemory, SKStacks, the sites) with a
+> one-line purpose, the `depends-on` / `backs` / `verifies` / `governs` edges, and a
+> bigger mermaid graph. The quick graph below is the at-a-glance version.
+
 Every repo's README ends with a `## Related projects / See also` that links its
 neighbours, so you can **learn the whole system by clicking through** (à la a
 hyperlinked wiki). The standards govern the whole map: the
