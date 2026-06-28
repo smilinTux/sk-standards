@@ -1,0 +1,68 @@
+name: docs-lint
+
+# Lint-checks for this docs-only repo:
+#   1. Relative-link integrity across the standards + README (lychee, offline).
+#   2. Markdown code-fence balance, mermaid-aware (scripts/check_fences.py).
+# Offline link mode is deliberate: it validates the load-bearing cross-references
+# between the standards docs without flaking on ecosystem repos whose GitHub
+# visibility varies. No network, no heavy builds.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "standards/**"
+      - "templates/**"
+      - "scripts/check_fences.py"
+      - ".github/workflows/docs-lint.yml"
+  pull_request:
+    paths:
+      - "README.md"
+      - "standards/**"
+      - "templates/**"
+      - "scripts/check_fences.py"
+      - ".github/workflows/docs-lint.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  link-check:
+    name: relative-link check (lychee, offline)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lychee link check
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # --offline checks file/relative links only (no network), so the
+          # standards' internal cross-references are verified deterministically.
+          args: >-
+            --offline
+            --no-progress
+            README.md
+            standards/
+          fail: true
+
+  fence-check:
+    name: mermaid-fence balance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Check code-fence balance
+        run: |
+          python3 scripts/check_fences.py \
+            README.md \
+            standards/*.md \
+            templates/*.md
