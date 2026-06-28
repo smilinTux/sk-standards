@@ -16,6 +16,8 @@ and a repo disagree, the standard wins (or the standard is wrong and we fix it h
 | [**CRYPTOGRAPHY_STANDARD**](./standards/CRYPTOGRAPHY_STANDARD.md) | The quantum-resistance bar: HNDL/Mosca threat model, the hybrid combiner `HKDF(X25519 ‖ ML-KEM-768)`, crypto-agility (suite-ids + backend ABC + self-report), the **honest-claim rules** (never "quantum-proof"), and the T0–T4 maturity tiers. |
 | [**SK_REPO_DOC_STANDARD**](./standards/SK_REPO_DOC_STANDARD.md) | The required doc set for every repo (README · SOP · SECURITY · CONTRIBUTING · CODE_OF_CONDUCT · CHANGELOG · LICENSE), the 9-section `SOP.md` template, the mermaid mandate, the **README-as-hub + cross-linking** convention, and the per-repo compliance checklist. |
 | [**ARCHITECTURE_AND_DATAFLOW_STANDARD**](./standards/ARCHITECTURE_AND_DATAFLOW_STANDARD.md) | How to make a codebase *learnable fast*: the required diagram set (system context · component · **data-flow with crypto-per-hop** · sequence), the "Start here" onboarding section, and **mermaid-first** (draw.io only for hand-tuned canvases). |
+| [**TESTING_AND_CI_STANDARD**](./standards/TESTING_AND_CI_STANDARD.md) | TDD as the default, **cross-impl KAT/parity gates** (Python↔Rust↔Dart must agree byte-for-byte), the **green-bar release gate**, a GHA test-matrix sketch, and the **"tests are evidence for claims"** honesty gate. |
+| [**SECURITY_DISCLOSURE_STANDARD**](./standards/SECURITY_DISCLOSURE_STANDARD.md) | Coordinated-disclosure contact + scope, the **experimental/unaudited reference-impl posture** every crypto lib MUST state, the embargo/advisory process, and the **honest-claims gate for advisories** (never "quantum-proof"). |
 | [**VERSION_LIFECYCLE**](./standards/VERSION_LIFECYCLE.md) | Version phases (Legacy v1 / Active v2 / Incubating v3 / Shared) + SemVer policy. |
 
 **Templates** (copy into a new repo): [`templates/`](./templates/) — a README and a SOP skeleton.
@@ -26,7 +28,15 @@ and a repo disagree, the standard wins (or the standard is wrong and we fix it h
 
 Every repo's README ends with a `## Related projects / See also` that links its
 neighbours, so you can **learn the whole system by clicking through** (à la a
-hyperlinked wiki). This is the master map:
+hyperlinked wiki). The standards govern the whole map: the
+[crypto](./standards/CRYPTOGRAPHY_STANDARD.md) and
+[architecture](./standards/ARCHITECTURE_AND_DATAFLOW_STANDARD.md) standards say how
+each box is *built and drawn*; the
+[testing/CI](./standards/TESTING_AND_CI_STANDARD.md) standard is the **cross-impl
+parity gate** that keeps the multi-language crypto libs (`sk_pqc` in Python/Rust/Dart)
+byte-for-byte interoperable along every edge; the
+[security-disclosure](./standards/SECURITY_DISCLOSURE_STANDARD.md) standard governs how
+a vuln in any box is reported, embargoed, and honestly described. This is the master map:
 
 ```mermaid
 flowchart TD
@@ -86,9 +96,11 @@ flowchart TD
 **New `sk*` repo?**
 1. Copy [`templates/README.template.md`](./templates/README.template.md) and [`templates/SOP.template.md`](./templates/SOP.template.md).
 2. Work the [`SK_REPO_DOC_STANDARD` checklist](./standards/SK_REPO_DOC_STANDARD.md#6-per-repo-compliance-checklist).
-3. Crypto component? Also state your **T0–T4 tier** and add the `CRYPTOGRAPHY_STANDARD` compliance line.
+3. Crypto component? Also state your **T0–T4 tier**, add the `CRYPTOGRAPHY_STANDARD` compliance line, and the **experimental/unaudited reference-impl** posture from [`SECURITY_DISCLOSURE_STANDARD`](./standards/SECURITY_DISCLOSURE_STANDARD.md).
 4. Fill the **data-flow diagram** + **"Start here"** per the architecture standard.
-5. Add the `## Related projects / See also` cross-links and update the project graph above.
+5. Wire the [`TESTING_AND_CI_STANDARD`](./standards/TESTING_AND_CI_STANDARD.md) gate: TDD where there's logic, shared `vectors/` + **cross-impl parity** check, green-bar release gate, GHA matrix.
+6. Enable GitHub **private vulnerability reporting** + fill `SECURITY.md` (contact + scope + embargo) per [`SECURITY_DISCLOSURE_STANDARD`](./standards/SECURITY_DISCLOSURE_STANDARD.md).
+7. Add the `## Related projects / See also` cross-links and update the project graph above.
 
 **The honesty gate** (applies to every release & doc): every quantum-resistance claim
 cites *surface + FIPS # + hybrid-vs-classical*, backed by the self-report. Forbidden
