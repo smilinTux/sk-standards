@@ -133,4 +133,7 @@ If not, the overview is incomplete.
 - The data-flow crypto annotations are bound by the [honest-claims rule](./CRYPTOGRAPHY_STANDARD.md):
   never paint a hop `hybrid-pq` unless its live suite is — an unmigrated leg stays
   `classical` on the diagram. The diagram is a *claim*, so it carries the same evidence bar.
+  Label each hop with its **negotiated suite id** (`x25519-mlkem768` / `x25519-pgp-wrap-v1`),
+  the self-describing tag from the [CRYPTO_AGILITY_STANDARD](./CRYPTO_AGILITY_STANDARD.md), so
+  the colour is traceable to a real wire value, not a vibe.
 - Prefer a few **accurate** diagrams over many aspirational ones.

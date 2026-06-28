@@ -234,6 +234,7 @@ This standard is the testing arm of the ecosystem honesty rule
 ## Related standards
 
 - [CRYPTOGRAPHY_STANDARD](./CRYPTOGRAPHY_STANDARD.md) — the suites/combiner these KATs pin, and the honest-claim rules tests enforce.
+- [CRYPTO_AGILITY_STANDARD](./CRYPTO_AGILITY_STANDARD.md) — a new suite flips `active=True` only after its cross-impl KAT is green; the dual-stack window these parity gates protect.
 - [SECURITY_DISCLOSURE_STANDARD](./SECURITY_DISCLOSURE_STANDARD.md) — the experimental/unaudited posture every crypto lib states (a green bar is **not** an audit).
 - [SK_REPO_DOC_STANDARD](./SK_REPO_DOC_STANDARD.md) — `CONTRIBUTING.md` declares the test gate; the README links here.
 - [ARCHITECTURE_AND_DATAFLOW_STANDARD](./ARCHITECTURE_AND_DATAFLOW_STANDARD.md) — each crypto-annotated hop maps to a test that proves it.

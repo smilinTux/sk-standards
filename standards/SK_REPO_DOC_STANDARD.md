@@ -35,6 +35,7 @@ or stores key material (e.g. `sk_pqc`, `sk_pgp`, `capauth`, `skchat`, `skcomms`,
 |---|---|
 | Crypto doc (`docs/crypto-architecture.md` or `docs/CRYPTO_SPEC.md`) | Per-surface inventory: which KEM / signature / cipher each channel uses, hybrid-vs-classical, citing FIPS 203/204/205. Per [CRYPTOGRAPHY_STANDARD.md §"Reference: per-component crypto views"](./CRYPTOGRAPHY_STANDARD.md). |
 | **CRYPTOGRAPHY_STANDARD.md compliance statement** | An explicit line in `SOP.md` and `SECURITY.md` asserting conformance (suite-ids, suite registry, backend ABC, self-report, hybrid combiner `HKDF(X25519 ‖ MLKEM768)` — never XOR, never pure-PQ). |
+| **CRYPTO_AGILITY_STANDARD.md compliance** | Document the repo's **wire tags + suite registry + negotiation surface** and that a peer without a capability stays on the prior path (never an undecryptable frame). Per [CRYPTO_AGILITY_STANDARD.md](./CRYPTO_AGILITY_STANDARD.md). |
 | **Stated maturity tier (T0–T4)** | Declared in `README.md` header **and** the SOP `Maturity-tier` section. Definitions in §4. |
 | **VERSION_LIFECYCLE compliance** | State the phase (Legacy v1 / Active v2 / Incubating v3 / Shared) and the SemVer line per [VERSION_LIFECYCLE.md](./VERSION_LIFECYCLE.md). |
 | **Self-report / claim evidence** | The component MUST be able to report negotiated primitives per live channel (e.g. `... status` / `doctor`). This is what makes every public claim evidence-backed. |

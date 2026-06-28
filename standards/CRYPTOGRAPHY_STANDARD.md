@@ -55,6 +55,11 @@ worth more than any single parameter choice.
 
 ### 4. Crypto-agility — MANDATORY for new components
 
+> **Full pattern: [CRYPTO_AGILITY_STANDARD](./CRYPTO_AGILITY_STANDARD.md)** — self-describing
+> wire tags, capability-advertisement + downgrade-safety, how to register and roll to the
+> *next* KEM/signature without a flag-day, and the named anti-patterns. The bullets here
+> are the summary.
+
 - **Machine-readable suite id on every crypto container** (envelope, key, ciphertext).
   Example: `sig_suite="mldsa65-ed25519-v2"`, `kem_suite="x25519-mlkem768-v2"`,
   `epoch=N`. Algorithm choice is **config-driven, never hard-coded**.

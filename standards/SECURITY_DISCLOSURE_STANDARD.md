@@ -171,6 +171,7 @@ Before publishing, every advisory and `SECURITY.md` claim MUST pass:
 ## Related standards
 
 - [CRYPTOGRAPHY_STANDARD](./CRYPTOGRAPHY_STANDARD.md) — the honest-claim rules and suites an advisory must respect.
+- [CRYPTO_AGILITY_STANDARD](./CRYPTO_AGILITY_STANDARD.md) — a downgrade/negotiation flaw is a reportable vuln; the suite-roll path a fix advisory points users to.
 - [TESTING_AND_CI_STANDARD](./TESTING_AND_CI_STANDARD.md) — "fixed" needs a green regression test; an audit is **not** a test suite.
 - [SK_REPO_DOC_STANDARD](./SK_REPO_DOC_STANDARD.md) — `SECURITY.md` is part of the required doc set.
 - [VERSION_LIFECYCLE](./VERSION_LIFECYCLE.md) — which versions get security fixes.
