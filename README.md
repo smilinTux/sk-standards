@@ -56,8 +56,13 @@ flowchart TD
     end
 
     subgraph identity[Identity & security]
-      CAP[capauth<br/>root identity · DID · PQC signing root]:::svc
+      CAP[capauth<br/>root identity · DID · PQC signing root<br/>crypto home: sign/verify · seal/unseal]:::svc
       SEC[sksecurity<br/>crypto inventory · self-report]:::svc
+    end
+
+    subgraph secrets[Secrets & ingestion]
+      SKVAULT[skvault<br/>KeePass secrets vault · PGP-sealed master]:::svc
+      SKINGEST[skingest<br/>pure ingestion · vault split out → skvault]:::svc
     end
 
     subgraph comms[Messaging framework]
@@ -68,6 +73,8 @@ flowchart TD
     INFRA[SKStacks<br/>deploy fabric]:::infra
 
     SKPGP --> CAP
+    CAP -->|seal/unseal for| SKVAULT
+    CAP -->|seal/unseal for| SKINGEST
     SKPQC --> SKCHAT
     SKPQC --> SKCOMMS
     CAP --> SKCOMMS
@@ -80,6 +87,7 @@ flowchart TD
     INFRA -. deploys .-> identity
     STD -. governs .-> crypto
     STD -. governs .-> identity
+    STD -. governs .-> secrets
     STD -. governs .-> comms
     STD -. governs .-> INFRA
 
@@ -92,8 +100,10 @@ flowchart TD
 ### Repos
 - 🦀🐍 [**sk_pgp**](https://github.com/smilinTux/sk_pgp) — sovereign Python OpenPGP-PQC (PyO3→Sequoia); the PGPy replacement that lets Python sign with v6/PQC keys.
 - 🎯 [**sk_pqc**](https://github.com/smilinTux/sk-pqc-dart) — Dart/Flutter hybrid KEM (X25519+ML-KEM-768), web + native, in the browser.
-- 🔑 [**capauth**](https://github.com/smilinTux/capauth) — sovereign identity, DID, the PQC signing root.
+- 🔑 [**capauth**](https://github.com/smilinTux/capauth) — sovereign identity, DID, the PQC signing root; the crypto home (sign/verify + seal/unseal).
 - 🛡️ [**sksecurity**](https://github.com/smilinTux/sksecurity) — crypto inventory + runtime self-report (the claim-evidence engine).
+- 🔐 [**skvault**](https://github.com/smilinTux/skvault) — sovereign secrets vault (KeePass, master PGP-sealed to the sovereign identity → gpg-agent); seals via `capauth`. Split out of skingest.
+- 📥 [**skingest**](https://github.com/smilinTux/skingest) — pure ingestion (mxbai + skmem-pg); seals via `capauth`. No longer owns the vault (→ skvault).
 - ✉️ [**skcomms**](https://github.com/smilinTux/skcomms) · 💬 [**skchat**](https://github.com/smilinTux/skchat) — the messaging framework (KEM/DM/group/at-rest/signature surfaces).
 - 🏗️ **SKStacks** — the sovereign deploy fabric.
 

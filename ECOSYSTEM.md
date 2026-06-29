@@ -40,8 +40,13 @@ flowchart TD
     end
 
     subgraph identity[Identity & security services]
-      CAP[capauth<br/>root identity · DID · PQC signing root]:::svc
+      CAP[capauth<br/>root identity · DID · PQC signing root<br/>crypto home: sign/verify · seal/unseal]:::svc
       SEC[sksecurity<br/>crypto inventory · runtime self-report]:::svc
+    end
+
+    subgraph secrets[Secrets & ingestion · seal via capauth]
+      SKVAULT[skvault<br/>sovereign KeePass secrets vault<br/>vault_creds/recovery/shamir/totp + lifecycle<br/>PGP-sealed master → gpg-agent]:::svc
+      SKINGEST[skingest<br/>pure ingestion · mxbai + skmem-pg<br/>vault split out → skvault]:::svc
     end
 
     subgraph comms[Messaging framework]
@@ -55,7 +60,7 @@ flowchart TD
     end
 
     INFRA[SKStacks<br/>sovereign deploy fabric]:::infra
-    SITES[*.skworld.io sites<br/>skpqc / capauth / skcomms / skchat<br/>sksecurity / skmemory / cloud9 / skstacks]:::site
+    SITES[*.skworld.io sites<br/>skpqc / capauth / skcomms / skchat<br/>sksecurity / skmemory / cloud9 / skstacks<br/>skos / skvault]:::site
 
     %% --- interop contract: vectors is the parity gate the 3 impls satisfy ---
     PY -. conforms to .-> VEC
@@ -74,6 +79,10 @@ flowchart TD
 
     %% --- pgp backs the signing root (roadmap; PGPy today) ---
     PGP -. replaces PGPy in .-> CAP
+
+    %% --- capauth.seal backs the vault + ingestion (skvault split out of skingest) ---
+    CAP -->|seal/unseal for| SKVAULT
+    CAP -->|seal/unseal for| SKINGEST
 
     %% --- identity + transport + trust assemble the chat app ---
     CAP -->|identity for| SKCOMMS
@@ -96,6 +105,7 @@ flowchart TD
     STD -. governs .-> core
     STD -. governs .-> pgp
     STD -. governs .-> identity
+    STD -. governs .-> secrets
     STD -. governs .-> comms
 
     classDef std fill:#3a2d00,stroke:#ffa500,color:#fff;
@@ -145,8 +155,14 @@ FFI is a roadmap, not a live edge).
 ### Identity & security services
 | Repo | One line | Relates |
 |---|---|---|
-| 🔑 [**capauth**](https://github.com/smilinTux/capauth) | Sovereign root **identity / DID / PQC signing root** (auth without OAuth). Signs on PGPy today; `sk_pgp` is the slated PQC cutover. | `identity for` skcomms + skchat; consumes `sk_pgp` (roadmap). |
+| 🔑 [**capauth**](https://github.com/smilinTux/capauth) | Sovereign root **identity / DID / PQC signing root** (auth without OAuth) and the **crypto home**: sign/verify + `seal`/`unseal`. Signs on PGPy today; `sk_pgp` is the slated PQC cutover. | `identity for` skcomms + skchat; `seal/unseal for` skvault + skingest; consumes `sk_pgp` (roadmap). |
 | 🛡️ [**sksecurity**](https://github.com/smilinTux/sksecurity) | Crypto **inventory + runtime self-report** — the claim-evidence engine: what suites a daemon actually advertises vs claims. | `reports on` skcomms / skchat / capauth; consumes sk-pqc-py self-report. |
+
+### Secrets & ingestion
+| Repo | One line | Relates |
+|---|---|---|
+| 🔐 [**skvault**](https://github.com/smilinTux/skvault) | The sovereign **secrets vault** — a KeePass DB whose master is **PGP-sealed to the sovereign identity** and unlocked into `gpg-agent`; `vault_creds` / `recovery` / `shamir` / `totp` + lifecycle. User-facing as the stable `skvault` shim (`unlock\|lock\|status\|get\|list\|creds-*\|vault-*`). Split out of skingest (EPIC `11eeac9e`). | `seal/unseal` via capauth; consumed by skos.secrets / skguide / `.claude` hooks. |
+| 📥 [**skingest**](https://github.com/smilinTux/skingest) | **Pure ingestion** (mxbai-embed + skmem-pg + wiki-canon). **No longer owns the vault** — secrets moved to skvault; skingest now only seals its own artifacts via `capauth.seal`. | `seal` via capauth; sibling of skvault. |
 
 ### Messaging framework
 | Repo | One line | Relates |
@@ -164,7 +180,7 @@ FFI is a roadmap, not a live edge).
 | Repo | One line | Relates |
 |---|---|---|
 | 🏗️ [**SKStacks**](https://github.com/smilinTux/SKStacks) | The sovereign **deploy fabric** — stacks the comms + identity services run on. | `deploys` the services. |
-| 🌐 *.skworld.io sites | Landing + docs sites: [skpqc](https://github.com/smilinTux/skpqc-skworld-io) · [capauth](https://github.com/smilinTux/capauth-skworld-io) · [skcomms](https://github.com/smilinTux/skcomms-skworld-io) · [skchat](https://github.com/smilinTux/skchat-skworld-io) · [sksecurity](https://github.com/smilinTux/sksecurity-skworld-io) · [skmemory](https://github.com/smilinTux/skmemory-skworld-io) · [cloud9](https://github.com/smilinTux/cloud9-skworld-io) · [skstacks](https://github.com/smilinTux/skstacks-skworld-io). | `document` their repos. |
+| 🌐 *.skworld.io sites | Landing + docs sites: [skpqc](https://github.com/smilinTux/skpqc-skworld-io) · [capauth](https://github.com/smilinTux/capauth-skworld-io) · [skcomms](https://github.com/smilinTux/skcomms-skworld-io) · [skchat](https://github.com/smilinTux/skchat-skworld-io) · [sksecurity](https://github.com/smilinTux/sksecurity-skworld-io) · [skmemory](https://github.com/smilinTux/skmemory-skworld-io) · [cloud9](https://github.com/smilinTux/cloud9-skworld-io) · [skstacks](https://github.com/smilinTux/skstacks-skworld-io) · [skos](https://github.com/smilinTux/skos-skworld-io) · [skvault](https://github.com/smilinTux/skvault-skworld-io) (`skvault.skworld.io`). | `document` their repos. |
 
 ---
 
