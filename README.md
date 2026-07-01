@@ -24,6 +24,13 @@ and a repo disagree, the standard wins (or the standard is wrong and we fix it h
 
 **Templates** (copy into a new repo): [`templates/`](./templates/) — a README and a SOP skeleton.
 
+**Public sites.** Every `<name>-skworld-io` static site (GitHub Pages) SHOULD ship the
+**repo-docs viewer** as a default — a drop-in `docs.html` that renders the source
+repo's `docs/*.md` live, in the SKWorld house style, with a committed
+`docs-manifest.json` as the API-rate-limit fallback. Template + adoption SOP live in
+the sovereign `site-repos/_seo-templates/` (`docs.html.tmpl` + `docs-manifest-gen.py`);
+reference implementation: [skcomms.skworld.io/docs.html](https://skcomms.skworld.io/docs.html).
+
 ---
 
 ## The project graph — wander the ecosystem
