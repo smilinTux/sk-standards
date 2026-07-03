@@ -22,6 +22,7 @@ and a repo disagree, the standard wins (or the standard is wrong and we fix it h
 | [**UNIFIED_INGRESS_STANDARD**](./standards/UNIFIED_INGRESS_STANDARD.md) | The **one public `:443`** rule: `internet → :443 tunnel → reverse proxy (host+path+middleware) → localhost/tailnet backends`. Why a reverse proxy is required for vhosting (Funnel = one hostname + path-only), Tailscale-Funnel vs Cloudflare-Tunnel adapters, Caddy vs Traefik, SKStacks Traefik integration, the **capauth-gate** middleware (federation endpoints public-by-design, everything else gated), + copy-paste reference configs in [`reference/ingress/`](./reference/ingress/). |
 | [**VERSION_LIFECYCLE**](./standards/VERSION_LIFECYCLE.md) | Version phases (Legacy v1 / Active v2 / Incubating v3 / Shared) + SemVer policy. |
 | [**BACKUP_AND_RETENTION_STANDARD**](./standards/BACKUP_AND_RETENTION_STANDARD.md) | How every node backs up **sovereign state**: the **Grandfather-Father-Son** rotation (14 daily / 8 weekly / 12 monthly / 2 yearly + pruner), the **irreplaceable-vs-rebuildable** split (archive flat state, skip the vector index + transient churn), `.sha256` integrity + free-space guard + off-box **3-2-1**, and the **tested restore path incl. index rebuild**. Reference impl: skcapstone `scripts/skcapstone-gfs-backup.sh` + `docs/BACKUP.md`. |
+| [**OBSERVABILITY_AND_SCHEDULING_STANDARD**](./standards/OBSERVABILITY_AND_SCHEDULING_STANDARD.md) | Nothing scheduled fails silently; nothing inbound is lost. Every cron/timer job **wrapped** (run-ledger + failure→GTD + `sk-alert`); external inputs captured through **one `gtd-ingest` sink** (sources-as-adapters, `source_ref`-deduped, one store); **notify-don't-nag** (real-time alerts for failures only + an always-sent **daily ops report**); on-demand `… status` self-report as the evidence. Reference impl: skos `gtd-ingest` + `sk-cron-run` + `sk-status`. |
 
 **Templates** (copy into a new repo): [`templates/`](./templates/) — a README and a SOP skeleton.
 
@@ -127,7 +128,8 @@ flowchart TD
 5. Wire the [`TESTING_AND_CI_STANDARD`](./standards/TESTING_AND_CI_STANDARD.md) gate: TDD where there's logic, shared `vectors/` + **cross-impl parity** check, green-bar release gate, GHA matrix.
 6. Enable GitHub **private vulnerability reporting** + fill `SECURITY.md` (contact + scope + embargo) per [`SECURITY_DISCLOSURE_STANDARD`](./standards/SECURITY_DISCLOSURE_STANDARD.md).
 7. Holds sovereign state? Wire a **GFS backup rotation** + document the tested restore path per [`BACKUP_AND_RETENTION_STANDARD`](./standards/BACKUP_AND_RETENTION_STANDARD.md) (archive the irreplaceable, skip the rebuildable index).
-8. Add the `## Related projects / See also` cross-links and update the project graph above.
+8. Runs scheduled jobs or takes external inputs? **Wrap every job** (run-ledger + failure→GTD + `sk-alert`), capture inputs through the **`gtd-ingest` sink** (`source_ref`-deduped), and ship a **daily ops report** + on-demand `… status` per [`OBSERVABILITY_AND_SCHEDULING_STANDARD`](./standards/OBSERVABILITY_AND_SCHEDULING_STANDARD.md).
+9. Add the `## Related projects / See also` cross-links and update the project graph above.
 
 **The honesty gate** (applies to every release & doc): every quantum-resistance claim
 cites *surface + FIPS # + hybrid-vs-classical*, backed by the self-report. Forbidden

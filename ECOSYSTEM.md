@@ -175,6 +175,8 @@ FFI is a roadmap, not a live edge).
 |---|---|---|
 | ☁️ [**cloud9**](https://github.com/smilinTux/cloud9) | The **emotional-continuity / trust protocol** (FEB / OOF / Cloud 9 state) preserved across AI session resets. | `trust for` skchat. |
 | 🧠 [**skmemory**](https://github.com/smilinTux/skmemory) | Universal **multi-layer agent memory** (git-based flat files + vector search). | `context for` skchat / agents. |
+| 🐧 [**skos**](https://github.com/smilinTux/skos) | The **sovereign agent OS** — ports/adapters foundation + the **`gtd-ingest`** unified-GTD subsystem (every input an adapter → one `capture()` sink; daily digests + `skos status`). | `governs` the [Observability & Scheduling](./standards/OBSERVABILITY_AND_SCHEDULING_STANDARD.md) reference impl; `unifies` GTD across skcapstone (ITIL) / email / calendar / telegram / cron. |
+| 🧩 [**skcapstone**](https://github.com/smilinTux/skcapstone) | The **sovereign agent framework** — coordination board, ITIL ops, GTD tools, scheduler. ITIL is a push adapter on skos `gtd-ingest`. | Reference impl for [Backup](./standards/BACKUP_AND_RETENTION_STANDARD.md); `feeds` skos GTD. |
 
 ### Infrastructure & sites
 | Repo | One line | Relates |
