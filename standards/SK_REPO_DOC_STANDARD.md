@@ -13,6 +13,47 @@
 
 ---
 
+## 0. Core principle — AI-first, then human-readable
+
+Docs are read by **agents before humans**. An AI teammate is usually the first — and
+most frequent — reader: it builds, deploys, debugs, and reasons about the repo straight
+from these files. So **optimise for machine-parseability first, human warmth second** —
+and the two rarely conflict: what an agent can parse deterministically, a human skims
+faster too.
+
+**AI-first means (MUST):**
+- **Deterministic structure.** Canonical section headings in the required order (§2), so
+  a reader locates content *by position* without searching. Same headings, same order,
+  every repo.
+- **Explicit over implicit.** Exact, copy-pasteable commands; absolute file paths; real
+  ports / bind addresses / service DNS names — never "configure it somewhere" or "the
+  usual place." If a value matters, write the value.
+- **Structured facts, prose for rationale.** Facts go in tables, fenced code, and
+  **Symptom → Check** tables (§ Troubleshooting); reserve paragraphs for the *why*. A
+  fact an agent must act on is never buried mid-paragraph.
+- **Machine-readable metadata.** Where a doc carries state, put it in front-matter or a
+  labelled line an agent can grep — `Status:`, `Maturity-tier:`, `Version:`,
+  `Canonical-home:` — not implied by prose.
+- **A `Start here` index.** The Architecture section names the 3–5 entry-point files a
+  reader opens first, each with a one-liner (per [ARCHITECTURE_AND_DATAFLOW_STANDARD.md](./ARCHITECTURE_AND_DATAFLOW_STANDARD.md)).
+  This is the agent's map into the code.
+- **One canonical source, linked — never duplicated.** State each fact once, in its
+  canonical home, and link to it (README-as-hub, §1.5; backlink to `sk-standards`).
+  Duplicated truth drifts; an agent that finds two answers trusts neither.
+- **Evidence inline.** Every claim carries its check — the self-report command, test
+  name, or cited spec (§5 honest-claims). An agent verifies; give it the verifier.
+
+**Then human-readable (MUST):** after the machine-parseable spine, add the narrative a
+human needs — the *why*, the trade-offs, the diagram that makes it click. AI-first is
+**not** "terse and cryptic"; it is "structured, explicit, and evidence-backed" — which
+is also the kindest doc to hand a tired on-call engineer at 2am.
+
+> **Litmus test:** could an agent, given *only* this repo, go build → test → deploy →
+> verify without asking a human a single clarifying question? If not, the doc is
+> under-specified — fix the doc, not the agent.
+
+---
+
 ## 1. The required doc set (every `sk*` repo)
 
 | File | Required | Purpose |
@@ -184,6 +225,7 @@ Copy into the PR description / release checklist:
 
 ```
 Doc set
+[ ] AI-first (§0)      — agent can build→test→deploy→verify from docs alone: deterministic structure, exact commands/paths, structured facts, one canonical source
 [ ] README.md          — purpose + maturity tier in first 5 lines
 [ ] SOP.md             — all 9 sections present (or N/A w/ reason)
 [ ] SOP Architecture   — ≥1 ```mermaid``` diagram renders
