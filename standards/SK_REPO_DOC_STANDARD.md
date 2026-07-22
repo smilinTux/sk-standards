@@ -140,6 +140,17 @@ Every section below is required; omit only with an explicit `N/A — <reason>` l
 ## 5. Release / Deploy
    Services → docker stack / k3d / VM deploy + redeploy + rollback.
    Libraries → "Build + publish" (pub.dev / PyPI), version bump, tag, changelog.
+   Third-party app-store / plugin channels (Nextcloud App Store, browser
+   extension stores, etc.) → a per-repo `PUBLISHING.md` runbook is REQUIRED,
+   documenting the account, code-signing cert, artifact signing, and the store's
+   release API. **Reference implementation:** `capauth` →
+   `src/capauth/integrations/nextcloud/PUBLISHING.md` (live at
+   <https://apps.nextcloud.com/apps/capauth>). Store gotchas that bit us and must
+   be captured up front: (a) the Nextcloud App Store requires an **explicit
+   one-time app-id registration** (`POST /api/v1/apps`, signing the app-id
+   *string*) before the first release POST will accept; (b) never inline the
+   store API token or signing key — source them from the vault and mirror to CI
+   as repo secrets so `tag → auto-publish` works.
 
    **Front-end / Exposure (REQUIRED for any service with a network surface)** —
    per [`UNIFIED_INGRESS_STANDARD.md`](./UNIFIED_INGRESS_STANDARD.md), declare:
