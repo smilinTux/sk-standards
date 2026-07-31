@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/smilinTux/sk-standards/reference/skworld-module/skworld.module.schema.json",
   "title": "SKWorld module manifest (skworld.module.json)",
-  "description": "The canonical cross-repo SKWorld subapp contract, schema v1.1. One capauth-signed manifest per first-class subapp, declaring BOTH facets: the UI facet (rendered by the Dart shell via skworld_module_api) and the operator facet (observed/acted on by Atlas via operator_seat/adapter.py). Required properties reflect what the shipped manifests actually emit (skchat, skcode, skdashboard). The optional blocks (version, embed, theme, presence, notifications, core_modules) are reserved from the umbrella-shell design 5.2 and are NOT emitted by any shipped manifest yet; they are defined here only so a future manifest that adds them still validates. additionalProperties is false: the contract is frozen.",
+  "description": "The canonical cross-repo SKWorld subapp contract, schema v1.2. One capauth-signed manifest per first-class subapp, declaring the UI facet (rendered by the Dart shell via skworld_module_api) and the operator facet (observed/acted on by Atlas via operator_seat/adapter.py). v1.2 adds two OPTIONAL facets that turn a manifest into a pluggable capability pack: install (how the pack installs, as an ordered list of typed steps) and knowledge (the retriever Atlas auto-enables for RAG). v1.2 is a strict superset of v1.1: a v1.1 manifest (schemaVersion 1.1, no install/knowledge) still validates. Required properties reflect what the shipped manifests emit (skchat, skcode, skos, skdashboard). The reserved blocks (version, embed, theme, presence, notifications, core_modules) are from the umbrella-shell design 5.2 and are NOT emitted by any shipped manifest yet; they are defined here only so a future manifest that adds them still validates. additionalProperties is false: the contract is frozen.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -20,9 +20,9 @@
   ],
   "properties": {
     "schemaVersion": {
-      "description": "The sk-standards manifest schema version. Frozen at 1.1 (v1 UI shape + the operator block).",
+      "description": "The sk-standards manifest schema version. 1.1 = v1 UI shape + the operator block. 1.2 = the same, plus the optional install and knowledge facets. A manifest that declares install or knowledge MUST be 1.2 (enforced below); a manifest with neither MAY stay 1.1.",
       "type": "string",
-      "const": "1.1"
+      "enum": ["1.1", "1.2"]
     },
     "id": {
       "description": "Stable module id. Matches the SkworldModule.id in Dart, the skworld://<id>/ deep-link authority, and the shell/Atlas registry key.",
@@ -30,7 +30,7 @@
       "pattern": "^[a-z][a-z0-9_-]*$"
     },
     "name": {
-      "description": "Human-visible module name. Shipped manifests set this to the nav label (Chats, Code, Board).",
+      "description": "Human-visible module name. Shipped manifests set this to the nav label (Chats, Code, OS, Board).",
       "type": "string",
       "minLength": 1
     },
@@ -79,7 +79,7 @@
           "minLength": 1
         },
         "order": {
-          "description": "Sort order among sibling modules; lower sorts earlier. Shipped: skos-ish=10, Chats=20, Code=30, Board=40.",
+          "description": "Sort order among sibling modules; lower sorts earlier. Shipped: OS=10, Chats=20, Code=30, Board=40.",
           "type": "integer"
         },
         "label": {
@@ -174,6 +174,229 @@
       }
     },
 
+    "install": {
+      "description": "OPTIONAL (schema v1.2). The install facet: how this manifest, treated as a pluggable capability pack, activates its capability on a node. Consumed exactly once per node by the skos planner/provisioner (never by Atlas). Steps run in order, each with idempotent done/pending/failed check semantics; re-running is safe. Present only when the manifest packages a capability; a plain first-class subapp omits it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["steps"],
+      "properties": {
+        "requires": {
+          "description": "The gate the planner checks before running any step: node capabilities that must be present and package version floors that must be met.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "capabilities": {
+              "description": "Node capability names that must be installed (skos capability catalog ids, e.g. skmem-pg).",
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "packages": {
+              "description": "Map of package name to a version constraint the node must satisfy (e.g. {\"skcapstone\": \">=0.16\"}).",
+              "type": "object",
+              "additionalProperties": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "steps": {
+          "description": "The ordered install steps. Each is one of the typed step kinds below. The provisioner executes them top to bottom and records per-step state in installed.json.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["kind"],
+            "oneOf": [
+              {
+                "description": "sql_migration: apply an idempotent SQL script to a named database, optionally taking a pg_dump first and running a verify query after. The provisioner fails the step if verify does not pass.",
+                "additionalProperties": false,
+                "required": ["kind", "db", "script"],
+                "properties": {
+                  "kind": { "const": "sql_migration" },
+                  "db": {
+                    "description": "Target database capability (e.g. skmem-pg).",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "script": {
+                    "description": "Package-qualified path to the migration script (\"<package>:<repo-relative-path>\", e.g. skmemory:deploy/skmem-pg/03-ops-namespace.sql). Resolved from the package's installed data or repo checkout.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "pre_dump": {
+                    "description": "When true, take a pg_dump of the target DB before applying (live-node safety). Fresh first-boot init sets this false.",
+                    "type": "boolean"
+                  },
+                  "verify": {
+                    "description": "Package-qualified path to a verify query the provisioner runs after apply; a mismatch fails the step.",
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "description": "db_roles: create login roles and bind them to the migration's NOLOGIN group roles, with passwords sourced from skvault. Closes the \"bind roles out-of-band\" hole with a defined credential convention.",
+                "additionalProperties": false,
+                "required": ["kind", "logins", "password_source"],
+                "properties": {
+                  "kind": { "const": "db_roles" },
+                  "db": {
+                    "description": "Target database capability the roles live in (e.g. skmem-pg).",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "logins": {
+                    "description": "Map of login role name to the NOLOGIN group role it is GRANTed (e.g. {\"skbrain_projector\": \"skbrain_ops_rw\"}). Login roles are created if missing.",
+                    "type": "object",
+                    "minProperties": 1,
+                    "additionalProperties": { "type": "string", "minLength": 1 }
+                  },
+                  "password_source": {
+                    "description": "Where the provisioner reads (or creates on first install) each login's password. Only skvault is defined today.",
+                    "type": "string",
+                    "enum": ["skvault"]
+                  },
+                  "vault_entries": {
+                    "description": "Optional map of login role name to its skvault entry name (e.g. {\"skbrain_projector\": \"SKBRAIN_PG_PROJECTOR_PW\"}). When omitted, the provisioner derives a stable entry name by convention.",
+                    "type": "object",
+                    "additionalProperties": { "type": "string", "minLength": 1 }
+                  },
+                  "env_drop_in": {
+                    "description": "Optional path to the environment.d drop-in the provisioner writes the DSNs/passwords into (e.g. ~/.config/environment.d/skbrain.conf).",
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "description": "content_repo: clone a git repo to serve as the pack's canon content. Clones if absent, verifies a marker file, never touches an existing checkout.",
+                "additionalProperties": false,
+                "required": ["kind", "name", "dest"],
+                "properties": {
+                  "kind": { "const": "content_repo" },
+                  "name": {
+                    "description": "Logical repo name (e.g. skbrain-ops).",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "dest": {
+                    "description": "Clone destination path on the node (e.g. ~/clawd/skbrain-ops).",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "remotes": {
+                    "description": "Optional list of git remote URLs to clone from (first reachable wins). When omitted, remotes are resolved from the named repo's own configuration.",
+                    "type": "array",
+                    "items": { "type": "string", "minLength": 1 }
+                  },
+                  "private": {
+                    "description": "Whether the repo is private (the provisioner uses the operator's git credentials rather than anonymous clone).",
+                    "type": "boolean"
+                  },
+                  "marker": {
+                    "description": "A file whose presence in the checkout confirms the clone is the expected content repo (e.g. CLAUDE.md).",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "syncthing": {
+                    "description": "When true, the provisioner PRINTS (never auto-applies) the Syncthing share instruction for this checkout.",
+                    "type": "boolean"
+                  }
+                }
+              },
+              {
+                "description": "seed: run an idempotent seed command. Create-or-skip semantics are the command's own responsibility. defer_ok records the step as pending (not failed) when the command does not exist yet.",
+                "additionalProperties": false,
+                "required": ["kind", "cmd"],
+                "properties": {
+                  "kind": { "const": "seed" },
+                  "cmd": {
+                    "description": "The seed command as an argv array (e.g. [\"skoperator\", \"kedb-seed\"]).",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": { "type": "string", "minLength": 1 }
+                  },
+                  "defer_ok": {
+                    "description": "When true, a missing command records the step as pending instead of failing (how a pack ships before a dependency lands).",
+                    "type": "boolean"
+                  }
+                }
+              },
+              {
+                "description": "fleet_objects: write per-node service/cron object specs into the fleet store as the human operator role (single-writer-per-file preserved). Existing objects are diffed, never blind-overwritten.",
+                "additionalProperties": false,
+                "required": ["kind", "objects"],
+                "properties": {
+                  "kind": { "const": "fleet_objects" },
+                  "objects": {
+                    "description": "Pack-relative paths to the fleet object spec templates to install (e.g. cronjob/skbrain-sync.json).",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": { "type": "string", "minLength": 1 }
+                  }
+                }
+              },
+              {
+                "description": "doctor: register a doctor check family so skcapstone doctor and skos status cover the pack from the first run.",
+                "additionalProperties": false,
+                "required": ["kind", "checks"],
+                "properties": {
+                  "kind": { "const": "doctor" },
+                  "checks": {
+                    "description": "The doctor check ids this pack registers (e.g. skbrain:schema, skbrain:grants).",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+
+    "knowledge": {
+      "description": "OPTIONAL (schema v1.2). The knowledge facet: WHERE this pack's retrievable knowledge lives, so the operator seat can auto-enable RAG enrichment when its capability probe passes. Consumed by the operator seat at bootstrap and by the dashboard's knowledge tab. It declares retrieval only, never policy: knowledge is not authority (the constitutional carve-out holds).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace", "search_fn", "retriever"],
+      "properties": {
+        "namespace": {
+          "description": "The skmem-pg schema/namespace the pack's content lives in (e.g. ops). The seat's probe checks information_schema.schemata for this before enabling the retriever.",
+          "type": "string",
+          "minLength": 1
+        },
+        "search_fn": {
+          "description": "The schema-qualified hybrid-search function name the retriever calls (e.g. ops.hybrid_search_ops).",
+          "type": "string",
+          "minLength": 1
+        },
+        "retriever": {
+          "description": "The <module>:<callable> that builds the retriever object (e.g. skos.skbrain.read_api:build_retriever). Imported by the seat when the probe passes.",
+          "type": "string",
+          "minLength": 1
+        },
+        "reader_role": {
+          "description": "The read-only database role the seat connects as to probe and to retrieve (e.g. skbrain_ops_ro). Scopes retrieval to a role that cannot mutate the namespace.",
+          "type": "string",
+          "minLength": 1
+        },
+        "graph": {
+          "description": "Optional AGE graph name exposing the pack's knowledge graph (e.g. ops_brain).",
+          "type": "string",
+          "minLength": 1
+        },
+        "kinds": {
+          "description": "Optional content kinds the namespace holds (e.g. runbook, known-error, postmortem).",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "kedb": {
+          "description": "Optional flag: whether this pack's knowledge feeds the Known-Error Database linkage.",
+          "type": "boolean"
+        }
+      }
+    },
+
     "version": {
       "description": "RESERVED (umbrella 5.2): the subapp's own version. Not emitted by any shipped manifest.",
       "type": "string"
@@ -207,6 +430,11 @@
     {
       "if": { "properties": { "grade": { "const": "B" } } },
       "then": { "properties": { "entry": { "required": ["url"] } } }
+    },
+    {
+      "description": "The install and knowledge facets are v1.2 features: a manifest that declares either MUST set schemaVersion to 1.2.",
+      "if": { "anyOf": [{ "required": ["install"] }, { "required": ["knowledge"] }] },
+      "then": { "properties": { "schemaVersion": { "const": "1.2" } } }
     }
   ]
 }
