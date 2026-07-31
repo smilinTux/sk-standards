@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/smilinTux/sk-standards/reference/skworld-module/skworld.module.schema.json",
+  "title": "SKWorld module manifest (skworld.module.json)",
+  "description": "The canonical cross-repo SKWorld subapp contract, schema v1.1. One capauth-signed manifest per first-class subapp, declaring BOTH facets: the UI facet (rendered by the Dart shell via skworld_module_api) and the operator facet (observed/acted on by Atlas via operator_seat/adapter.py). Required properties reflect what the shipped manifests actually emit (skchat, skcode, skdashboard). The optional blocks (version, embed, theme, presence, notifications, core_modules) are reserved from the umbrella-shell design 5.2 and are NOT emitted by any shipped manifest yet; they are defined here only so a future manifest that adds them still validates. additionalProperties is false: the contract is frozen.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "grade",
+    "entry",
+    "nav",
+    "deeplinkPrefix",
+    "auth",
+    "memory",
+    "health",
+    "operator"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "description": "The sk-standards manifest schema version. Frozen at 1.1 (v1 UI shape + the operator block).",
+      "type": "string",
+      "const": "1.1"
+    },
+    "id": {
+      "description": "Stable module id. Matches the SkworldModule.id in Dart, the skworld://<id>/ deep-link authority, and the shell/Atlas registry key.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "name": {
+      "description": "Human-visible module name. Shipped manifests set this to the nav label (Chats, Code, Board).",
+      "type": "string",
+      "minLength": 1
+    },
+    "grade": {
+      "description": "UI composition grade. A = native in-process Flutter module (entry.flutter_package). B = web embed (entry.url). A grade promotion is a manifest edit plus a package, never a contract change.",
+      "type": "string",
+      "enum": ["A", "B"]
+    },
+    "entry": {
+      "description": "How the shell mounts the module. Grade A supplies flutter_package; Grade B supplies url.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "description": "Grade B: the web surface the shell embeds (built origin-relative by the serving daemon, e.g. http://<host>:9394/app).",
+          "type": "string"
+        },
+        "flutter_package": {
+          "description": "Grade A: the Flutter package the shell mounts in-process. Workspace form is {path, package} (shipped); a promoted-to-own-repo form is {git, ref, package}.",
+          "type": "object",
+          "required": ["package"],
+          "additionalProperties": false,
+          "properties": {
+            "package": { "type": "string", "minLength": 1 },
+            "path": { "type": "string" },
+            "git": { "type": "string" },
+            "ref": { "type": "string" }
+          },
+          "anyOf": [
+            { "required": ["path"] },
+            { "required": ["git", "ref"] }
+          ]
+        }
+      },
+      "minProperties": 1
+    },
+    "nav": {
+      "description": "Primary-navigation placement metadata. Mirrors the Dart ModuleNav value type.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["icon", "order", "label"],
+      "properties": {
+        "icon": {
+          "description": "Design-system icon token name (resolved against the sk-design-system icon set), never a URL.",
+          "type": "string",
+          "minLength": 1
+        },
+        "order": {
+          "description": "Sort order among sibling modules; lower sorts earlier. Shipped: skos-ish=10, Chats=20, Code=30, Board=40.",
+          "type": "integer"
+        },
+        "label": {
+          "description": "Human-visible destination label.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "deeplinkPrefix": {
+      "description": "The skworld://<id>/ deep-link prefix this module answers to. NOTE: shipped manifests use camelCase deeplinkPrefix; the umbrella-shell design 5.2 text wrote deeplink_prefix (snake_case). The shipped camelCase spelling is canonical here.",
+      "type": "string",
+      "pattern": "^skworld://[a-z][a-z0-9_-]*/$"
+    },
+    "auth": {
+      "description": "The audience-scoped token contract. The shell mints a short-lived token for this audience with a subset of these scopes; enforcement stays a downstream capauth.authz.decide call.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["audience", "scopes"],
+      "properties": {
+        "audience": {
+          "description": "The token audience minted for this module. Matches AuthContext.audience in Dart.",
+          "type": "string",
+          "minLength": 1
+        },
+        "scopes": {
+          "description": "The full set of capability scopes the module may be granted (the shell mints a subset).",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "memory": {
+      "description": "Whether the module opts into skmemory, and its scope when it does.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["opt_in"],
+      "properties": {
+        "opt_in": { "type": "boolean" },
+        "scope": {
+          "description": "The memory scope, present only when opt_in is true.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "if": { "properties": { "opt_in": { "const": true } } },
+      "then": { "required": ["scope"] }
+    },
+    "health": {
+      "description": "The health endpoint (path or absolute URL). Shipped daemons build it origin-relative to the serving request (e.g. <base>/health, <base>/api/v1/hosts/self, <base>/api/status).",
+      "type": "string",
+      "minLength": 1
+    },
+    "operator": {
+      "description": "The operator facet: what Atlas (operator_seat) observes and may act on. Its condition list MUST equal the app's Atlas adapter CONDITIONS (a drift-guard test asserts this per app). proposedStandardActions is a PROPOSAL ONLY; ratification is human-only in the fleet Operatorapp object's ratifiedStandardActions.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contractVersion",
+        "cli",
+        "repos",
+        "conditions",
+        "proposedStandardActions"
+      ],
+      "properties": {
+        "contractVersion": {
+          "description": "The operator-facet contract version. Frozen at 1.",
+          "type": "integer",
+          "const": 1
+        },
+        "cli": {
+          "description": "The CLI-first conformance entry point: <cli> explain|observe|act --json.",
+          "type": "string",
+          "minLength": 1
+        },
+        "repos": {
+          "description": "The repos that implement this subapp (for Atlas escalation routing).",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "conditions": {
+          "description": "The condition names Atlas observes (each True/False/Unknown). Same vocabulary the shell's grey-with-a-reason availability can render.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "proposedStandardActions": {
+          "description": "Standard actions the subapp PROPOSES Atlas may auto-apply. A proposal only: human ratification lives in the fleet Operatorapp object.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+
+    "version": {
+      "description": "RESERVED (umbrella 5.2): the subapp's own version. Not emitted by any shipped manifest.",
+      "type": "string"
+    },
+    "embed": {
+      "description": "RESERVED (umbrella 5.2): Grade B postmessage-v1 embed policy (handshake, allowed_origins, sandbox). Not emitted by any shipped manifest yet.",
+      "type": "object"
+    },
+    "theme": {
+      "description": "RESERVED (umbrella 5.2): design-system token binding. Not emitted by any shipped manifest yet.",
+      "type": "object"
+    },
+    "presence": {
+      "description": "RESERVED (umbrella 5.2): presence-plane consume/provide flags. Not emitted by any shipped manifest yet.",
+      "type": "object"
+    },
+    "notifications": {
+      "description": "RESERVED (umbrella 5.2): badge/notify capability flags. Not emitted by any shipped manifest yet.",
+      "type": "object"
+    },
+    "core_modules": {
+      "description": "RESERVED (umbrella 5.2): required Layer-0 core interface versions. Not emitted by any shipped manifest yet.",
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "grade": { "const": "A" } } },
+      "then": { "properties": { "entry": { "required": ["flutter_package"] } } }
+    },
+    {
+      "if": { "properties": { "grade": { "const": "B" } } },
+      "then": { "properties": { "entry": { "required": ["url"] } } }
+    }
+  ]
+}

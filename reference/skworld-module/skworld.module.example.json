@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.1",
+  "id": "skchat",
+  "name": "Chats",
+  "grade": "A",
+  "entry": {
+    "flutter_package": { "path": "packages/skchat_ui", "package": "skchat_ui" }
+  },
+  "nav": { "icon": "chat", "order": 20, "label": "Chats" },
+  "deeplinkPrefix": "skworld://skchat/",
+  "auth": {
+    "audience": "skchat",
+    "scopes": ["chat.read", "chat.send", "calls.join", "spaces.join"]
+  },
+  "memory": { "opt_in": true, "scope": "skchat" },
+  "health": "http://100.86.156.5:9385/health",
+  "operator": {
+    "contractVersion": 1,
+    "cli": "skchat operator",
+    "repos": ["skchat"],
+    "conditions": [
+      "DaemonReady",
+      "BridgeAlive",
+      "OutboxBounded",
+      "AuthEnforced",
+      "CallingReady"
+    ],
+    "proposedStandardActions": ["restart-daemon", "restart-telegram-bridge"]
+  }
+}
