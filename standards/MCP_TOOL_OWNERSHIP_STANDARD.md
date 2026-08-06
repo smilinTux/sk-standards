@@ -44,10 +44,10 @@ distinct names, **13 duplicated** across servers. Owners assigned by domain:
 | `skchat_inbox` | skcapstone, skchat | **skchat** | skcapstone = thin delegate |
 | `skchat_group_create` | skcapstone, skchat | **skchat** | skcapstone = thin delegate |
 | `skchat_group_send` | skcapstone, skchat | **skchat** | skcapstone = thin delegate |
-| `telegram_import` | skcapstone, skmemory | **skcapstone** | skmemory = **drop** (subset; skcapstone owns the full 8-tool telegram surface) |
-| `telegram_import_api` | skcapstone, skmemory | **skcapstone** | skmemory = **drop** |
-| `telegram_setup` | skcapstone, skmemory | **skcapstone** | skmemory = **drop** |
-| `telegram_catchup` | skcapstone, skmemory | **skcapstone** | skmemory = **drop** |
+| `telegram_import` | ~~skcapstone, skmemory~~ | **skcapstone** | skmemory = **DROPPED** (2026-08-06, skmemory `0ec531f`) |
+| `telegram_import_api` | ~~skcapstone, skmemory~~ | **skcapstone** | skmemory = **DROPPED** |
+| `telegram_setup` | ~~skcapstone, skmemory~~ | **skcapstone** | skmemory = **DROPPED** |
+| `telegram_catchup` | ~~skcapstone, skmemory~~ | **skcapstone** | skmemory = **DROPPED** |
 
 **Single-owner clusters (no action, recorded for completeness):**
 - `telegram_send`, `telegram_poll`, `telegram_chats`, `telegram_soul_swap` — skcapstone only (complete the telegram owner set).
@@ -69,11 +69,12 @@ distinct names, **13 duplicated** across servers. Owners assigned by domain:
 The **delegate** rows are already effectively delegates in skcapstone
 (`mcp_tools/memory_tools.py`, `chat_tools.py` call the owning libraries), so they
 are compliant as-is; the standard just fixes the direction so they can never
-re-fork. The **drop** rows (skmemory's 4 telegram tools) are the only behavioral
-change: they are a strict subset of skcapstone's telegram surface, so dropping
-them from skmemory's `list_tools` is safe once any skmemory-only consumer is
-confirmed to reach the skcapstone surface. That drop is a **gated follow-up**
-(one skmemory release), not part of the inventory commit.
+re-fork. The **drop** rows (skmemory's 4 telegram tools) were the only behavioral
+change: they are a strict subset of skcapstone's telegram surface (both call the
+same `skmemory.importers.telegram*` library), and the agents that reach
+skmemory-mcp also have skcapstone-mcp. **DONE 2026-08-06** (skmemory `0ec531f`):
+skmemory's `list_tools`/dispatch dropped the 4 wrappers, importer library
+untouched, surface 25 -> 21, tests green.
 
 ## Compliance checklist (per MCP-exposing repo)
 
