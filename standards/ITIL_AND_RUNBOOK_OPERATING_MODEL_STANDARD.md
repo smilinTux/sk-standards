@@ -244,12 +244,19 @@ flowchart TD
 
 ---
 
-## 5. Change lifecycle + CAB voting (shipped)
+## 5. Change lifecycle + CAB voting (shipped, plus target scheduling + gated deploy)
 
 A change is proposed as an RFC, gated by the CAB, implemented, deployed,
 verified, and closed. Approval and rejection are **pure fold-time derivations**
 from per-agent vote files and the change's own metadata; no writer ever mutates
 the change record to approve or reject it.
+
+The diagrams below carry the shipped `_CHANGE_TRANSITIONS` machine plus a
+target extension: a `scheduled` status and five new event kinds (`pr_link`,
+`validation`, `schedule`, `unschedule`, `window_missed`) from the
+change-management CAB+AI design (`2026-08-13-change-management-cab-ai-arch.md`).
+Target edges and paragraphs are marked inline; nothing marked target exists in
+the code yet (tracked in section 9, D9).
 
 ```mermaid
 stateDiagram-v2
@@ -259,8 +266,12 @@ stateDiagram-v2
     proposed --> rejected: any CAB rejection
     reviewing --> approved
     reviewing --> rejected
-    approved --> implementing
+    approved --> implementing: manual path (unchanged)
     approved --> rejected
+    approved --> scheduled: schedule event, ASAP or a future window (target)
+    scheduled --> approved: unschedule, or window_missed, fail-closed, never fires late (target)
+    scheduled --> rejected: late CAB rejection, the veto still stands (target)
+    scheduled --> implementing: deploy, window arrived (target)
     rejected --> closed
     implementing --> deployed
     implementing --> failed
@@ -278,44 +289,77 @@ stateDiagram-v2
            + risk != high + rollback_plan + no reject vote -> approved
         3. any CAB rejection -> rejected; else any human approval -> approved
     end note
+    note right of scheduled
+        Target: schedule/unschedule/window_missed are event-sourced and
+        fold-derived, conflict-free like every other change event. A missed
+        window never fires late, it demands an explicit re-schedule. The
+        human veto (any CAB rejection) stays live through scheduled, the same
+        as every other pre-deploy state.
+    end note
 ```
 
 The CAB itself is conflict-free: each voter writes its own
 `cab-decisions/<change_id>-<agent>.json`, and the outcome is derived when the
-change is folded.
+change is folded. Scheduling and deploy events are conflict-free the same way:
+each is its own append-only event, and the fold takes the latest valid one.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant Prop as Proposer (agent / operator)
     participant ITIL as ITILManager
+    participant Prep as prepare executor (target)
+    participant Val as validate route (target)
     participant Vote as CAB voters (agents)
     participant Human as human (veto/approve authority)
     participant Fold as fold-time CAB derivation
+    participant Sched as change-deploy-runner (target)
+    participant Deploy as deploy executor (target)
 
     Prop->>ITIL: propose_change(title, change_type, risk, rollback_plan, ...)
     ITIL-->>Prop: chg-* (status folds to "proposed")
     Note over ITIL,Fold: standard change or a valid operator auto-normal folds straight to "approved"
+    Prep->>ITIL: pr_link event: draft PR opened (target)
+    Note over Prep: structurally cannot merge, ever, see "the two AI executors" below
+    Val->>ITIL: validation event: CI verdict on the draft PR head SHA (target)
+    Note over ITIL,Val: passing validation while "proposed" folds status to "reviewing"
     Vote->>ITIL: submit_cab_vote(chg-*, agent, decision)
     Human->>ITIL: submit_cab_vote(chg-*, "human", approved | rejected)
-    Note over Vote,Human: each vote is its own file, Syncthing-safe
+    Note over Vote,Human: each vote is its own file, Syncthing-safe. A PEP binds "agent" to the authenticated subject, so only a verified operator session can write "human" (target)
     Fold->>Fold: get_cab_votes(chg-*)
     Fold-->>Fold: any rejection -> rejected
-    Fold-->>Fold: else any "human" approval -> approved
-    Prop->>ITIL: update_change(chg-*, new_status=implementing)
-    ITIL-->>Prop: publishes itil.change.approved / .deployed, emits implement GTD item
+    Fold-->>Fold: else any "human" approval -> approved, the drafter's own approval vote never counts (target fold guard)
+    Prop->>ITIL: schedule event: window_start/window_end or asap (target)
+    ITIL-->>Prop: status folds to "scheduled"
+    Sched->>ITIL: re-fold every tick, window arrived?
+    Sched-->>ITIL: window_missed event if the window passed undeployed, back to "approved" (target)
+    Sched->>Deploy: window arrived, dispatch (target)
+    Deploy->>Deploy: capauth decide(change.deploy), refuse if acting subject == prepared_by
+    Deploy->>ITIL: update_change(chg-*, new_status=implementing), then "deployed" on success
+    ITIL-->>Prop: publishes itil.change.approved / .scheduled / .deployed, emits implement GTD item
 ```
 
 **Contract.**
 
 - **States** (`ChangeStatus`): `proposed`, `reviewing`, `approved`, `rejected`,
-  `implementing`, `deployed`, `verified`, `failed`, `closed`.
+  `implementing`, `deployed`, `verified`, `failed`, `closed`. Target: a tenth
+  state, `scheduled`, sits between `approved` and `implementing`.
 - **Transitions** (`_CHANGE_TRANSITIONS`, exact): `proposed` to
   `{reviewing, approved, rejected}`; `reviewing` to `{approved, rejected}`;
   `approved` to `{implementing, rejected}`; `rejected` to `{closed}`;
   `implementing` to `{deployed, failed}`; `deployed` to `{verified, failed}`;
   `verified` to `{closed}`; `failed` to `{implementing, closed}`; `closed` is
-  terminal.
+  terminal. Target: `approved` gains `scheduled` as a third destination; a new
+  `scheduled` row goes to `{implementing, approved, rejected}`.
+- **New event kinds (target, append-only, fold-derived, no writer ever
+  mutates the record).** `pr_link`: sets `prepared_pr` and `prepared_by` when
+  the prepare executor finishes a draft PR. `validation`: sets the CI verdict
+  for the draft PR's current head SHA; a pass while status is `proposed`
+  folds status to `reviewing`. `schedule`: valid only from `approved`; sets
+  the deploy window (or ASAP) and folds status to `scheduled`. `unschedule`:
+  folds `scheduled` back to `approved` and clears the window. `window_missed`:
+  appended by the deploy runner when the window passes undeployed; folds back
+  to `approved`, fail-closed, a missed window never fires late.
 - **Change types** (`ChangeType`): `standard`, `normal`, `emergency`.
   `cab_required` is true for everything except `standard`.
 - **Approval derivations** (fold-only, in order): a `standard` change
@@ -324,7 +368,8 @@ sequenceDiagram
   and has no rejection vote (the operator auto-normal tier); otherwise the CAB
   rule applies (any rejection rejects, else at least one `human` approval
   approves). A single `human` rejection always blocks, including the auto-normal
-  tier, preserving the standing human veto.
+  tier, preserving the standing human veto, and (target) that veto stays live
+  through `scheduled` too.
 - **No `emergency` fast-path.** Despite the MCP tool text, there is no
   timeout-based emergency auto-approval in the fold; an emergency change follows
   the CAB path like a normal one (section 9, D3).
@@ -339,6 +384,67 @@ sequenceDiagram
   payload, tagging `auto-normal` only when the class is `normal` and
   `auto_approvable`. Note the vocabulary gap: `policy.py` emits `major`, which is
   not an itil.py `ChangeType` (section 9, D4).
+
+**The two AI executors are not the same code path (target).** Two separately
+gated executors can touch a change ticket, and only one of them can ever
+merge.
+
+- **Prepare** is the existing sandboxed draft bridge (`agentrun_bridge.execute_dispatch`,
+  shipped): sandbox run, twin-gate grade, draft PR. It is structurally
+  incapable of merging, full stop, and that property never changes in any
+  phase. The only wiring gap (target) is a gate carve-out so
+  `agent_run.gate()` allows execute on a change card while its folded status
+  is `proposed` or `reviewing`, because the wired executor can only draft,
+  never implement.
+- **Deploy** is a new, later, separately gated executor (target, Phase 3):
+  the one and only merge authority in the system, and it is state-machine
+  driven, not a button. No surface exposes "deploy now" directly. It fires
+  only from the `change-deploy-runner` scheduler when a change is `scheduled`
+  and its window has arrived, and every dispatch re-checks capauth and the
+  folded record before touching a repository.
+
+**capauth `change.*` capabilities (target).** New rule rows extend the
+capauth PDP so the `agentrun.*` and `change.*` capabilities that the queue
+gate and the CM flow already reference actually exist:
+
+| Capability | Min enrollment | Rationale |
+|---|---|---|
+| `agentrun.queue` | attested | Queue a propose/dry-run run: spends compute as the subject, no real side effect. |
+| `agentrun.execute` | verified | Dispatch a sandboxed run that pushes branches and opens PRs as the subject (act-class). |
+| `change.propose` | attested | Creates a fleet-change record (write-class). |
+| `change.validate` | attested | Runs CI and attaches a verdict (write-class). |
+| `change.cab_vote` | verified | Acts as an identity on the gate that authorizes fleet mutation. |
+| `change.schedule` | verified | Decides when the fleet mutates. |
+| `change.deploy` | verified | Merges and deploys: the widest blast radius in the system. |
+
+The tier gradient is consistent across the whole capauth surface: read stays
+at `tofu`, write sits at `attested`, and anything that acts on the fleet
+(dispatch, vote, schedule, deploy) requires `verified`.
+
+**No-self-approval, three layers (target).** The PDP is deliberately
+identity-fact-based and does not read ticket state, so no-self-approval is
+enforced downstream of it, at three layers:
+
+1. **Vote identity binding.** `submit_cab_vote`'s `agent` field is free text
+   today, so anyone can write `agent="human"`. The fix: the PEP (MCP tool,
+   dashboard route) overwrites `agent` with the authenticated subject's fqid
+   and records it on the vote file; `human` becomes an alias that only the
+   operator seat's verified session can produce.
+2. **The fold guard.** `_fold_change`'s CAB derivation ignores any approval
+   vote whose voter identity equals the change's `prepared_by` (and
+   `created_by` for AI-authored RFCs). A drafter's approval simply does not
+   count; their rejection still does, because a veto is always safe.
+3. **The deploy PEP.** The deploy runner refuses to act when its acting
+   subject equals `prepared_by`, independent of what the fold already
+   filtered.
+
+**The never-auto-merge invariant, refined (target).** The draft bridge's
+structural no-merge property does not change. What changes is the fuller
+statement of the invariant across both executors: never merge without a
+CAB-approved, validated, scheduled, capauth-authorized change record whose
+drafter is not its approver, and (until Phase 3b) a human arm. The draft path
+keeps its structural no-merge; the deploy path is the one and only merge
+authority, and it is a state-machine consumer, not a button.
 
 ---
 
@@ -509,6 +615,7 @@ above). None of the shipped stateDiagrams contradict the transition tables.
 | D6 | `itil.py` `update_problem(create_kedb=True)` | A KEDB entry is spawned whenever `root_cause` is set, regardless of the problem's status; it is **not** gated to the `known_error` status the diagram might imply. | Section 3 notes the decoupling explicitly (the diagram annotates it, does not gate it). |
 | D7 | `cmdb.py` vs skbrain spec 5.3 | `skbrain cmdb reconcile`, the `CmdbDriftBounded` condition, and the wiki CI definition layer are **target** (Sprint 2). `cmdb.py` today has `seed_from_inventory`, incident-health reflection, and `impact_analysis`, but no reconcile and no drift condition. | Section 8 is labelled target; the shipped subset is called out. |
 | D8 | `operator_seat/loop.py` vs skbrain spec 6.1/6.3 | RAG retrieve-before-act and the runbook-edit proposal loop are **target** (Sprint 3). `run_once` today is observe -> brief -> route_brain -> plan -> decide, with no retrieval enrichment and no proposer-to-canon path. | Section 7 is labelled target; section 6 documents the shipped loop as-is. |
+| D9 | `itil.py` `_CHANGE_TRANSITIONS`/`_fold_change` vs the change-management CAB+AI design (`2026-08-13-change-management-cab-ai-arch.md`) | Section 5's `scheduled` status, its five new event kinds (`pr_link`, `validation`, `schedule`, `unschedule`, `window_missed`), the two-executor split (prepare vs deploy), the `change.*` capauth capabilities, and the three-layer no-self-approval guard are all **target**. Only the shipped `_CHANGE_TRANSITIONS`/`_fold_change` machine (states through `closed`, the existing CAB fold) exists in code today. | Section 5 marks every target edge and paragraph inline so the diagrams stay honest while the standard and the code diverge. Phase 1 (ticket model, capauth rows, vote identity binding) lands first; Phase 2 wires prepare/validate; Phase 3 adds the gated deploy executor, with `deploy_mode=auto` gated further to Phase 3b. This entry retires once the phases ship and section 5's "target" labels come off. |
 
 ---
 
