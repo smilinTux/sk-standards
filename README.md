@@ -136,6 +136,17 @@ flowchart TD
 8. Runs scheduled jobs or takes external inputs? **Wrap every job** (run-ledger + failure→GTD + `sk-alert`), capture inputs through the **`gtd-ingest` sink** (`source_ref`-deduped), and ship a **daily ops report** + on-demand `… status` per [`OBSERVABILITY_AND_SCHEDULING_STANDARD`](./standards/OBSERVABILITY_AND_SCHEDULING_STANDARD.md).
 9. Add the `## Related projects / See also` cross-links and update the project graph above.
 
+**This repo, held to its own standard.** `sk-standards` hosts the `docs-check` gate, so
+it runs it against itself: `.github/workflows/docs-check-self.yml` calls the reusable
+workflow by its local path on every push and pull request. The required doc set lives at
+the root: [SOP.md](./SOP.md) (operational source of truth, with a 12-check
+`docs-evidence` block) · [SECURITY.md](./SECURITY.md) (threat model, disclosure, and an
+honest account of the supply-chain surface a repo whose CI runs inside other repos'
+CI actually has) · [CONTRIBUTING.md](./CONTRIBUTING.md) ·
+[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) · [CHANGELOG.md](./CHANGELOG.md) ·
+[LICENSE](./LICENSE). Maturity tier: **T0 - N/A (no key material)**; this repo governs
+the crypto standards, it does not implement them.
+
 **The honesty gate** (applies to every release & doc): every quantum-resistance claim
 cites *surface + FIPS # + hybrid-vs-classical*, backed by the self-report. Forbidden
 words: "quantum-proof" / "unbreakable" / "quantum-safe". Say **"post-quantum"** /

@@ -1,0 +1,24 @@
+name: ci-gate-check-self
+
+# The sibling of docs-check-self, for the same reason.
+#
+# `.github/workflows/ci-gate-check.yml` is the TESTING_AND_CI_STANDARD section 6
+# gate, and like docs-check.yml it declares `on: workflow_call:` and nothing else,
+# so it never runs against the repo that hosts it. A gate nobody runs on itself is
+# the shape section 6 exists to catch.
+#
+# `uses: ./` calls the reusable workflow in THIS repository, resolved against the
+# caller's own commit, so a PR that changes the gate is audited by the changed gate.
+#
+# Green on day one: `python3 scripts/ci_gate_check.py audit --repo .` returned
+# "clean (section 6 structural rules)" against this tree on 2026-08-14, which is
+# why soft-fail is not set. Never land a gate red.
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  ci-gates:
+    uses: ./.github/workflows/ci-gate-check.yml
