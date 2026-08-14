@@ -16,15 +16,19 @@
 # Usage:
 #   ./audit-service-units.sh              # this host, both scopes
 #   ./audit-service-units.sh --quiet      # only the summary line
+#   ./audit-service-units.sh --system-only # node genuinely has no user scope
 set -uo pipefail
 
-QUIET=0
-case "${1:-}" in
-  --quiet) QUIET=1 ;;
-  -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
-  "") ;;
-  *) echo "unknown arg: $1" >&2; exit 2 ;;
-esac
+QUIET=0; SYSTEM_ONLY=0
+for a in "$@"; do
+  case "$a" in
+    --quiet) QUIET=1 ;;
+    --system-only) SYSTEM_ONLY=1 ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    "") ;;
+    *) echo "unknown arg: $a" >&2; exit 2 ;;
+  esac
+done
 
 command -v systemctl >/dev/null 2>&1 || { echo "systemctl not found" >&2; exit 2; }
 
@@ -82,7 +86,19 @@ audit_scope() {
       done
 }
 
-out=$( { audit_scope "" "system"; [ -n "${XDG_RUNTIME_DIR:-}" ] && audit_scope "--user" "user"; } 2>/dev/null )
+# User scope is where most SK units live, so a run that cannot see it is NOT a
+# clean run. cron/systemd start with no XDG_RUNTIME_DIR, so derive it; if it
+# still is not reachable, say so loudly and fail rather than reporting green on
+# a partial sweep. A check that silently narrows itself is worse than no check.
+user_scope_ok=0
+if [ -z "${XDG_RUNTIME_DIR:-}" ] && [ -d "/run/user/$(id -u)" ]; then
+  export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+fi
+if [ -n "${XDG_RUNTIME_DIR:-}" ] && systemctl --user show-environment >/dev/null 2>&1; then
+  user_scope_ok=1
+fi
+
+out=$( { audit_scope "" "system"; [ "$user_scope_ok" -eq 1 ] && audit_scope "--user" "user"; } 2>/dev/null )
 
 checked=$(printf '%s\n' "$out" | grep -c '^COUNT$' || true)
 while IFS='|' read -r kind label unit detail; do
@@ -92,5 +108,16 @@ while IFS='|' read -r kind label unit detail; do
   esac
 done < <(printf '%s\n' "$out" | grep -E '^(EXPOSED|MITIGATED)\|' || true)
 
-printf '%s: checked=%d exposed=%d mitigated=%d\n' "$(hostname)" "$checked" "$exposed" "$mitigated"
+if [ "$user_scope_ok" -eq 1 ]; then
+  printf '%s: checked=%d exposed=%d mitigated=%d\n' "$(hostname)" "$checked" "$exposed" "$mitigated"
+elif [ "$SYSTEM_ONLY" -eq 1 ]; then
+  # Declared intent: this node has no user scope (hypervisor, appliance, root-only).
+  printf '%s: checked=%d exposed=%d mitigated=%d SCOPE=system-only(declared)\n' "$(hostname)" "$checked" "$exposed" "$mitigated"
+else
+  printf '%s: checked=%d exposed=%d mitigated=%d SCOPE=system-only\n' "$(hostname)" "$checked" "$exposed" "$mitigated"
+  printf 'WARN: user scope NOT audited (no reachable XDG_RUNTIME_DIR / user manager).\n' >&2
+  printf 'WARN: most SK units are user units, so this result is PARTIAL, not clean.\n' >&2
+  printf 'WARN: pass --system-only if this node genuinely has no user scope.\n' >&2
+  exit 1
+fi
 [ "$exposed" -eq 0 ]
