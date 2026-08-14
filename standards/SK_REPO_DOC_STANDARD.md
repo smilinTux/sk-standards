@@ -54,6 +54,12 @@ is also the kindest doc to hand a tired on-call engineer at 2am.
 
 ---
 
+> **Keeping this true over time:** this standard says what the docs must
+> CONTAIN. [`DOCS_FRESHNESS_STANDARD`](./DOCS_FRESHNESS_STANDARD.md) says how they
+> stay TRUE: the `docs-check` gate, and the `docs-evidence` block that makes an
+> `SOP.md` execute its own claims. Without it, compliance decays and gets re-run
+> as a periodic migration.
+
 ## 1. The required doc set (every `sk*` repo)
 
 | File | Required | Purpose |

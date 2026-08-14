@@ -1,0 +1,102 @@
+name: docs-check
+
+# The DOCS_FRESHNESS_STANDARD gate, as a REUSABLE workflow.
+#
+# Repos call it rather than copy it:
+#
+#   jobs:
+#     docs:
+#       uses: smilinTux/sk-standards/.github/workflows/docs-check.yml@main
+#
+# One canonical source. Thirty copies drift, which is the exact trap the standard
+# exists to close.
+#
+# Tiers (see standards/DOCS_FRESHNESS_STANDARD.md):
+#   1 presence  - the 7 required docs exist
+#   2 changelog - a PR touching src/** or pyproject.toml also touches CHANGELOG.md
+#   3 evidence  - every check in SOP.md's docs-evidence block still exits 0
+#
+# Tier 3 is the one that matters. Tiers 1 and 2 catch a MISSING doc; tier 3 catches
+# a doc that is present, confident, and wrong, which is the case that hurts because
+# it is trusted.
+
+on:
+  workflow_call:
+    inputs:
+      tiers:
+        description: "Comma-separated tiers to enforce, e.g. '1,2' while adopting."
+        type: string
+        default: "1,2,3"
+      standards-ref:
+        description: "Ref of sk-standards to take the validator from."
+        type: string
+        default: "main"
+
+permissions:
+  contents: read
+
+jobs:
+  docs-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo under test
+        uses: actions/checkout@v4
+        with:
+          # Full history so the changed-file diff against the base ref works.
+          fetch-depth: 0
+
+      - name: Fetch the validator from sk-standards
+        uses: actions/checkout@v4
+        with:
+          repository: smilinTux/sk-standards
+          ref: ${{ inputs.standards-ref }}
+          path: .sk-standards
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Collect changed files (pull requests only)
+        id: changed
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${{ github.base_ref }}" --depth=50 || true
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" > /tmp/changed.txt || true
+          echo "count=$(wc -l < /tmp/changed.txt)" >> "$GITHUB_OUTPUT"
+          cat /tmp/changed.txt
+
+      - name: Honour the changelog escape hatch
+        id: hatch
+        if: github.event_name == 'pull_request'
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          set -euo pipefail
+          used=no
+          case "$TITLE" in *"[skip-changelog]"*) used=yes ;; esac
+          case ",$LABELS," in *",docs-exempt,"*) used=yes ;; esac
+          echo "used=$used" >> "$GITHUB_OUTPUT"
+          # Log it. An unlogged escape hatch becomes the default path within a
+          # quarter, and then the gate is decorative.
+          if [ "$used" = "yes" ]; then
+            echo "::warning title=changelog check waived::PR '$TITLE' waived the CHANGELOG requirement (labels: $LABELS)"
+          fi
+
+      - name: Run docs-check
+        run: |
+          set -euo pipefail
+          ARGS=""
+          for t in $(echo "${{ inputs.tiers }}" | tr ',' ' '); do ARGS="$ARGS --tier $t"; done
+          if [ -f /tmp/changed.txt ] && [ "${{ steps.hatch.outputs.used }}" != "yes" ]; then
+            ARGS="$ARGS --changed-files /tmp/changed.txt"
+          fi
+          python .sk-standards/scripts/docs_check.py --repo . $ARGS
+
+      - name: Prove the gate can fail (negative control)
+        # A gate that passes everything is worth no more than one that never ran.
+        # Cheap, hermetic, and it runs every time so the checker cannot silently
+        # rot into a no-op.
+        run: python .sk-standards/scripts/docs_check.py --self-test
