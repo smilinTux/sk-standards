@@ -309,6 +309,12 @@ with two properties that are not optional:
 - **Report stale separately from live** (§6.2), or the monitor manufactures its own
   false positives and burns its own credibility.
 
+**An alert with no runbook is a notification.** What to do when it fires, including
+the fact that **exit 2 (the sweep could not run) is as serious as exit 1**, is in
+[`reference/scheduling/ci-gate-health-runbook.md`](../reference/scheduling/ci-gate-health-runbook.md).
+While exit 2 persists there is no coverage at all, and the channel is quiet for the
+wrong reason.
+
 Reference implementation: [`scripts/ci_gate_check.py`](../scripts/ci_gate_check.py)
 `sweep`, run every 6h as a wrapped scheduled job. Reference job definition:
 [`reference/scheduling/ci-gate-health.yaml`](../reference/scheduling/ci-gate-health.yaml),
