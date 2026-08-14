@@ -52,9 +52,23 @@ DEFAULT_STATE = Path.home() / ".skcapstone" / "state" / "ci-gate-health.json"
 
 # ---------------------------------------------------------------- helpers --
 
+# Absolute fallbacks first, then PATH. A scheduler's PATH is minimal and often
+# excludes /home/linuxbrew/... entirely, so resolving by PATH alone is how a job
+# that works in a shell silently never runs from cron (see
+# OBSERVABILITY_AND_SCHEDULING_STANDARD; sk-alert was unreachable this exact way).
+GH_CANDIDATES = ("/usr/bin/gh", "/usr/local/bin/gh", "/home/linuxbrew/.linuxbrew/bin/gh")
+
+
+def _gh_exe() -> str | None:
+    for cand in GH_CANDIDATES:
+        if Path(cand).is_file():
+            return cand
+    return shutil.which("gh")
+
+
 def gh(args: list[str]) -> object | None:
     """Run gh and parse JSON. None on any failure; never raises."""
-    exe = shutil.which("gh")
+    exe = _gh_exe()
     if not exe:
         return None
     try:
@@ -127,7 +141,12 @@ def is_stale(owner: str, repo: str, run: dict) -> bool:
 
 
 def sweep(owner: str, repos: list[str], state_path: Path) -> int:
-    if gh(["api", "user", "--jq", ".login"]) is None:
+    # `gh api user` returns an OBJECT. An earlier version probed with
+    # `--jq .login`, which prints a BARE unquoted string: json.loads then throws,
+    # the probe reads as "unauthenticated", and sweep exited 2 every single run.
+    # It failed closed and loudly, which is the design working, but a monitor that
+    # can never run is not a green monitor (TESTING_AND_CI §6.1 rule 6).
+    if gh(["api", "user"]) is None:
         print("ci_gate_check: gh missing or unauthenticated; sweep could not run",
               file=sys.stderr)
         return 2
@@ -321,8 +340,36 @@ def self_test() -> int:
         else:
             print("  FAIL: duplicate key NOT caught"); ok = False
 
+    # 5. The gh() JSON contract. The sweep preflight is a live-network call, so it
+    #    cannot be exercised hermetically; what CAN be pinned is the shape it
+    #    depends on. A `--jq .login` probe returns a BARE string, which json.loads
+    #    rejects, so the preflight reported "unauthenticated" on a perfectly
+    #    authenticated host and sweep exited 2 on every run. Pin the rule that
+    #    broke it: gh() only ever accepts JSON, so callers must request an object.
+    if json_is_object('{"login":"x"}') and not json_is_object("x"):
+        print("  ok: gh() JSON contract (bare --jq output is not valid JSON)")
+    else:
+        print("  FAIL: gh() JSON contract wrong"); ok = False
+
+    # 6. gh must resolve without relying on PATH (scheduler PATH is minimal).
+    if _gh_exe() is None:
+        print("  ok: gh absent here, resolver returned None rather than guessing")
+    elif Path(_gh_exe()).is_absolute():
+        print(f"  ok: gh resolved to an absolute path ({_gh_exe()})")
+    else:
+        print("  FAIL: gh resolved to a relative path"); ok = False
+
     print("self-test:", "PASS" if ok else "FAIL")
     return 0 if ok else 1
+
+
+def json_is_object(text: str) -> bool:
+    """True if text parses as JSON. Used by the self-test to pin gh()'s contract."""
+    try:
+        json.loads(text)
+        return True
+    except json.JSONDecodeError:
+        return False
 
 
 # ------------------------------------------------------------------- main --
