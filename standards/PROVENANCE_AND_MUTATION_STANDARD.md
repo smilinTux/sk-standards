@@ -1,8 +1,9 @@
 # Provenance & Mutation Standard (the Signed Provenance Envelope)
 
-**Status:** proposed
+**Status:** ACTIVE (ratified 2026-08-14, card `deee308b`)
 **Date:** 2026-08-14
 **Author:** Fable (claude-fable-5)
+**Ratified by:** Chef, on the evidence of the P1/P2/P3 implementations below
 **Extends:** [CRYPTOGRAPHY_STANDARD](./CRYPTOGRAPHY_STANDARD.md), [CRYPTO_AGILITY_STANDARD](./CRYPTO_AGILITY_STANDARD.md), `SKWORLD_AUTHORIZATION_STANDARD`, [OBSERVABILITY_AND_SCHEDULING_STANDARD](./OBSERVABILITY_AND_SCHEDULING_STANDARD.md)
 
 ---
@@ -55,12 +56,12 @@ Every mutation record MUST carry, embedded in the store's own native record
 | `actor.id` | string | MUST | The authenticated identity of the writer, from `capauth.resolve_agent_identity()`: the `capauth_uri` (wire form, `capauth:<agent>@skworld.io`) or the sovereign FQID. NEVER free text, NEVER a magic string like `"human"` or `"operator"` typed by a caller. |
 | `actor.role` | string | MUST | One of the fleet writer roles (`operator`, `agent`, `scheduler`, `controller`, `human`), aligned with `skcapstone/src/skcapstone/fleet/store.py:24-42` (`Writer`). |
 | `actor.node` | string | MUST | Hostname of the writing process. |
-| `actor.session` | string | SHOULD | Session identifier (Claude session id, run id, tty). Lets a self-correcting agent find its OWN recent mutations fast. |
+| `actor.session` | string | SHOULD | Session identifier. Lets a self-correcting agent find its OWN recent mutations fast. **RESOLVED (open question 1):** the shape is `<source>:<id>`, source-prefixed so it is self-describing and collision-free across writer kinds: `claude:session_01Nuc...` (harness session), `cron:<job>@<YYYY-MM-DD>` (matching the run-ledger key sk-cron-run already emits), `run:<uuid>` (autopilot/agent-run), `tty:<host>/<pid>` (a human at a shell). Unknown source is `unknown:<id>`, never a bare id: an unprefixed identifier cannot be told apart from another kind's, and a provenance field you cannot disambiguate is one you cannot query. |
 | `ts` | string | MUST | RFC 3339 UTC timestamp. |
 | `action` | string | MUST | A verb from the store's REGISTERED action set (see §3). An unregistered verb is rejected, not folded. |
 | `target` | object | MUST | `{store, kind, id}`. The writer MUST have resolved the target to an exact id and validated it exists in the store's catalog BEFORE emitting the event (§4). |
 | `prior` | string | SHOULD | Reference to the state the writer observed before mutating: the last event id/seq it folded, or a content hash of the prior state. This is the stale-plan binding (unified-consent-plane §3.2): a mutation against a state that no longer exists is detectable. |
-| `sig.suite_id` | string | MUST when signed | Self-describing signature suite id from the `skcomms.crypto_suites` registry (`ed25519-v1`, `mldsa65-ed25519-v2`, ...). A signature with no suite id is the "hardcoded primitive" anti-pattern (CRYPTO_AGILITY §4) and is non-compliant. |
+| `sig.suite_id` | string | MUST when signed | Self-describing signature suite id from the `skcomms.crypto_suites` registry (`ed25519-v1`, `mldsa65-ed25519-v2`, ...). A signature with no suite id is the "hardcoded primitive" anti-pattern (CRYPTO_AGILITY §4) and is non-compliant. **RESOLVED (open question 4):** the fleet suite is **`ed25519-v1`**, the registry's `DEFAULT_SIG_SUITE`, because capauth's PGP backend signs with the identity key and every SKWorld identity key is EdDSA/Ed25519. It is read from the registry, never re-declared: an id that is merely *descriptive* (`capauth-pgp-ed25519-v1` was the first attempt) is still the hardcoded-primitive anti-pattern, because nothing owns the name. It moves when the keys move to a PQ suite. |
 | `sig.value` | string / null | MUST (slot) | Detached signature over the canonical bytes of the record with the `sig.value` slot blanked, exactly the `canonical_bytes` construction in `skcapstone/src/skcapstone/fleet/signing.py:31-42`. `null` is a legal value in `off`/`permissive` modes; the SLOT itself is mandatory from day one so enforcement is a flip, not a migration. |
 
 Rules:
@@ -173,11 +174,13 @@ A mutation is emitted only after the writer has:
 - **The honest-claim gate applies to provenance.** Documentation, docstrings,
   and self-reports MUST NOT describe a record as "signed", "verified", or
   "auditable" unless a wired verify path enforces it. The live
-  counter-example: `fleet_act`'s docstring claims it records "a SIGNED entry"
-  (`operator_seat/fleet_adapter.py:156-157`) while the writer's `signature` is
-  `null` on disk (verified live on `objects/service/skgateway.json`). Same
-  rule as the crypto honest-claim gate: say what is enforced, not what is
-  intended.
+  counter-example this standard was written against: `fleet_act`'s docstring
+  claimed it records "a SIGNED entry" (`operator_seat/fleet_adapter.py`) while
+  the writer's `signature` was `null` on disk (verified live on
+  `objects/service/skgateway.json`). **Corrected 2026-08-14** (skcapstone
+  #117): the docstring now says where the signature actually lives, the entry
+  never having been signed itself. Same rule as the crypto honest-claim gate:
+  say what is enforced, not what is intended.
 
 ## 6. Named anti-patterns (do not ship these)
 
@@ -196,6 +199,19 @@ A mutation is emitted only after the writer has:
 
 The three stores do the SAME job at three maturity levels. This table is the
 gap analysis the epic closes; re-verify it when adopting.
+
+> **Post-ratification note (2026-08-14, same day).** The GTD column below is
+> the state this standard was written against and is now largely CLOSED, which
+> is the point of recording it: the table is the before, not the present.
+> Shipped since: a per-writer append-only journal with a pure fold
+> (`skcapstone/gtd_journal.py`, #112), `gtd reopen` restoring under the
+> original id (#112), write-then-delete on every transfer (#112), one file-set
+> constant so the lookup and dedupe universes match (#112), every unlocked
+> writer routed through the locked atomic sink (#112, skos #23, plus a THIRD
+> writer the cards never enumerated), a resolved capauth actor block with
+> permissive signing and `gtd verify` (#113), and the fleet suite id +
+> resolved actor attribution (#117). What remains open is the CardStore's own
+> envelope keys and the P4 CI gate. Re-verify before citing a row.
 
 | Requirement | coord CardStore | fleet object store | unified GTD |
 |---|---|---|---|
