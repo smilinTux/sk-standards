@@ -1,7 +1,7 @@
 # SK Repo Documentation / SOP Standard (CANONICAL)
 
 **Status:** Going-forward ecosystem standard. The bar **every** `sk*` repo MUST meet.
-**Pattern source (ground truth):** [`v2/apps/skpayment/SOP.md`](../v2/apps/skpayment/SOP.md)
+**Pattern source (ground truth):** `skpayment/SOP.md` (sovereign v2 tree, outside this repo)
 (canonical SOP shape) · [`docs/CRYPTOGRAPHY_STANDARD.md`](./CRYPTOGRAPHY_STANDARD.md)
 (crypto bar + honest-claim rules + maturity tiers) · [`docs/VERSION_LIFECYCLE.md`](./VERSION_LIFECYCLE.md)
 (v1/v2/v3/shared phases).
@@ -117,7 +117,7 @@ repos connect) as the master index everyone can link back to.
 
 ## 2. `SOP.md` section template (REQUIRED order)
 
-Mirror [`skpayment/SOP.md`](../v2/apps/skpayment/SOP.md) (and the `skaid` SOP shape).
+Mirror `skpayment/SOP.md` (and the `skaid` SOP shape).
 Every section below is required; omit only with an explicit `N/A — <reason>` line.
 
 ```
