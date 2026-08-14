@@ -13,6 +13,11 @@ on:
     paths:
       - "README.md"
       - "ECOSYSTEM.md"
+      - "SOP.md"
+      - "SECURITY.md"
+      - "CONTRIBUTING.md"
+      - "CODE_OF_CONDUCT.md"
+      - "CHANGELOG.md"
       - "standards/**"
       - "templates/**"
       - "scripts/check_fences.py"
@@ -21,6 +26,11 @@ on:
     paths:
       - "README.md"
       - "ECOSYSTEM.md"
+      - "SOP.md"
+      - "SECURITY.md"
+      - "CONTRIBUTING.md"
+      - "CODE_OF_CONDUCT.md"
+      - "CHANGELOG.md"
       - "standards/**"
       - "templates/**"
       - "scripts/check_fences.py"
@@ -48,6 +58,11 @@ jobs:
             --no-progress
             README.md
             ECOSYSTEM.md
+            SOP.md
+            SECURITY.md
+            CONTRIBUTING.md
+            CODE_OF_CONDUCT.md
+            CHANGELOG.md
             standards/
           fail: true
 
@@ -68,5 +83,10 @@ jobs:
           python3 scripts/check_fences.py \
             README.md \
             ECOSYSTEM.md \
+            SOP.md \
+            SECURITY.md \
+            CONTRIBUTING.md \
+            CODE_OF_CONDUCT.md \
+            CHANGELOG.md \
             standards/*.md \
             templates/*.md

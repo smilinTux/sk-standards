@@ -1,0 +1,27 @@
+name: docs-check-self
+
+# sk-standards eats its own dog food.
+#
+# `.github/workflows/docs-check.yml` in this repo IS the reusable gate: it declares
+# `on: workflow_call:` and nothing else, so it never self-triggers. Until this file
+# existed, the repo that HOSTS the docs-check gate had never once run it against
+# itself, which is the exact failure DOCS_FRESHNESS_STANDARD exists to close.
+#
+# The `uses: ./` form calls the reusable workflow in THIS repository, resolved
+# against the caller's own commit. So a PR that changes the gate is checked by the
+# changed gate, not by the copy on main.
+#
+# tiers "1,2" per DOCS_FRESHNESS_STANDARD section 2 ("green on day one"). SOP.md
+# already carries a docs-evidence block; moving to "1,2,3" is a deliberate follow-up
+# once this has run clean, never a same-PR gamble.
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    uses: ./.github/workflows/docs-check.yml
+    with:
+      tiers: "1,2"
