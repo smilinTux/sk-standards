@@ -1,0 +1,79 @@
+name: ci-gate-check
+
+# The TESTING_AND_CI_STANDARD §6 gate, as a REUSABLE workflow.
+#
+# Repos call it rather than copy it:
+#
+#   jobs:
+#     ci-gates:
+#       uses: smilinTux/sk-standards/.github/workflows/ci-gate-check.yml@main
+#
+# One canonical source. Thirty copies drift, which is the exact trap the standard
+# exists to close.
+#
+# What it checks (audit mode, see standards/TESTING_AND_CI_STANDARD.md §6.1):
+#   - duplicate YAML keys, which GitHub rejects: the run dies in ~0s with zero
+#     jobs and reads as an unexplained failure
+#   - unpinned linters, which turn main red with no code change at all
+#   - a publishing job with no `needs:`/`if:` on a workflow that fires on branch
+#     pushes, which is how a release workflow stays red for weeks while the
+#     package publishes fine
+#
+# This is the PREVENTIVE half. The detective half is `ci_gate_check.py sweep`,
+# run on a schedule outside CI (§6.4), because a repo cannot notice from inside
+# its own red build that it has been red for ten hours.
+
+on:
+  workflow_call:
+    inputs:
+      standards-ref:
+        description: "Ref of sk-standards to take the validator from."
+        type: string
+        default: "main"
+      soft-fail:
+        description: "Report findings without failing, while adopting. Log-only."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci-gate-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo under test
+        uses: actions/checkout@v4
+
+      - name: Fetch the validator from sk-standards
+        uses: actions/checkout@v4
+        with:
+          repository: smilinTux/sk-standards
+          ref: ${{ inputs.standards-ref }}
+          path: .sk-standards
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install pyyaml==6.0.2
+
+      - name: Prove the gate can fail (negative control)
+        # Runs BEFORE the real check, deliberately. If the checker has rotted
+        # into a no-op, a clean audit below would be indistinguishable from a
+        # passing one, and this whole standard is about not trusting a gate that
+        # cannot fail. Cheap and hermetic, so it runs every time.
+        run: python .sk-standards/scripts/ci_gate_check.py --self-test
+
+      - name: Audit this repo's workflows
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.soft-fail }}" = "true" ]; then
+            python .sk-standards/scripts/ci_gate_check.py audit --repo . || {
+              echo "::warning title=ci-gate-check findings::soft-fail is on; findings above are not blocking"
+              exit 0
+            }
+          else
+            python .sk-standards/scripts/ci_gate_check.py audit --repo .
+          fi

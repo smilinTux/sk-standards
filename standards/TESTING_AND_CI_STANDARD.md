@@ -208,6 +208,14 @@ This standard is the testing arm of the ecosystem honesty rule
   a test that proves that hop is the colour it's painted.
 - **A failing test that's "known broken" is deleted or fixed, never silenced.** A
   skipped test is a lie the next reader believes.
+- **Measure the thing the config actually resolves to.** When benchmarking or probing a
+  deployed component, read its config, resolve the URL/model/endpoint it really uses,
+  and measure *that*. Querying a convenient endpoint that happens to accept the same
+  identifier measures a different system and reads as authoritative. A 2026-08-14
+  latency claim, that a service was six times too slow to meet its deadline, came from
+  probing a shared gateway the service never called; on its own configured endpoint it
+  was comfortably inside budget. The identifier matched, the path did not. Cite the
+  resolved endpoint alongside the number, so a reader can tell which system you timed.
 - **Never overclaim from a partial pass.** Green on Python alone is not "cross-platform
   verified." Hybrid passing is not "quantum-proof" — that word is forbidden everywhere
   (say **post-quantum** / **quantum-resistant**); a hybrid test proves the
@@ -216,7 +224,123 @@ This standard is the testing arm of the ecosystem honesty rule
 
 ---
 
-## 6. Per-repo compliance checklist
+## 6. Gate integrity: a red bar on `main` is an incident
+
+§3 says no release ships on a red bar. This section says the harder thing: **the bar
+must be green on `main` at rest**, and a gate that is red for reasons nobody caused is
+worse than no gate at all.
+
+The failure mode is not that a gate breaks. It is that a gate **stays** broken. Once
+`main` is red, the honest reading of your own red X is "probably that same thing", so
+nobody looks, the gate stops being read, and a real failure lands invisibly beside the
+stale one. §5 already says a skipped test is a lie the next reader believes. A
+permanently-red gate is the same lie at the CI level, and it scales worse: it silences
+every check in the job, not one test.
+
+Grounded in a 2026-08-14 fleet sweep that found **11 red gates across 8 repos, all
+pre-existing, none noticed**. In one repo a formatting gate had been red for ~10 hours
+and two merges landed on top of it. In another, a release workflow read red on every
+push while the package published fine, so nobody trusted the signal in either
+direction.
+
+### 6.1 The rules
+
+1. **Red on `main` is an incident, not a backlog item.** Fix it or revert it the same
+   day. If neither is possible, the gate is disabled with a linked card that says why
+   and when it returns. A deliberately-disabled gate is honest; a permanently-failing
+   one is not.
+2. **Fix a pre-existing break in its own PR**, never folded into a feature branch.
+   Mixing them makes both harder to review and impossible to revert independently.
+3. **Before diagnosing your own red X, check whether `main` is already red on that
+   same gate.** It is a five-second query and it reframes the whole investigation.
+   ```
+   gh run list --repo <owner>/<repo> --branch main --limit 5
+   ```
+4. **Pin every tool that can fail the build.** Linters and formatters ship new rules;
+   an unpinned one means `main` can go red with **no code change at all**. A gate that
+   breaks itself is a gate people learn to ignore. Pin the exact version in CI and
+   reproduce locally with that same version, or you will "fix" nothing.
+5. **Every job in a release graph carries a guard.** A job with neither `needs:` nor
+   `if:` runs on every trigger, including branch pushes it was never meant for. This is
+   the mirror of the skip-propagation rule in §3: one job too eager, the other too
+   skipped, both silent.
+6. **A monitor that cannot run is not a green monitor.** A sweep that fails to
+   authenticate, or a check whose assertion can never fail, reports success by
+   accident. Ship checks with a **negative control** proving they can fail (see
+   [`docs_check.py --self-test`](../scripts/docs_check.py)).
+
+### 6.2 Stale red is not live red
+
+A tag-triggered workflow shows its last completed run indefinitely. If someone fixed
+the workflow afterwards and it simply has not been re-triggered, the last run is still
+red **and the repo is fine**. Two repos in the sweep looked broken this way; both had
+been fixed 29 minutes after the failing run.
+
+> **The rule:** compare the failing run's timestamp against the last commit touching
+> that workflow file. Workflow touched *after* the run means **stale**, and stale is
+> not breakage.
+
+Compare timestamps, not dates. The two cases above differed by 29 minutes on the same
+calendar day, so a date-level comparison would have called both live.
+
+### 6.3 The five failure classes
+
+Worth naming, because they are not equally urgent and the loudest is not the worst.
+
+| Class | Signature | Why it matters |
+|---|---|---|
+| **Tests never ran** | `ModuleNotFoundError` at **collection**; "N errors" beside the passes, or `Interrupted: N errors during collection` | The worst kind. The job reports that tests ran when none did. A missing optional dep must produce an explicit **skip**, which is visible, not a collection error, which is not. |
+| **Release-path** | Publish job red while the artifact publishes fine, or green while nothing uploads | Nobody trusts the signal in either direction. Both directions have cost a real release. |
+| **Real failures** | An assertion, a non-zero CLI exit | The gate is working. Read it. |
+| **Lint debt** | "Found N errors" | Not breakage, but it holds the gate red permanently, which is the disease above. Fix the violations, or disable the rule **with a comment saying why**. Leaving it red is the one unacceptable option. |
+| **Environment** | `command not found`, a platform-only step on the wrong runner | Usually a one-line `runner.os` guard. Preserve the step's intent rather than deleting it. |
+
+### 6.4 Monitoring: alert, do not page
+
+A red gate is never a 3am problem, and paging on it trains the operator to ignore the
+pager. Sweep on a schedule and alert through the normal failure path
+([OBSERVABILITY_AND_SCHEDULING_STANDARD](./OBSERVABILITY_AND_SCHEDULING_STANDARD.md)),
+with two properties that are not optional:
+
+- **Alert on NEW breakage only.** Carry known-red in a state file. A recurring alert
+  everyone has learned to skip is precisely the disease the monitor exists to cure,
+  relocated from CI into the alert channel. A long-lived break must not drown a fresh
+  one.
+- **Report stale separately from live** (§6.2), or the monitor manufactures its own
+  false positives and burns its own credibility.
+
+Reference implementation: [`scripts/ci_gate_check.py`](../scripts/ci_gate_check.py)
+`sweep`, run every 6h as a wrapped scheduled job.
+
+### 6.5 Adopting the gate
+
+The preventive half of §6.1 is checkable in CI. Call the reusable workflow rather
+than copying it, since thirty copies drift and that is the trap this standard exists
+to close:
+
+```yaml
+jobs:
+  ci-gates:
+    uses: smilinTux/sk-standards/.github/workflows/ci-gate-check.yml@main
+    # with: { soft-fail: true }   # while adopting; log-only, then flip it off
+```
+
+It runs [`ci_gate_check.py`](../scripts/ci_gate_check.py) in `audit` mode, and runs
+the negative control **first**, so a checker that has rotted into a no-op cannot pass
+as a clean repo.
+
+The rollout rules are the same ones
+[DOCS_FRESHNESS_STANDARD](./DOCS_FRESHNESS_STANDARD.md) already sets out for any new
+gate, and they apply here without restatement: **green on day one** (adopt with
+`soft-fail`, fix, then enforce), **prove it can fail**, and **a skip is not a pass**.
+Turning on a gate that is immediately red just recreates the problem in §6.
+
+The detective half (`sweep`) deliberately runs **outside** CI: a repo cannot notice
+from inside its own red build that it has been red for ten hours.
+
+---
+
+## 7. Per-repo compliance checklist
 
 - [ ] Logic-bearing code arrived **test-first** (red → green → refactor).
 - [ ] Tests live next to the code and run with one command (`ci/test.sh <impl>`).
@@ -228,6 +352,11 @@ This standard is the testing arm of the ecosystem honesty rule
 - [ ] Crypto claims have a **claim → test** mapping; the self-report is exercised.
 - [ ] No `skip`/`xfail` standing in for an unfixed bug at release.
 - [ ] Release notes claim only what the green bar covers, and **link** the evidence.
+- [ ] **`main` is green at rest**; any red gate has an open card or is disabled with a reason (§6).
+- [ ] **Linters/formatters are version-pinned** in CI, so the gate cannot break itself (§6.1).
+- [ ] **Every job in the release graph has a `needs:` or `if:` guard**, so none runs on a bare branch push (§6.1).
+- [ ] A missing optional dependency yields an explicit **skip**, never a collection error (§6.3).
+- [ ] Checks that gate merges ship a **negative control** proving they can fail (§6.1).
 
 ---
 
