@@ -23,3 +23,19 @@ flowchart LR
 <!-- Symptom → Check table -->
 ## 9. Maturity-tier + Version reference
 T<0–4> · VERSION_LIFECYCLE phase · SemVer · CRYPTOGRAPHY_STANDARD compliance line.
+
+<!-- docs-evidence
+     Executed by the docs-check gate (DOCS_FRESHNESS_STANDARD §1.3).
+     Every `run:` must exit 0 while the documented fact holds. Keep them
+     hermetic (repo-local, no network, no live host) and cheap. >= 3 checks,
+     covering whatever is most likely to drift: entry points, ports, unit
+     names, config paths.
+verified: YYYY-MM-DD
+checks:
+  - name: entry point exists
+    run: <cli> --help
+  - name: documented port matches config
+    run: grep -q '"port": <PORT>' <config-file>
+  - name: unit file present
+    run: test -f systemd/<unit>.service
+-->
