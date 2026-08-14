@@ -310,7 +310,23 @@ with two properties that are not optional:
   false positives and burns its own credibility.
 
 Reference implementation: [`scripts/ci_gate_check.py`](../scripts/ci_gate_check.py)
-`sweep`, run every 6h as a wrapped scheduled job.
+`sweep`, run every 6h as a wrapped scheduled job. Reference job definition:
+[`reference/scheduling/ci-gate-health.yaml`](../reference/scheduling/ci-gate-health.yaml),
+conforming to
+[OBSERVABILITY_AND_SCHEDULING_STANDARD](./OBSERVABILITY_AND_SCHEDULING_STANDARD.md)
+(wrapped, failure to GTD + `sk-alert`, idempotent, absolute paths).
+
+**The scheduled job calls the checked-in script; it does not carry its own copy.**
+§6.5 already says repos call the gate rather than copy it, and the same reasoning
+applies to the monitor. This is not hypothetical: the first version of this sweep was
+a private copy in `~/.config`, unversioned and unreviewed, and it drifted from the
+standard it existed to enforce within the same day.
+
+**Resolve executables by absolute path.** A scheduler's `PATH` is minimal and often
+excludes the prefix a tool actually lives under, so resolving by `PATH` alone is how a
+job that works in a shell silently never runs from cron. The checker tries absolute
+candidates first and falls back to `PATH`, and its self-test asserts the resolved path
+is absolute.
 
 ### 6.5 Adopting the gate
 

@@ -1,0 +1,36 @@
+# Reference scheduled-job definition for the TESTING_AND_CI_STANDARD §6.4 sweep.
+#
+# Copy into the node's job drop-in dir (skcapstone: ~/.skcapstone/config/jobs.d/)
+# and adjust `--repos` to the repos that node should watch.
+#
+# It calls scripts/ci_gate_check.py from a sk-standards checkout rather than
+# carrying its own copy. §6.5 already says repos call the gate rather than copy
+# it, and the same reasoning applies here: a private copy in ~/.config is
+# unversioned, unreviewed, and drifts from the standard it claims to enforce.
+# (It did. The first version of this monitor was exactly that private copy.)
+#
+# Conforms to OBSERVABILITY_AND_SCHEDULING_STANDARD: wrapped job, failure -> GTD
+# + sk-alert via `notify: on_failure`, idempotent, absolute paths throughout
+# (a scheduler's PATH is minimal, and resolving by PATH alone is how a job that
+# works in a shell silently never runs from cron).
+#
+# Cadence: 6h. A red gate is a slow problem and the sweep costs ~50 API calls.
+# Tighter buys nothing and burns rate limit.
+#
+# Exit codes: 0 no new breakage (silent), 1 NEW breakage (alerts), 2 the sweep
+# itself could not run (also alerts, because a monitor that cannot run is not a
+# green monitor).
+jobs:
+  ci-gate-health:
+    every: 6h
+    type: shell
+    nodes: [CHANGE-ME]
+    command: >-
+      /home/cbrd21/.skenv/bin/python
+      /home/cbrd21/clawd/skcapstone-repos/sk-standards/scripts/ci_gate_check.py
+      sweep --owner smilinTux
+      --repos skcapstone,skcoord,skdashboard,skgateway,skmemory,skcomms,skchat,skos,skharness,skvoice,skcore,capauth,sksecurity,skseed,skvault,sk_pgp,skskills,skingest,cloud9,skworld-app,skcot,sk-standards,skops
+    timeout: 900
+    notify: on_failure
+    notify_level: warn
+    enabled: true
