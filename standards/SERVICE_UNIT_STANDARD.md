@@ -132,6 +132,17 @@ VM MUST obey:
 flags any where the limiter can never engage **and** no backoff is configured.
 Run it on every node; exit code is non-zero when exposed units remain.
 
+**Audit both scopes or say you did not.** Most SK units are **user** units, and
+cron/systemd start with no `XDG_RUNTIME_DIR`, so a naively scheduled audit sees
+only system units and still prints a green summary. The validator therefore
+derives `XDG_RUNTIME_DIR`, verifies the user manager is actually reachable, and
+**fails loudly rather than reporting clean on a partial sweep**; pass
+`--system-only` to declare a node that genuinely has no user scope. Schedule it
+under the observability wrapper (`sk-cron-run`) so a non-zero exit becomes a GTD
+item plus an alert, per
+[OBSERVABILITY_AND_SCHEDULING_STANDARD](./OBSERVABILITY_AND_SCHEDULING_STANDARD.md).
+Without a scheduled gate the fleet is only known-clean on the day someone looks.
+
 Verify empirically, not by reading config back. A deliberately broken unit
 (`ExecStart=/nonexistent/x`) MUST be observed backing off and then, for Tier B,
 landing in `failed`. Config strings are a claim; the journal is the evidence.
