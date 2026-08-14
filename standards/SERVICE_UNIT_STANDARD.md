@@ -4,10 +4,13 @@ How every `sk*` node authors a **systemd unit for a long-running service**, so
 that a permanently-broken service degrades quietly instead of hammering the host
 until something else falls over.
 
-The governing principle: **a service that cannot start must eventually stop
-trying.** Retry is how we survive a transient fault; unbounded retry at a fixed
-interval is a denial-of-service we ship against ourselves. A unit that restarts
-forever is not resilient, it is a load generator with a `[Unit]` section.
+The governing principle, in two halves: **a service that cannot start must
+eventually stop trying, and a service that runs forever must not write forever.**
+Retry is how we survive a transient fault; unbounded retry at a fixed interval is
+a denial-of-service we ship against ourselves. A unit that restarts forever is not
+resilient, it is a load generator with a `[Unit]` section. The same is true of an
+uncapped log: both loop unattended and consume the host until an unrelated thing
+falls over.
 
 This standard governs **long-running services** (`Restart=` set). Scheduled work
 (cron, timers) is governed by
@@ -126,7 +129,44 @@ VM MUST obey:
    the pre-crash record survive a `SIGKILL`; without it a recovery destroys the
    only witness and the underlying fault stays un-root-caused forever.
 
-## 5. Validation
+## 5. Bounded output
+
+The sibling of the rule at the top of this document. A service that cannot start
+must eventually stop trying; **a service that runs forever must not write
+forever.** Both failures look the same from the outside: something loops
+unattended and consumes the host until an unrelated thing falls over.
+
+- **Container logs MUST be capped.** The Docker default `json-file` driver has
+  **no** `max-size` and **no** `max-file`, so a container logs until the disk is
+  gone. Set a daemon-wide default in `/etc/docker/daemon.json`:
+
+  ```json
+  { "log-driver": "json-file", "log-opts": { "max-size": "50m", "max-file": "3" } }
+  ```
+
+  ⚠️ **A daemon default applies only to containers created after it.** Existing
+  containers keep their original config until recreated, so `docker inspect
+  <name> --format '{{.HostConfig.LogConfig}}'` is the check that matters, not the
+  daemon setting. Also declare `logging:` on the service in its compose file, so
+  the cap survives recreation and is visible in version control.
+
+- **Journald MUST be capped** (`SystemMaxUse=` in `journald.conf`). An uncapped
+  journal on a busy node is the same defect wearing a different hat.
+
+- **Cap the symptom, then fix the cause.** A capped log stops the outage; it does
+  not stop the fault. If a service emits an identical error every minute forever,
+  that recurring line is the bug, and the cap has only bought you time.
+
+- **Never store a secret in a compose file or unit** that a log cap makes you more
+  willing to commit. Read secrets from the existing stores per
+  [OBSERVABILITY_AND_SCHEDULING_STANDARD](./OBSERVABILITY_AND_SCHEDULING_STANDARD.md).
+
+Worked example, `prb-bd79dd5f` / `inc-94f6f21d`: the GPU node's root filesystem hit
+**99% (2.6G free of 195G)** days after a 13h outage on the same box. Two uncapped
+writers: a **4.0G** journal, and a **1.1G** container log holding one failed
+healthcheck line per minute. Neither had ever alerted.
+
+## 6. Validation
 
 `scripts/audit-service-units.sh` enumerates enabled units in both scopes and
 flags any where the limiter can never engage **and** no backoff is configured.
@@ -154,7 +194,8 @@ landing in `failed`. Config strings are a claim; the journal is the evidence.
 > **Service units:** every unit setting `RestartSec` satisfies
 > `RestartSec x (Burst-1) < StartLimitIntervalSec` or sets backoff; tier chosen by
 > blast radius (A: backoff only, B: backoff + limiter); no stale units referencing
-> moved paths; `audit-service-units.sh` clean. Conforms to
+> moved paths; container logs and journald capped (verified on the container, not
+> the daemon default); `audit-service-units.sh` clean. Conforms to
 > [SERVICE_UNIT_STANDARD](https://github.com/smilinTux/sk-standards/blob/main/standards/SERVICE_UNIT_STANDARD.md).
 
 Not applicable (`N/A: <reason>`) only for repos that ship **no systemd units**.
