@@ -24,4 +24,4 @@ jobs:
   docs:
     uses: ./.github/workflows/docs-check.yml
     with:
-      tiers: "1,2"
+      tiers: "1,2,3"
