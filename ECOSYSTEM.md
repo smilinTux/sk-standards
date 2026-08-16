@@ -196,6 +196,8 @@ FFI is a roadmap, not a live edge).
 - **"How do peers negotiate / roll suites without an undecryptable frame?"** → [`CRYPTO_AGILITY_STANDARD`](./standards/CRYPTO_AGILITY_STANDARD.md) (suite ids, wire tags, downgrade-safety).
 - **"I want the messaging stack."** → [skcomms](https://github.com/smilinTux/skcomms) (protocol/transport) → [skchat](https://github.com/smilinTux/skchat) (the app) → [capauth](https://github.com/smilinTux/capauth) (identity) → [cloud9](https://github.com/smilinTux/cloud9) (trust).
 - **"Does a daemon's crypto match its claims?"** → [sksecurity](https://github.com/smilinTux/sksecurity) (inventory + self-report) + the [`TESTING_AND_CI_STANDARD`](./standards/TESTING_AND_CI_STANDARD.md) "tests are evidence" gate.
+- **"Who may call this route, and is it safe to flip enforce on?"** → [`SKWORLD_AUTHORIZATION_STANDARD`](./standards/SKWORLD_AUTHORIZATION_STANDARD.md) (one PDP, thin PEPs, and why route COVERAGE rather than shadow soak is the enforce-safety criterion) + [`IDENTITY_NAMING_STANDARD`](./standards/IDENTITY_NAMING_STANDARD.md) for how the subject is spelled.
+- **"Two MCP servers expose the same tool name. Which one is right?"** → [`MCP_TOOL_OWNERSHIP_STANDARD`](./standards/MCP_TOOL_OWNERSHIP_STANDARD.md) (one owner per tool, thin delegates only, drop preferred over delegate).
 
 ---
 

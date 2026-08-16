@@ -199,9 +199,10 @@ already-canonical fqid, never as a second grammar.
 - [PROVENANCE_AND_MUTATION_STANDARD](./PROVENANCE_AND_MUTATION_STANDARD.md):
   `actor.id` MUST carry the fqid form defined here, never the deprecated
   `capauth:` wire alias, never free text.
-- `SKWORLD_AUTHORIZATION_STANDARD`: the decision function this standard keeps
-  pure (§2.4); that standard governs who MAY act once the subject is
-  resolved, this one governs how the subject is spelled.
+- [SKWORLD_AUTHORIZATION_STANDARD](./SKWORLD_AUTHORIZATION_STANDARD.md): the
+  decision function this standard keeps pure (§2.4); that standard governs
+  who MAY act once the subject is resolved, this one governs how the subject
+  is spelled.
 - [CRYPTO_AGILITY_STANDARD](./CRYPTO_AGILITY_STANDARD.md): the dual-stack
   migration discipline (§2.1) that legacy-alias retirement follows.
 
