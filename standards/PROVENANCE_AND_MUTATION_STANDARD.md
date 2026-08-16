@@ -4,7 +4,7 @@
 **Date:** 2026-08-14
 **Author:** Fable (claude-fable-5)
 **Ratified by:** Chef, on the evidence of the P1/P2/P3 implementations below
-**Extends:** [CRYPTOGRAPHY_STANDARD](./CRYPTOGRAPHY_STANDARD.md), [CRYPTO_AGILITY_STANDARD](./CRYPTO_AGILITY_STANDARD.md), `SKWORLD_AUTHORIZATION_STANDARD`, [OBSERVABILITY_AND_SCHEDULING_STANDARD](./OBSERVABILITY_AND_SCHEDULING_STANDARD.md)
+**Extends:** [CRYPTOGRAPHY_STANDARD](./CRYPTOGRAPHY_STANDARD.md), [CRYPTO_AGILITY_STANDARD](./CRYPTO_AGILITY_STANDARD.md), [SKWORLD_AUTHORIZATION_STANDARD](./SKWORLD_AUTHORIZATION_STANDARD.md), [OBSERVABILITY_AND_SCHEDULING_STANDARD](./OBSERVABILITY_AND_SCHEDULING_STANDARD.md)
 
 ---
 
@@ -255,7 +255,8 @@ world this standard ends.
       "verified" beyond what a wired verifier enforces.
 - [ ] A CI completeness gate enumerates the store's write entry points and
       fails on any writer that does not produce a valid envelope (the
-      route-coverage pattern from `SKWORLD_AUTHORIZATION_STANDARD` §3:
+      route-coverage pattern from
+      [SKWORLD_AUTHORIZATION_STANDARD](./SKWORLD_AUTHORIZATION_STANDARD.md) §3:
       a soak shows you mapped paths behaving; only enumeration shows you
       UNMAPPED paths existing).
 - [ ] `doctor` reports envelope coverage (verified / unsigned / invalid /
@@ -269,7 +270,7 @@ world this standard ends.
 - [CRYPTO_AGILITY_STANDARD](./CRYPTO_AGILITY_STANDARD.md): suite ids, wire
   tags, capability advertisement, and the roll-to-next mechanism the `sig`
   block rides on.
-- `SKWORLD_AUTHORIZATION_STANDARD`:
+- [SKWORLD_AUTHORIZATION_STANDARD](./SKWORLD_AUTHORIZATION_STANDARD.md):
   who MAY act (the PDP). This standard records who DID act. The consent plane
   (`skcapstone/docs/specs/2026-08-13-unified-consent-plane-arch.md`) is the
   bridge: its `consent.granted` events are SPE-bearing events in these same

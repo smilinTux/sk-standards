@@ -31,11 +31,26 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- `standards/SKWORLD_AUTHORIZATION_STANDARD.md`: one PDP (`capauth.authz.decide`), many
+  thin PEPs, and the load-bearing rule that **route coverage, not shadow soak, is the
+  enforce-safety criterion** (shadow mode structurally cannot see an unmapped route, so
+  "divergence == 0" is necessary and never sufficient). Authored 2026-08-06 on
+  `feat/module-manifest-v1.2-install-knowledge-facets` and never merged, so it was
+  invisible to anyone reading this repo while three other standards already cited it.
+  Landed here reconciled against what shipped in the meantime, see Changed below.
+- `standards/MCP_TOOL_OWNERSHIP_STANDARD.md`: one owning repo per MCP tool name, thin
+  delegates that never reimplement (nor re-authorize), drop preferred over delegate, and
+  the domain-assignment rule for new tools. Same provenance, same reconciliation.
+- `SOP.md`: four new `docs-evidence` checks guarding the claims this change introduces:
+  the standards count, the absence of an `authz` facet in the shipped module schema, the
+  schema version the authorization standard cites, and a guard that no standard
+  reintroduces the deprecated `operator:`-prefixed subject spelling as canonical.
 - `SOP.md`: the 9-section operational SOP required by
   [`SK_REPO_DOC_STANDARD` section 2](standards/SK_REPO_DOC_STANDARD.md), with the
   architecture mermaid diagram, a "Start here" index of the five entry-point files, the
   full reference for both reusable workflows and all four scripts, a Symptom-to-Check
-  troubleshooting table, and a `docs-evidence` block of 12 hermetic checks.
+  troubleshooting table, and a `docs-evidence` block of hermetic checks (16 as of this
+  entry, see the Added bullet above).
 - `SECURITY.md`: threat model, reporting channel with a 72 hour acknowledgement SLA,
   in and out of scope, supported-refs table, and safe harbour. Names the supply-chain
   surface honestly: this repo's validators and reusable workflows execute inside other
@@ -63,6 +78,45 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   (`SK_REPO_DOC_STANDARD` section 1.5).
 - `docs-lint.yml` now lints the new root documents too: the five files are added to the
   lychee offline link check, the `check_fences.py` invocation, and the `paths:` filters.
+
+### Changed
+
+- `standards/SKWORLD_AUTHORIZATION_STANDARD.md` was reconciled before landing, because it
+  predates three standards that have since been ratified:
+  - **Subject spelling now defers to `IDENTITY_NAMING_STANDARD`.** The draft resolved
+    subjects as `operator:<device_fp>` and `<agent>@<operator>.<realm>`. The former is
+    listed in `IDENTITY_NAMING_STANDARD` section 2.5 as a **deprecated legacy shape**
+    aliased to `device:<fingerprint>`; the latter names a segment (`realm`) that grammar
+    does not have. Both were corrected, and the constraint that `decide()` stays a pure
+    exact matcher (that standard's section 2.4) is now stated where the lifecycle
+    resolves the subject.
+  - **The guest subject class is now recorded as an OPEN GAP rather than asserted.** The
+    draft used `guest:<invite_id>`, which the `IDENTITY_NAMING_STANDARD` section 1 regex
+    rejects. Until that standard defines a guest class, a subapp must bind the guest to a
+    real enrolled subject or handle the invite as a self-auth route, never invent a local
+    spelling and persist it as a decision subject.
+  - **The `authz` module facet is now marked PROPOSED, not available.** The draft
+    described it as an optional facet of "contract v1.3". The shipped schema is **v1.2**
+    with `additionalProperties: false`, so a manifest declaring `authz` fails validation
+    today. Landing that text unqualified would have documented a facet nobody can use.
+  - Added the `TESTING_AND_CI_STANDARD` section 6 tie (a coverage gate that is skipped or
+    soft-failed is not coverage evidence), the MCP-tool-handler-as-PEP case, a Related
+    standards section, and the Apache-2.0 footer the other standards carry. The
+    out-of-repo design note is now labelled as such instead of reading like a repo path.
+- `standards/PROVENANCE_AND_MUTATION_STANDARD.md` and
+  `standards/IDENTITY_NAMING_STANDARD.md`: four references to
+  `SKWORLD_AUTHORIZATION_STANDARD` were plain code spans rather than links, because the
+  target did not exist on `main`. They are now real relative links.
+- `README.md` and `ECOSYSTEM.md`: both new standards indexed in the hub table and in the
+  "Start here" question list. An unlinked standard is nearly as invisible as an unmerged
+  one, and the `docs-evidence` block already fails the build on a standard the README
+  does not link.
+- `SOP.md`: the standards count corrected from 15 to 18 in all five places it is claimed
+  (it was already stale by one before this change), and the troubleshooting row about the
+  diverged local checkout rewritten, since the two standards it called unmerged are no
+  longer unmerged. That branch holds nothing else `main` lacks: the module-manifest v1.2
+  work it is named for reached `main` by another route, and its remaining files are stale
+  copies of documents `main` has since rewritten.
 
 ### Fixed
 

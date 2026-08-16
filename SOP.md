@@ -1,6 +1,6 @@
 # sk-standards - Standard Operating Procedures
 
-`sk-standards` is the canonical home of the SKWorld engineering standards: 15 standards
+`sk-standards` is the canonical home of the SKWorld engineering standards: 18 standards
 documents, the ADR log, the README/SOP templates, copy-paste reference configs, four
 validators, and two **reusable GitHub Actions workflows** that other `sk*` repos call.
 It is a **docs-and-reference repo**: nothing here installs, listens, or runs as a
@@ -26,7 +26,7 @@ the reusable gates in `.github/workflows/`).
 
 | Surface | Path | What it is |
 |---|---|---|
-| The standards | `standards/*.md` | 15 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
+| The standards | `standards/*.md` | 18 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
 | Decision log | `decisions/ADR-*.md` | Accepted architecture decisions. Currently one: ADR-0001 (skos / skharness / skcode layering, accepted 2026-08-02). |
 | Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
 | Reference configs | `reference/ingress/`, `reference/systemd/`, `reference/skworld-module/` | Copy-paste artifacts for the ingress, service-unit, and module-contract standards. Includes a JSON Schema and two worked manifest examples. |
@@ -59,8 +59,8 @@ this repo and runs it against the consumer's tree).
 ```mermaid
 flowchart TD
     subgraph skstd["sk-standards (this repo, no runtime)"]
-      README["README.md<br/>the hub: indexes all 15 standards"]:::doc
-      STD["standards/*.md<br/>15 canonical standards"]:::doc
+      README["README.md<br/>the hub: indexes all 18 standards"]:::doc
+      STD["standards/*.md<br/>18 canonical standards"]:::doc
       TPL["templates/<br/>README + SOP skeletons"]:::doc
       REF["reference/<br/>ingress · systemd · skworld-module"]:::doc
       ADR["decisions/<br/>ADR log"]:::doc
@@ -100,7 +100,7 @@ flowchart TD
 
 The five files to open first, in this order:
 
-1. **`README.md`** - the hub. A one-line "what it governs" for each of the 15 standards,
+1. **`README.md`** - the hub. A one-line "what it governs" for each of the 18 standards,
    plus the ecosystem project graph. If you read one file, read this.
 2. **`standards/SK_REPO_DOC_STANDARD.md`** - what every repo's docs must *contain*: the
    7 required files (section 1), the 9-section `SOP.md` template (section 2), the mermaid
@@ -364,7 +364,7 @@ Copy the literal, copy-pasteable block from
 [`templates/SOP.template.md`](./templates/SOP.template.md). Its body looks like this:
 
 ```
-verified: 2026-08-14
+verified: 2026-08-16
 checks:
   - name: entry point exists
     run: skcode-hostd --help
@@ -468,7 +468,7 @@ host, so it is not hermetic and does not belong in a `docs-evidence` block.
 | `docs-lint` fence-check fails after adding a diagram. | An unterminated fence. Run `python3 scripts/check_fences.py <file>` locally; it names the file and the line the fence opened on. |
 | `secret-scan` goes red. | A secret was **added**, because the full history scanned clean on 2026-08-14. Rotate it and purge it. Do **not** weaken the scan to an incremental one. `.github/workflows/secret-scan.yml`. |
 | A standard exists in `standards/` but nobody can find it. | `README.md` is the hub and must link it. The `docs-evidence` block below enforces this: every `standards/*.md` filename must appear in `README.md`. |
-| The local checkout at `~/clawd/skcapstone-repos/sk-standards` disagrees with this repo. | That checkout is on a feature branch, 7 ahead / 15 behind `origin/main`, missing `scripts/docs_check.py` and 3 standards, and carrying 2 unmerged ones (`SKWORLD_AUTHORIZATION_STANDARD.md`, `MCP_TOOL_OWNERSHIP_STANDARD.md`). Tracked as coord card `4be7825f`. **`origin/main` is the source of truth, not that working tree.** Do not reconcile it as a side effect of another task. |
+| A local checkout disagrees with this repo, or a branch looks like it holds unmerged standards. | **`origin/main` is the source of truth, not any working tree.** The historical case (coord card `4be7825f`) was `feat/module-manifest-v1.2-install-knowledge-facets`, which carried `SKWORLD_AUTHORIZATION_STANDARD.md` and `MCP_TOOL_OWNERSHIP_STANDARD.md` and nothing else main lacked. **Both landed on `main` 2026-08-16**, reconciled against `IDENTITY_NAMING_STANDARD` (subject spelling) and the shipped module schema version. Everything else on that branch is a stale copy of a file `main` has since rewritten, and the module-manifest v1.2 work it is named for reached `main` by another route. Verify the same way before trusting any such branch: `git diff --stat origin/main <branch>` and read which side the insertions are on. |
 | `ci-gate-check` fails with `ModuleNotFoundError: yaml`. | `ci_gate_check.py` is the one validator here that is not stdlib-only. The reusable workflow installs `pyyaml==6.0.2`; locally, `pip install pyyaml`. Do not add it to a `docs-evidence` block, whose runner has no pip-installed packages. |
 | `ci_gate_check.py` exits **2**. | The check could not run (no `gh`, no PyYAML, no workflows directory). **This is not a pass.** A monitor that cannot run is not a green monitor. Fix the environment, do not read exit 2 as clean. |
 | `audit-service-units.sh` exits 2 with `systemctl not found`. | Expected on a container or a non-systemd host. The script audits a live host; there is nothing to audit. This is why CI only syntax-checks it. |
@@ -520,7 +520,7 @@ section 4, "Known gap: an unexecuted test file".
      Every `run:` exits 0 while the documented fact holds, and NONZERO when it drifts.
      All hermetic: shell builtins, coreutils, and stdlib Python 3 only. No network,
      no live host, no pip-installed tool (the CI runner has none).
-verified: 2026-08-14
+verified: 2026-08-16
 checks:
   - name: the gate can still fail (docs_check negative control)
     run: python3 scripts/docs_check.py --self-test
@@ -540,6 +540,14 @@ checks:
     run: for s in docs_check.py ci_gate_check.py check_fences.py; do python3 -c "import ast,sys;ast.parse(open(sys.argv[1]).read())" "scripts/$s" || exit 1; done
   - name: every standard in standards/ is linked from the README hub
     run: ls standards/*.md | while read -r f; do grep -q "$(basename "$f")" README.md || exit 1; done
+  - name: the standards count claimed throughout this SOP still matches the tree
+    run: test "$(ls standards/*.md | wc -l)" = 18
+  - name: the module schema still has NO authz facet, as SKWORLD_AUTHORIZATION_STANDARD section 7 states
+    run: if grep -q '"authz"' reference/skworld-module/skworld.module.schema.json; then exit 1; fi
+  - name: the shipped module schema version matches what the authz standard cites
+    run: grep -q 'schema v1.2' reference/skworld-module/skworld.module.schema.json && grep -q 'schema is \*\*v1.2\*\*' standards/SKWORLD_AUTHORIZATION_STANDARD.md
+  - name: no standard reintroduces the deprecated operator-prefixed subject as canonical
+    run: if grep -rn 'operator:<device_fp>' standards/; then exit 1; fi
   - name: secret-scan still pins the documented gitleaks 8.28.0
     run: grep -q 'GITLEAKS_VERSION: 8.28.0' .github/workflows/secret-scan.yml
   - name: all markdown fences balanced, including this SOP's mermaid diagrams
