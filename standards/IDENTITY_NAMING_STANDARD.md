@@ -118,7 +118,48 @@ per subject.
    |---|---|---|
    | `operator:<fingerprint>` | `device:<fingerprint>` | Aliased: prefix rewritten, value preserved. |
    | `capauth:<subject>` (deprecated wire form) | `<subject>` | Aliased: prefix stripped per §2.1, nothing else changes. |
-   | `<name>@<operator>` (no TLD, domain suffix missing) | *(none)* | REJECTED, not aliased. A missing domain is not a spelling variant of a valid identity; it is an invalid record that must be re-enrolled under a real fqid. |
+   | `<name>@<operator>` (no TLD, domain suffix missing) | `<name>@<operator>.<org-domain>` | Aliased ONLY under a section 2.6 migration entry: one enumerated domain, dated, with a removal date. Absent such an entry: REJECTED, not aliased. A missing domain is not a spelling variant of a valid identity. |
+
+### 2.6 Migration aliases: dated, enumerated, and removable
+
+An alias table row exists to move a deployment OFF a legacy shape, not to bless
+it. Section 2.5's first two rows are permanent translations of retired
+*prefixes*, where the identity is unambiguous and nothing is lost. A missing
+*domain* is different: it is genuinely ambiguous in general, which is why the
+default is rejection.
+
+But a deployment that already stored thousands of records under the legacy shape
+cannot reject its way out in one step: flipping to rejection makes every stored
+record unresolvable at once. That is a migration, and this standard should say
+how to run one rather than leaving each component to improvise.
+
+A **migration alias** MAY collapse a missing domain if and ONLY if all of:
+
+1. **Enumerated, never inferred.** The alias names ONE literal legacy domain and
+   its one canonical result. No pattern, no "add the org TLD" heuristic. The next
+   unseen shape must not be silently repaired. This keeps the auditability
+   property section 2.5 exists to protect.
+2. **Dated, with a removal date in the entry itself.** An alias with no end date
+   is a second grammar wearing a migration costume.
+3. **Paired with a migration.** The entry names the tool that rewrites stored
+   records to canonical form, and that migration runs BEFORE the alias is removed.
+4. **Write-canonical from the start.** New records are written canonically
+   immediately. The alias only resolves what is already on disk; it never
+   sanctions minting a new subject in the legacy shape.
+5. **Recorded where it is implemented.** The implementing component states the
+   entry, its removal date, and its migration tool in its own SECURITY.md or SOP,
+   so the exception is visible to the people it affects.
+
+An alias satisfying all five is compliant. One that does not is a second grammar,
+and section 2.5 rejects it.
+
+> **Why this was added (2026-08-16).** The table said REJECTED while a live
+> implementation aliased exactly this shape for one operator domain, and the
+> divergence went unnoticed because both sides read the same section and drew
+> opposite conclusions. The implementation was right about the need and wrong to
+> do it unilaterally; the table was right about the default and silent about
+> migration. This section closes that gap in the direction the standard already
+> takes twice above: a finite, reviewable table entry.
 
 6. **Sovereign-versus-federated is a POLICY attribute, never a suffix.** No
    subject spelling encodes deployment status. See §3 for why a suffix-based
