@@ -83,6 +83,20 @@ This list is the tie-breaker for a NEW tool name. A domain not listed here is
 not a licence to duplicate: assign it to the repo that owns the underlying
 data, record the assignment in this table, and add the row in the same PR.
 
+**Actuation-capable tools.** An MCP tool that can change host, fleet,
+deployment, or external state, including start, stop, restart, scale, rotate,
+execute, apply, or send, MUST do both of these things before acting: verify
+actuation readiness and the freeze; then verify authorization under
+[`ACTION_AUTHORIZATION_STANDARD`](./ACTION_AUTHORIZATION_STANDARD.md), using an
+approved change reference or a CapAuth PDP allow where enforcement is deployed.
+An unreachable PDP fails closed. Recording the action afterward is an audit,
+not a gate, and does not satisfy this rule. Every such tool appears in the
+[`AUTONOMY_STANDARD`](./AUTONOMY_STANDARD.md) actuation-surface registry. A
+structurally read-only or check-mode variant of the same tool is exempt and
+SHOULD exist so dry inspection never requires authorization to mutate state.
+The complete registration and retirement contract is owned by
+[`ACTUATION_SURFACE_GOVERNANCE_STANDARD`](./ACTUATION_SURFACE_GOVERNANCE_STANDARD.md).
+
 ## Migration posture (how to converge without breaking consumers)
 
 The **delegate** rows are already effectively delegates in skcapstone
