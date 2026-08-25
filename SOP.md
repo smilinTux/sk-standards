@@ -1,8 +1,8 @@
 # sk-standards - Standard Operating Procedures
 
-`sk-standards` is the canonical home of the SKWorld engineering standards: 24 standards
+`sk-standards` is the canonical home of the SKWorld engineering standards: 25 standards
 documents, two accepted ADRs, the README/SOP templates, copy-paste reference configs,
-ten validators, and two **reusable GitHub Actions workflows** that other `sk*` repos call.
+eleven validators, and two **reusable GitHub Actions workflows** that other `sk*` repos call.
 It is a **docs-and-reference repo**: nothing here installs, listens, or runs as a
 service. Its only executable surface is CI.
 
@@ -26,11 +26,11 @@ the reusable gates in `.github/workflows/`).
 
 | Surface | Path | What it is |
 |---|---|---|
-| The standards | `standards/*.md` | 24 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
+| The standards | `standards/*.md` | 25 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
 | Decision log | `decisions/ADR-*.md` | Two accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering) and ADR-0002 (two coding lanes with one merge bar). |
 | Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
 | Reference configs | `reference/ingress/`, `reference/systemd/`, `reference/skworld-module/` | Copy-paste artifacts for the ingress, service-unit, and module-contract standards. Includes a JSON Schema and two worked manifest examples. |
-| Validators | `scripts/` | Ten validator scripts, including docs, CI, fences, module schema, service units, the S4 actuation registry and MCP detector, readiness, action authorization, merge gate, and coding lanes. |
+| Validators | `scripts/` | Eleven validator scripts, including docs, CI, fences, module schema, service units, actuation registry, readiness, authorization, merge gate, coding lanes, and self-healing tiers. |
 | The reusable gates | `.github/workflows/docs-check.yml`, `.github/workflows/ci-gate-check.yml` | Both `workflow_call`-only. Other repos consume them with `uses:`. These are the repo's most-called surfaces. |
 
 ### What it explicitly does NOT do
@@ -59,8 +59,8 @@ this repo and runs it against the consumer's tree).
 ```mermaid
 flowchart TD
     subgraph skstd["sk-standards (this repo, no runtime)"]
-      README["README.md<br/>the hub: indexes all 24 standards"]:::doc
-      STD["standards/*.md<br/>24 canonical standards"]:::doc
+      README["README.md<br/>the hub: indexes all 25 standards"]:::doc
+      STD["standards/*.md<br/>25 canonical standards"]:::doc
       TPL["templates/<br/>README + SOP skeletons"]:::doc
       REF["reference/<br/>ingress · systemd · skworld-module"]:::doc
       ADR["decisions/<br/>ADR log"]:::doc
@@ -100,7 +100,7 @@ flowchart TD
 
 The five files to open first, in this order:
 
-1. **`README.md`** - the hub. A one-line "what it governs" for each of the 24 standards,
+1. **`README.md`** - the hub. A one-line "what it governs" for each of the 25 standards,
    plus the ecosystem project graph. If you read one file, read this.
 2. **`standards/SK_REPO_DOC_STANDARD.md`** - what every repo's docs must *contain*: the
    7 required files (section 1), the 9-section `SOP.md` template (section 2), the mermaid
@@ -120,7 +120,7 @@ The five files to open first, in this order:
 ## 3. Build
 
 **There is no build.** No compiler, no bundler, no artifact. The repo is Markdown, YAML,
-JSON, ten validators, and a JSON Schema.
+JSON, eleven validators, and a JSON Schema.
 
 The only toolchain a contributor needs locally:
 
@@ -537,11 +537,11 @@ checks:
   - name: ci-gate-check.yml is still workflow_call-only and still self-called
     run: grep -q '^  workflow_call:' .github/workflows/ci-gate-check.yml && grep -q 'uses: ./.github/workflows/ci-gate-check.yml' .github/workflows/ci-gate-check-self.yml
   - name: every script documented in section 7 is present and executable-by-interpreter
-    run: for s in docs_check.py ci_gate_check.py check_fences.py check_actuation_registry.py check_actuation_readiness_standard.py check_action_authorization_standard.py check_autocode_merge_gate_standard.py check_coding_lanes_standard.py; do python3 -c "import ast,sys;ast.parse(open(sys.argv[1]).read())" "scripts/$s" || exit 1; done
+    run: for s in docs_check.py ci_gate_check.py check_fences.py check_actuation_registry.py check_actuation_readiness_standard.py check_action_authorization_standard.py check_autocode_merge_gate_standard.py check_coding_lanes_standard.py check_self_healing_tiers_standard.py; do python3 -c "import ast,sys;ast.parse(open(sys.argv[1]).read())" "scripts/$s" || exit 1; done
   - name: every standard in standards/ is linked from the README hub
     run: ls standards/*.md | while read -r f; do grep -q "$(basename "$f")" README.md || exit 1; done
   - name: the standards count claimed throughout this SOP still matches the tree
-    run: test "$(ls standards/*.md | wc -l)" = 24
+    run: test "$(ls standards/*.md | wc -l)" = 25
   - name: the accepted ADR count claimed in this SOP still matches the tree
     run: test "$(grep -l '^\*\*Status:\*\* Accepted$' decisions/ADR-*.md | wc -l)" = 2
   - name: the module schema still has NO authz facet, as SKWORLD_AUTHORIZATION_STANDARD section 7 states
@@ -572,6 +572,10 @@ checks:
     run: python3 scripts/check_coding_lanes_standard.py --repo .
   - name: the S6 coding-lanes gate can still fail (negative controls)
     run: python3 scripts/check_coding_lanes_standard.py --self-test
+  - name: the S7 self-healing tiers and universal ceiling are consistent
+    run: python3 scripts/check_self_healing_tiers_standard.py --repo .
+  - name: the S7 self-healing ceiling can still fail (negative controls)
+    run: python3 scripts/check_self_healing_tiers_standard.py --self-test
   - name: no standard reintroduces the deprecated operator-prefixed subject as canonical
     run: if grep -rn 'operator:<device_fp>' standards/; then exit 1; fi
   - name: secret-scan still pins the documented gitleaks 8.28.0
