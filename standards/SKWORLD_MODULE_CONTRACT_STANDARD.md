@@ -62,12 +62,13 @@ with TWO technical seams**:
 They stay distinct because they have **different runtimes/languages**,
 **different trust postures** (a human UI session vs. an AI operator seat),
 and **different failure semantics** (a failed UI pane renders grey with a
-reason; a failed operator observe must fail *safe* and report healthy). But they
-share **one identity, one registration, one signature**: the manifest is the
-single thing Chef signs and the single thing both the shell registry and the
-fleet `Operatorapp` object point at, so a subapp cannot drift into "renders but
-is invisible to Atlas" (or vice versa) without the divergence being visible in
-one file. They also share **one vocabulary**: `operator.conditions` names are
+reason; a failed operator observe must fail *safe* and report `Unknown`, never
+healthy). But they share **one identity, one registration, one signature**: the
+manifest is the single thing Chef signs and the single thing both the shell
+registry and the fleet `Operatorapp` object point at, so a subapp cannot drift
+into "renders but is invisible to Atlas" (or vice versa) without the divergence
+being visible in one file. They also share **one vocabulary**:
+`operator.conditions` names are
 the same names Atlas observes and the same names the shell's grey-with-a-reason
 availability can render; `deeplinkPrefix` is the same prefix Atlas escalations
 and the shell router both use.

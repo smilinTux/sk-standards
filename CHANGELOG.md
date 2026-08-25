@@ -131,6 +131,16 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   `capauth:` URI into its builtin agent registry and strips the scheme by regex when
   building a policy-decision subject. The naming standard's rule stands. This row now
   matches it. Found by the read-only estate review under card `b298a763`.
+- `standards/SKWORLD_MODULE_CONTRACT_STANDARD.md` section 1: a failed operator observe
+  was told to "fail *safe* and report healthy". Reporting healthy when the sensor is
+  broken is not failing safe, it is asserting a falsehood, and it masks the outage from
+  everything downstream that trusts the condition. The intended property, that a broken
+  sensor must not trigger remediation, is preserved by reporting `Unknown`, which the
+  estate already has vocabulary for: `operator.conditions` resolve to
+  `True` / `False` / `Unknown` in the module schema, and
+  `ITIL_AND_RUNBOOK_OPERATING_MODEL_STANDARD` uses the same tri-state. The sentence also
+  contradicted the fail-closed rule in `SKWORLD_AUTHORIZATION_STANDARD`. Found by the
+  read-only estate review under card `b298a763`.
 
 - The compliance gap the gate was built to catch: `sk-standards` was missing 5 of the 7
   documents its own `SK_REPO_DOC_STANDARD` section 1 requires
