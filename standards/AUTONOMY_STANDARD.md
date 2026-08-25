@@ -110,7 +110,7 @@ more than it verifies is worse than one that states its own edge.
 
 | Standard | Owns | Status |
 |---|---|---|
-| ACTUATION_READINESS_AND_FREEZE | the readiness predicate, the provisioning ceremony, tri-state status, the freeze coverage rule | PENDING |
+| [ACTUATION_READINESS_AND_FREEZE](./ACTUATION_READINESS_AND_FREEZE_STANDARD.md) | the readiness predicate, the provisioning ceremony, tri-state status, the freeze coverage rule | RATIFIED |
 | ACTION_AUTHORIZATION | the ITIL fold as the authorization object, the ledger as evidence and queue, the dispatcher as sole consumer, re-classification at dispatch | PENDING |
 | ACTUATION_SURFACE_GOVERNANCE | the registered-or-not-shipped rule and the MCP actuation-tool amendment | PENDING |
 | AUTOCODE_MERGE_GATE | the twin gate as the sole merge bar for machine-authored change, the grader pin, the protected floor, RunRecord at the verdict boundary | PENDING |
