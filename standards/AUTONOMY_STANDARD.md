@@ -113,7 +113,7 @@ more than it verifies is worse than one that states its own edge.
 | [ACTUATION_READINESS_AND_FREEZE](./ACTUATION_READINESS_AND_FREEZE_STANDARD.md) | the readiness predicate, the provisioning ceremony, tri-state status, the freeze coverage rule | RATIFIED |
 | ACTION_AUTHORIZATION | the ITIL fold as the authorization object, the ledger as evidence and queue, the dispatcher as sole consumer, re-classification at dispatch | PENDING |
 | ACTUATION_SURFACE_GOVERNANCE | the registered-or-not-shipped rule and the MCP actuation-tool amendment | PENDING |
-| AUTOCODE_MERGE_GATE | the twin gate as the sole merge bar for machine-authored change, the grader pin, the protected floor, RunRecord at the verdict boundary | PENDING |
+| [AUTOCODE_MERGE_GATE](./AUTOCODE_MERGE_GATE_STANDARD.md) | the twin gate as the sole merge bar for machine-authored change, the grader pin, the protected floor, RunRecord at the verdict boundary | RATIFIED |
 | CODING_LANES | the two lane contracts, the three-predicate router, the context-posture split | PENDING |
 | SELF_HEALING_TIERS | the three live healers with explicit scope bounds and what none of them may ever touch | PENDING |
 
