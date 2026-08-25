@@ -486,6 +486,23 @@ flowchart TD
   `action|object`, so a persistent firing is one decision a human resolves once,
   not a new one every pass.
 
+**The one approval store.** For any operator-seat action above the mechanical
+tier, authorization is the ITIL change record's fold and nothing else. A parked
+decision record is a projection for the human's inbox: resolving it MUST write
+through to a provenance-bound CAB vote on the linked change, and a decision
+with no linked change resolves to nothing. No actuator may read the decisions
+store as an authorization input. An approval whose approver is a caller-typed
+literal, such as the string `human`, is not an approval; approver identity
+follows
+[`PROVENANCE_AND_MUTATION_STANDARD`](./PROVENANCE_AND_MUTATION_STANDARD.md)'s
+resolved-actor rule. Exactly one dispatcher performs the transition from an
+approved fold to a physical act. It re-reads the fold and re-classifies the
+action against the current ratified catalog at dispatch time. A classification
+that hardened since proposal, or a catalog-generation mismatch, refuses and
+escalates rather than honoring a stale approval. The complete dispatch contract
+is owned by
+[`ACTION_AUTHORIZATION_STANDARD`](./ACTION_AUTHORIZATION_STANDARD.md).
+
 ---
 
 ## 7. Runbook maintenance loop (target: skbrain + Atlas + gtd-ingest)
@@ -616,6 +633,7 @@ above). None of the shipped stateDiagrams contradict the transition tables.
 | D7 | `cmdb.py` vs skbrain spec 5.3 | `skbrain cmdb reconcile`, the `CmdbDriftBounded` condition, and the wiki CI definition layer are **target** (Sprint 2). `cmdb.py` today has `seed_from_inventory`, incident-health reflection, and `impact_analysis`, but no reconcile and no drift condition. | Section 8 is labelled target; the shipped subset is called out. |
 | D8 | `operator_seat/loop.py` vs skbrain spec 6.1/6.3 | RAG retrieve-before-act and the runbook-edit proposal loop are **target** (Sprint 3). `run_once` today is observe -> brief -> route_brain -> plan -> decide, with no retrieval enrichment and no proposer-to-canon path. | Section 7 is labelled target; section 6 documents the shipped loop as-is. |
 | D9 | `itil.py` `_CHANGE_TRANSITIONS`/`_fold_change` vs the change-management CAB+AI design (`2026-08-13-change-management-cab-ai-arch.md`) | Section 5's `scheduled` status, its five new event kinds (`pr_link`, `validation`, `schedule`, `unschedule`, `window_missed`), the two-executor split (prepare vs deploy), the `change.*` capauth capabilities, and the three-layer no-self-approval guard are all **target**. Only the shipped `_CHANGE_TRANSITIONS`/`_fold_change` machine (states through `closed`, the existing CAB fold) exists in code today. | Section 5 marks every target edge and paragraph inline so the diagrams stay honest while the standard and the code diverge. Phase 1 (ticket model, capauth rows, vote identity binding) lands first; Phase 2 wires prepare/validate; Phase 3 adds the gated deploy executor, with `deploy_mode=auto` gated further to Phase 3b. This entry retires once the phases ship and section 5's "target" labels come off. |
+| D10 | Section 6 operator-loop diagram vs `operator_seat/dispatch.py` merged in skcapstone PR 201 | The diagram still ends the escalated path at the parked human decision and shows the old inline actuation path. Shipped code now writes an approved decision through to the CAB fold, then inserts one dispatcher between that fold and actuation. The dispatcher independently re-reads the fold, readiness and freeze, and current classification. | The diagram gains the dispatcher between the CAB fold and actuation in a later whole-diagram reconciliation. Until then, the one-approval-store amendment in section 6 and `ACTION_AUTHORIZATION_STANDARD` are authoritative for this shipped edge. |
 
 ---
 
