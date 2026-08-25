@@ -115,7 +115,7 @@ more than it verifies is worse than one that states its own edge.
 | [ACTUATION_SURFACE_GOVERNANCE](./ACTUATION_SURFACE_GOVERNANCE_STANDARD.md) | the registered-or-not-shipped rule and the MCP actuation-tool amendment | RATIFIED |
 | [AUTOCODE_MERGE_GATE](./AUTOCODE_MERGE_GATE_STANDARD.md) | the twin gate as the sole merge bar for machine-authored change, the grader pin, the protected floor, RunRecord at the verdict boundary | RATIFIED |
 | [CODING_LANES](./CODING_LANES_STANDARD.md) | the two lane contracts, the three-predicate router, the context-posture split | RATIFIED |
-| SELF_HEALING_TIERS | the three live healers with explicit scope bounds and what none of them may ever touch | PENDING |
+| [SELF_HEALING_TIERS](./SELF_HEALING_TIERS_STANDARD.md) | the three live healers with explicit scope bounds and what none of them may ever touch | RATIFIED |
 
 **Accretion rule.** This document is never edited to say more than the landed
 constituents justify. Each constituent's PR flips its own row and any registry
