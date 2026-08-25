@@ -1,6 +1,6 @@
 # sk-standards - Standard Operating Procedures
 
-`sk-standards` is the canonical home of the SKWorld engineering standards: 18 standards
+`sk-standards` is the canonical home of the SKWorld engineering standards: 19 standards
 documents, the ADR log, the README/SOP templates, copy-paste reference configs, four
 validators, and two **reusable GitHub Actions workflows** that other `sk*` repos call.
 It is a **docs-and-reference repo**: nothing here installs, listens, or runs as a
@@ -26,11 +26,11 @@ the reusable gates in `.github/workflows/`).
 
 | Surface | Path | What it is |
 |---|---|---|
-| The standards | `standards/*.md` | 18 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
+| The standards | `standards/*.md` | 19 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
 | Decision log | `decisions/ADR-*.md` | Accepted architecture decisions. Currently one: ADR-0001 (skos / skharness / skcode layering, accepted 2026-08-02). |
 | Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
 | Reference configs | `reference/ingress/`, `reference/systemd/`, `reference/skworld-module/` | Copy-paste artifacts for the ingress, service-unit, and module-contract standards. Includes a JSON Schema and two worked manifest examples. |
-| Validators | `scripts/docs_check.py`, `scripts/ci_gate_check.py`, `scripts/check_fences.py`, `scripts/audit-service-units.sh` | The executable half of four standards. |
+| Validators | `scripts/docs_check.py`, `scripts/ci_gate_check.py`, `scripts/check_fences.py`, `scripts/check_actuation_registry.py`, `scripts/audit-service-units.sh` | The executable half of five standards. |
 | The reusable gates | `.github/workflows/docs-check.yml`, `.github/workflows/ci-gate-check.yml` | Both `workflow_call`-only. Other repos consume them with `uses:`. These are the repo's most-called surfaces. |
 
 ### What it explicitly does NOT do
@@ -59,8 +59,8 @@ this repo and runs it against the consumer's tree).
 ```mermaid
 flowchart TD
     subgraph skstd["sk-standards (this repo, no runtime)"]
-      README["README.md<br/>the hub: indexes all 18 standards"]:::doc
-      STD["standards/*.md<br/>18 canonical standards"]:::doc
+      README["README.md<br/>the hub: indexes all 19 standards"]:::doc
+      STD["standards/*.md<br/>19 canonical standards"]:::doc
       TPL["templates/<br/>README + SOP skeletons"]:::doc
       REF["reference/<br/>ingress · systemd · skworld-module"]:::doc
       ADR["decisions/<br/>ADR log"]:::doc
@@ -100,7 +100,7 @@ flowchart TD
 
 The five files to open first, in this order:
 
-1. **`README.md`** - the hub. A one-line "what it governs" for each of the 18 standards,
+1. **`README.md`** - the hub. A one-line "what it governs" for each of the 19 standards,
    plus the ecosystem project graph. If you read one file, read this.
 2. **`standards/SK_REPO_DOC_STANDARD.md`** - what every repo's docs must *contain*: the
    7 required files (section 1), the 9-section `SOP.md` template (section 2), the mermaid
@@ -537,11 +537,11 @@ checks:
   - name: ci-gate-check.yml is still workflow_call-only and still self-called
     run: grep -q '^  workflow_call:' .github/workflows/ci-gate-check.yml && grep -q 'uses: ./.github/workflows/ci-gate-check.yml' .github/workflows/ci-gate-check-self.yml
   - name: every script documented in section 7 is present and executable-by-interpreter
-    run: for s in docs_check.py ci_gate_check.py check_fences.py; do python3 -c "import ast,sys;ast.parse(open(sys.argv[1]).read())" "scripts/$s" || exit 1; done
+    run: for s in docs_check.py ci_gate_check.py check_fences.py check_actuation_registry.py; do python3 -c "import ast,sys;ast.parse(open(sys.argv[1]).read())" "scripts/$s" || exit 1; done
   - name: every standard in standards/ is linked from the README hub
     run: ls standards/*.md | while read -r f; do grep -q "$(basename "$f")" README.md || exit 1; done
   - name: the standards count claimed throughout this SOP still matches the tree
-    run: test "$(ls standards/*.md | wc -l)" = 18
+    run: test "$(ls standards/*.md | wc -l)" = 19
   - name: the module schema still has NO authz facet, as SKWORLD_AUTHORIZATION_STANDARD section 7 states
     run: if grep -q '"authz"' reference/skworld-module/skworld.module.schema.json; then exit 1; fi
   - name: the shipped module schema version matches what the authz standard cites
@@ -550,6 +550,10 @@ checks:
     run: grep -q 'carried as the canonical fqid form' standards/PROVENANCE_AND_MUTATION_STANDARD.md && if grep -q 'wire form, .capauth:' standards/PROVENANCE_AND_MUTATION_STANDARD.md; then exit 1; fi
   - name: a failed operator observe still reports Unknown, never healthy
     run: grep -q 'report `Unknown`, never' standards/SKWORLD_MODULE_CONTRACT_STANDARD.md && if grep -q 'fail \*safe\* and report healthy' standards/SKWORLD_MODULE_CONTRACT_STANDARD.md; then exit 1; fi
+  - name: the actuation-surface registry is well formed and covers its baseline
+    run: python3 scripts/check_actuation_registry.py --repo .
+  - name: the actuation-registry gate can still fail (negative control)
+    run: python3 scripts/check_actuation_registry.py --self-test
   - name: no standard reintroduces the deprecated operator-prefixed subject as canonical
     run: if grep -rn 'operator:<device_fp>' standards/; then exit 1; fi
   - name: secret-scan still pins the documented gitleaks 8.28.0
