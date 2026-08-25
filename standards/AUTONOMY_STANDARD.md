@@ -83,8 +83,8 @@ an embarrassing row fails the build rather than fixing it.
 | fleet converge heal | per-node actuate opt-in, restartPolicy, backoff; signature when `SKFLEET_SIGNING` is enforce | yes | GOVERNED (mechanical tier) |
 | operator actuator honor | freeze check, honor allowlist, classification, execute flag | yes | GOVERNED (unreachable pending the dispatcher) |
 | operator HTTP actions | capauth end to end, fails closed | yes | GOVERNED (feature-gated off) |
-| run_ansible_playbook (MCP) | none | none | UNGOVERNED_KNOWN, retrofit tracked |
-| trustee restart, scale, rotate (MCP) | audit after the fact only | none | UNGOVERNED_KNOWN, retrofit tracked |
+| run_ansible_playbook (MCP) | removed from implementation and MCP registration | n/a, surface removed | REMOVED, historical id retired with reason |
+| trustee restart, scale, rotate (MCP) | `trustee_actuation.guard`: readiness and freeze, verb-scoped CapAuth allow, approved change additionally required for rotate | yes | GOVERNED |
 | skharness merge (twin gate) | twin gate by import, protected manifest, automerge list empty | n/a, governed by its own operator flags | GOVERNED |
 
 **The mechanical tier is deliberate.** Converge's thirty-second
@@ -112,7 +112,7 @@ more than it verifies is worse than one that states its own edge.
 |---|---|---|
 | [ACTUATION_READINESS_AND_FREEZE](./ACTUATION_READINESS_AND_FREEZE_STANDARD.md) | the readiness predicate, the provisioning ceremony, tri-state status, the freeze coverage rule | RATIFIED |
 | [ACTION_AUTHORIZATION](./ACTION_AUTHORIZATION_STANDARD.md) | the ITIL fold as the authorization object, the ledger as evidence and queue, the dispatcher as sole consumer, re-classification at dispatch | RATIFIED |
-| ACTUATION_SURFACE_GOVERNANCE | the registered-or-not-shipped rule and the MCP actuation-tool amendment | PENDING |
+| [ACTUATION_SURFACE_GOVERNANCE](./ACTUATION_SURFACE_GOVERNANCE_STANDARD.md) | the registered-or-not-shipped rule and the MCP actuation-tool amendment | RATIFIED |
 | [AUTOCODE_MERGE_GATE](./AUTOCODE_MERGE_GATE_STANDARD.md) | the twin gate as the sole merge bar for machine-authored change, the grader pin, the protected floor, RunRecord at the verdict boundary | RATIFIED |
 | [CODING_LANES](./CODING_LANES_STANDARD.md) | the two lane contracts, the three-predicate router, the context-posture split | RATIFIED |
 | SELF_HEALING_TIERS | the three live healers with explicit scope bounds and what none of them may ever touch | PENDING |
