@@ -1,8 +1,8 @@
 # sk-standards - Standard Operating Procedures
 
-`sk-standards` is the canonical home of the SKWorld engineering standards: 21 standards
-documents, the ADR log, the README/SOP templates, copy-paste reference configs, four
-validators, and two **reusable GitHub Actions workflows** that other `sk*` repos call.
+`sk-standards` is the canonical home of the SKWorld engineering standards: 22 standards
+documents, two accepted ADRs, the README/SOP templates, copy-paste reference configs,
+nine validators, and two **reusable GitHub Actions workflows** that other `sk*` repos call.
 It is a **docs-and-reference repo**: nothing here installs, listens, or runs as a
 service. Its only executable surface is CI.
 
@@ -26,11 +26,11 @@ the reusable gates in `.github/workflows/`).
 
 | Surface | Path | What it is |
 |---|---|---|
-| The standards | `standards/*.md` | 21 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
-| Decision log | `decisions/ADR-*.md` | Accepted architecture decisions. Currently one: ADR-0001 (skos / skharness / skcode layering, accepted 2026-08-02). |
+| The standards | `standards/*.md` | 22 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
+| Decision log | `decisions/ADR-*.md` | Two accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering) and ADR-0002 (two coding lanes with one merge bar). |
 | Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
 | Reference configs | `reference/ingress/`, `reference/systemd/`, `reference/skworld-module/` | Copy-paste artifacts for the ingress, service-unit, and module-contract standards. Includes a JSON Schema and two worked manifest examples. |
-| Validators | `scripts/docs_check.py`, `scripts/ci_gate_check.py`, `scripts/check_fences.py`, `scripts/check_actuation_registry.py`, `scripts/audit-service-units.sh` | The executable half of five standards. |
+| Validators | `scripts/` | Nine validator scripts, including docs, CI, fences, module schema, service units, actuation registry, readiness, merge gate, and coding lanes. |
 | The reusable gates | `.github/workflows/docs-check.yml`, `.github/workflows/ci-gate-check.yml` | Both `workflow_call`-only. Other repos consume them with `uses:`. These are the repo's most-called surfaces. |
 
 ### What it explicitly does NOT do
@@ -59,8 +59,8 @@ this repo and runs it against the consumer's tree).
 ```mermaid
 flowchart TD
     subgraph skstd["sk-standards (this repo, no runtime)"]
-      README["README.md<br/>the hub: indexes all 21 standards"]:::doc
-      STD["standards/*.md<br/>21 canonical standards"]:::doc
+      README["README.md<br/>the hub: indexes all 22 standards"]:::doc
+      STD["standards/*.md<br/>22 canonical standards"]:::doc
       TPL["templates/<br/>README + SOP skeletons"]:::doc
       REF["reference/<br/>ingress · systemd · skworld-module"]:::doc
       ADR["decisions/<br/>ADR log"]:::doc
@@ -100,7 +100,7 @@ flowchart TD
 
 The five files to open first, in this order:
 
-1. **`README.md`** - the hub. A one-line "what it governs" for each of the 21 standards,
+1. **`README.md`** - the hub. A one-line "what it governs" for each of the 22 standards,
    plus the ecosystem project graph. If you read one file, read this.
 2. **`standards/SK_REPO_DOC_STANDARD.md`** - what every repo's docs must *contain*: the
    7 required files (section 1), the 9-section `SOP.md` template (section 2), the mermaid
@@ -120,7 +120,7 @@ The five files to open first, in this order:
 ## 3. Build
 
 **There is no build.** No compiler, no bundler, no artifact. The repo is Markdown, YAML,
-JSON, four scripts, and a JSON Schema.
+JSON, nine validators, and a JSON Schema.
 
 The only toolchain a contributor needs locally:
 
@@ -537,11 +537,13 @@ checks:
   - name: ci-gate-check.yml is still workflow_call-only and still self-called
     run: grep -q '^  workflow_call:' .github/workflows/ci-gate-check.yml && grep -q 'uses: ./.github/workflows/ci-gate-check.yml' .github/workflows/ci-gate-check-self.yml
   - name: every script documented in section 7 is present and executable-by-interpreter
-    run: for s in docs_check.py ci_gate_check.py check_fences.py check_actuation_registry.py check_actuation_readiness_standard.py check_autocode_merge_gate_standard.py; do python3 -c "import ast,sys;ast.parse(open(sys.argv[1]).read())" "scripts/$s" || exit 1; done
+    run: for s in docs_check.py ci_gate_check.py check_fences.py check_actuation_registry.py check_actuation_readiness_standard.py check_autocode_merge_gate_standard.py check_coding_lanes_standard.py; do python3 -c "import ast,sys;ast.parse(open(sys.argv[1]).read())" "scripts/$s" || exit 1; done
   - name: every standard in standards/ is linked from the README hub
     run: ls standards/*.md | while read -r f; do grep -q "$(basename "$f")" README.md || exit 1; done
   - name: the standards count claimed throughout this SOP still matches the tree
-    run: test "$(ls standards/*.md | wc -l)" = 21
+    run: test "$(ls standards/*.md | wc -l)" = 22
+  - name: the accepted ADR count claimed in this SOP still matches the tree
+    run: test "$(grep -l '^\*\*Status:\*\* Accepted$' decisions/ADR-*.md | wc -l)" = 2
   - name: the module schema still has NO authz facet, as SKWORLD_AUTHORIZATION_STANDARD section 7 states
     run: if grep -q '"authz"' reference/skworld-module/skworld.module.schema.json; then exit 1; fi
   - name: the shipped module schema version matches what the authz standard cites
@@ -562,12 +564,16 @@ checks:
     run: python3 scripts/check_autocode_merge_gate_standard.py --repo .
   - name: the S5 merge-gate check can still fail (negative controls)
     run: python3 scripts/check_autocode_merge_gate_standard.py --self-test
+  - name: the S6 coding-lanes contract, ADR, and brief vocabulary are consistent
+    run: python3 scripts/check_coding_lanes_standard.py --repo .
+  - name: the S6 coding-lanes gate can still fail (negative controls)
+    run: python3 scripts/check_coding_lanes_standard.py --self-test
   - name: no standard reintroduces the deprecated operator-prefixed subject as canonical
     run: if grep -rn 'operator:<device_fp>' standards/; then exit 1; fi
   - name: secret-scan still pins the documented gitleaks 8.28.0
     run: grep -q 'GITLEAKS_VERSION: 8.28.0' .github/workflows/secret-scan.yml
-  - name: all markdown fences balanced, including this SOP's mermaid diagrams
-    run: python3 scripts/check_fences.py README.md ECOSYSTEM.md SOP.md SECURITY.md CONTRIBUTING.md CODE_OF_CONDUCT.md CHANGELOG.md standards/*.md templates/*.md
+  - name: all markdown fences balanced, including standards and ADR diagrams
+    run: python3 scripts/check_fences.py README.md ECOSYSTEM.md SOP.md SECURITY.md CONTRIBUTING.md CODE_OF_CONDUCT.md CHANGELOG.md standards/*.md decisions/*.md templates/*.md
   - name: the SERVICE_UNIT_STANDARD validator still parses
     run: bash -n scripts/audit-service-units.sh
 -->
