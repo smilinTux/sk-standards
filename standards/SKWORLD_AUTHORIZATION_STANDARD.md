@@ -153,7 +153,7 @@ legitimately enabled, and any enablement without one is the defect.
 
 ## 7. Module-contract integration (proposed `authz` facet, NOT yet in the schema)
 
-**Status: proposed, not ratified.** The shipped manifest schema is **v1.2**
+**Status: proposed, not ratified.** The shipped manifest schema is **v1.3**
 ([`SKWORLD_MODULE_CONTRACT_STANDARD`](./SKWORLD_MODULE_CONTRACT_STANDARD.md),
 [`reference/skworld-module/skworld.module.schema.json`](../reference/skworld-module/skworld.module.schema.json)),
 it declares `additionalProperties: false`, and it has no `authz` block. A

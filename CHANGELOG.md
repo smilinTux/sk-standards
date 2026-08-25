@@ -31,6 +31,9 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- Card f0c63c2a adds the backward-compatible v1.3 control-plane discovery
+  facet, a public synthetic example, negative controls, and a CI contract gate.
+
 - `standards/SKWORLD_AUTHORIZATION_STANDARD.md`: one PDP (`capauth.authz.decide`), many
   thin PEPs, and the load-bearing rule that **route coverage, not shadow soak, is the
   enforce-safety criterion** (shadow mode structurally cannot see an unmapped route, so

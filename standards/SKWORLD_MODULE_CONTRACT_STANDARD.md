@@ -3,7 +3,7 @@
 How every SKWorld subapp declares itself to the platform, so the umbrella shell
 can render it and the Atlas operator seat can run it from **one** agreed
 contract. This is the **module contract freeze** (`skworld_module_api` v0 +
-manifest schema v1.2): one signed manifest per subapp, two required facets, one
+manifest schema v1.3): one signed manifest per subapp, two required facets, one
 registry rule, and (schema v1.2) **two optional facets that turn the manifest
 into a pluggable capability pack**.
 
@@ -16,13 +16,12 @@ into a pluggable capability pack**.
 
 **Status:** the required surface is frozen at `skworld_module_api` **v0**
 (card `f60f4e27`, milestone U0; ratified in the reconciled platform design 2.3,
-Chef, 2026-07-30). The manifest schema is **v1.2**: v1.1 (the two required
-facets) plus the two **optional** `install` and `knowledge` facets added for the
+Chef, 2026-07-30). The manifest schema is **v1.3**: v1.1 (the two required
+facets), the two **optional** `install` and `knowledge` facets added for the
 pluggable-capability-pack contract (design `2026-07-31-sk-ops-pluggable-bolton-and-ootb-install`
-§2.3, card OPS0.1). **v1.2 is a strict superset of v1.1:** a v1.1 manifest
-(schemaVersion `1.1`, neither optional facet) is still valid unchanged, so the
-four shipped manifests need no edit. The optional facets are documented in
-§2.5-§2.6.
+§2.3, card OPS0.1), and the optional `controlPlane` discovery facet. **v1.3 is
+a strict superset of v1.1 and v1.2:** older manifests remain valid unchanged.
+The optional facets are documented below.
 
 **Source of truth:** this standard and its
 [JSON Schema](../reference/skworld-module/skworld.module.schema.json). Where a
@@ -33,6 +32,7 @@ standard is wrong and we fix it here).
 - Schema: [`reference/skworld-module/skworld.module.schema.json`](../reference/skworld-module/skworld.module.schema.json)
 - Documented UI+operator example (the real shipped skchat manifest): [`reference/skworld-module/skworld.module.example.json`](../reference/skworld-module/skworld.module.example.json)
 - Documented capability-pack example (v1.2, all four facets, the skbrain ops pack): [`reference/skworld-module/skworld.module.pack-example.json`](../reference/skworld-module/skworld.module.pack-example.json)
+- Documented control-plane example (v1.3): [`reference/skworld-module/skworld.module.control-plane.example.json`](../reference/skworld-module/skworld.module.control-plane.example.json)
 - Shipped manifest builders cross-checked against this schema: skchat
   (`skchat/src/skchat/skworld_manifest.py`), skcode
   (`skharness/src/skharness/manifest.py`), skos
@@ -75,7 +75,7 @@ and the shell router both use.
 
 ---
 
-## 2. The manifest (`skworld.module.json`), schema v1.2
+## 2. The manifest (`skworld.module.json`), schema v1.3
 
 One file per subapp. Public discovery metadata (**no secrets**): the shell reads
 it to learn a subapp's entry, nav, and required audience/scopes *before* it has
@@ -100,7 +100,7 @@ manifests.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `schemaVersion` | `"1.1"` \| `"1.2"` | yes | The sk-standards manifest schema version. `1.1` = the two required facets (v1 UI shape + the operator block). `1.2` = the same, plus at least one of the optional `install` / `knowledge` facets. A manifest that declares either optional facet MUST be `1.2`; a manifest with neither MAY stay `1.1`. |
+| `schemaVersion` | `"1.1"` \| `"1.2"` \| `"1.3"` | yes | `1.1` is the UI and operator shape. `1.2` adds install and knowledge. `1.3` adds control-plane discovery. Older versions remain valid unchanged. |
 | `id` | string (`^[a-z][a-z0-9_-]*$`) | yes | Stable module id. Equals `SkworldModule.id`, the `skworld://<id>/` authority, and the shell/Atlas registry key. |
 | `name` | string | yes | Human-visible name (shipped manifests set it to the nav label: `Chats`, `Code`, `Board`). |
 | `grade` | `"A"` \| `"B"` | yes | Composition grade. **A** = native in-process Flutter module. **B** = web embed. |
@@ -167,7 +167,28 @@ Two hard rules on the operator facet:
 }
 ```
 
-### 2.4 The install facet (the `install` block, optional, v1.2)
+### 2.4 Control-plane discovery facet (optional, v1.3)
+
+The `controlPlane` block is signed routing and compatibility metadata for
+SKDashboard consumers. It is optional for ordinary modules and requires
+`schemaVersion: "1.3"`. Every location is origin-relative, so consumers resolve
+all paths against the verified manifest origin. The block grants no
+authorization. CapAuth still decides whether the named audience and capability
+may be used.
+
+The block declares the exact API contract version, canonical `/api/v1` base,
+OpenAPI document, SSE path and resume mode, named read resources, typed command
+templates, capability names, minimum compatible client contract, fail-closed
+unsupported-version behavior, and deprecation policy. Consumers reject unknown
+contract versions, wrong audiences, origin substitution, absolute or traversal
+paths, missing named resources, and invalid detached signatures.
+
+The exact worked profile is
+[`reference/skworld-module/skworld.module.control-plane.example.json`](../reference/skworld-module/skworld.module.control-plane.example.json).
+The same bytes are used by SKOS shell validation, Atlas discovery, and the
+generated SKDashboard client conformance tests.
+
+### 2.5 The install facet (the `install` block, optional, v1.2)
 
 A manifest that packages a **pluggable capability pack** adds an `install`
 block. It declares, declaratively, how the pack ACTIVATES its capability on a
@@ -217,7 +238,7 @@ nodes (auto `pre_dump`, idempotent script, auto `verify`, operator-initiated,
 first-boot init path instead (no live data, no risk). CI never applies
 migrations. The install facet declares the WHAT; where it runs decides the HOW.
 
-### 2.5 The knowledge facet (the `knowledge` block, optional, v1.2)
+### 2.6 The knowledge facet (the `knowledge` block, optional, v1.2)
 
 A pack that ships retrievable knowledge adds a `knowledge` block so the operator
 seat can **auto-enable RAG enrichment** the moment the capability is present. At
@@ -245,7 +266,7 @@ gated on its own conditions. That is the "a bolt-on Atlas has never seen becomes
 usable by dropping in its signed manifest" property, met for both optional
 facets: `install` (activation) and `knowledge` (retrieval).
 
-### 2.6 Capability-pack example (skbrain, all four facets, v1.2)
+### 2.7 Capability-pack example (skbrain, all four facets, v1.2)
 
 The full documented example is
 [`reference/skworld-module/skworld.module.pack-example.json`](../reference/skworld-module/skworld.module.pack-example.json).
@@ -312,7 +333,7 @@ Abbreviated (UI + operator facets elided; see §2.1-§2.3 and the example file):
 }
 ```
 
-### 2.7 Reserved blocks (not shipped)
+### 2.8 Reserved blocks (not shipped)
 
 The umbrella-shell design 5.2 also sketched `version`, `embed`, `theme`,
 `presence`, `notifications`, and `core_modules` blocks. **No shipped manifest
