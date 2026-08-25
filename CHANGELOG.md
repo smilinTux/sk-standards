@@ -120,6 +120,18 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Fixed
 
+- `standards/PROVENANCE_AND_MUTATION_STANDARD.md` section 1: the `actor.id` row permitted
+  the `capauth:` wire form as a legal stored value, contradicting
+  `IDENTITY_NAMING_STANDARD` section 2.1, which makes that form a DEPRECATED alias that
+  "MUST NOT appear in a policy-decision subject or a device record", and contradicting
+  that standard's own Related standards cross-reference, which names this exact field:
+  "`actor.id` MUST carry the fqid form defined here, never the deprecated `capauth:` wire
+  alias". Both documents were ratified 2026-08-14, so the estate has carried two ratified
+  rules for one field ever since, and the ambiguity is live in code: SKGateway bakes a
+  `capauth:` URI into its builtin agent registry and strips the scheme by regex when
+  building a policy-decision subject. The naming standard's rule stands. This row now
+  matches it. Found by the read-only estate review under card `b298a763`.
+
 - The compliance gap the gate was built to catch: `sk-standards` was missing 5 of the 7
   documents its own `SK_REPO_DOC_STANDARD` section 1 requires
   (`SOP.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`).

@@ -546,6 +546,8 @@ checks:
     run: if grep -q '"authz"' reference/skworld-module/skworld.module.schema.json; then exit 1; fi
   - name: the shipped module schema version matches what the authz standard cites
     run: grep -q 'schema v1.2' reference/skworld-module/skworld.module.schema.json && grep -q 'schema is \*\*v1.2\*\*' standards/SKWORLD_AUTHORIZATION_STANDARD.md
+  - name: PROVENANCE actor.id still requires the canonical fqid, never the capauth: wire form
+    run: grep -q 'carried as the canonical fqid form' standards/PROVENANCE_AND_MUTATION_STANDARD.md && if grep -q 'wire form, .capauth:' standards/PROVENANCE_AND_MUTATION_STANDARD.md; then exit 1; fi
   - name: no standard reintroduces the deprecated operator-prefixed subject as canonical
     run: if grep -rn 'operator:<device_fp>' standards/; then exit 1; fi
   - name: secret-scan still pins the documented gitleaks 8.28.0
