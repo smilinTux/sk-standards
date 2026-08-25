@@ -33,6 +33,17 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 - Card f0c63c2a adds the backward-compatible v1.3 control-plane discovery
   facet, a public synthetic example, negative controls, and a CI contract gate.
+- `standards/AUTONOMY_STANDARD.md` plus `reference/autonomy/actuation-surfaces.json` and
+  `scripts/check_actuation_registry.py`: the framework placeholder for the autonomy layer,
+  created first under the accretion model so its six constituent standards can land as
+  individual PRs that each flip their own row. Read as a set, the other eighteen standards
+  all govern nouns; none says what must be true before the estate acts. Two live
+  consequences of that gap, found by direct read on 2026-08-25: `skoperator decide --approve`
+  wrote a record and stopped, with no code anywhere re-reading a resolved decision, so every
+  escalated proposal was a dead end; and the freeze covered neither of two actuation surfaces
+  that could act with no gate at all. The registry makes kill-switch coverage a checked
+  property, and it ships with both ungoverned surfaces honestly listed, because a standard
+  that is green on day one by omission is worse than no standard.
 
 - `standards/SKWORLD_AUTHORIZATION_STANDARD.md`: one PDP (`capauth.authz.decide`), many
   thin PEPs, and the load-bearing rule that **route coverage, not shadow soak, is the

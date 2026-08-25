@@ -1,0 +1,85 @@
+{
+  "schema": "skworld.actuation-surfaces/v1",
+  "updated": "2026-08-25",
+  "note": "One row per surface that can cause physical, fleet, or external effect. A surface is either registered and gated, or it does not ship. An UNGOVERNED_KNOWN row is honest and passes; a MISSING row is the lie this registry exists to catch. See standards/AUTONOMY_STANDARD.md section 2.",
+  "surfaces": [
+    {
+      "id": "fleet-converge-heal",
+      "surface": "fleet converge heal",
+      "repo": "skcapstone",
+      "evidence": "src/skcapstone/fleet/converge.py",
+      "gate_symbol": "_heal",
+      "gate": "per-node actuate opt-in, restartPolicy on-failure, exponential backoff, capauth signature when SKFLEET_SIGNING is enforce",
+      "freeze_coverage": "yes",
+      "authorization_object": "mechanical tier, below the action contract by design",
+      "status": "GOVERNED",
+      "retrofit_card": null,
+      "why": "A thirty-second restart-on-unhealthy pass under backoff is a thermostat, not a decision-maker. Routing it through ITIL would flood the change log and teach people to ignore it."
+    },
+    {
+      "id": "operator-actuator-honor",
+      "surface": "operator actuator honor",
+      "repo": "skcapstone",
+      "evidence": "src/skcapstone/operator_seat/actuator.py",
+      "gate_symbol": "honor",
+      "gate": "freeze check inside honor, HONOR_ADAPTERS allowlist, policy.classify_change auto_approvable, execute flag",
+      "freeze_coverage": "yes",
+      "authorization_object": "ITIL change fold, via the dispatcher",
+      "status": "GOVERNED",
+      "retrofit_card": null,
+      "why": "Unreachable in practice today: no timer installed and the shipped unit carries no execute flag. Becomes reachable only through the dispatcher."
+    },
+    {
+      "id": "operator-http-actions",
+      "surface": "operator HTTP actions",
+      "repo": "skcapstone",
+      "evidence": "src/skcapstone/fleet/operator_http.py",
+      "gate_symbol": "decide",
+      "gate": "capauth PDP end to end, fails closed when capauth is unreachable",
+      "freeze_coverage": "yes",
+      "authorization_object": "capauth policy decision",
+      "status": "GOVERNED",
+      "retrofit_card": null,
+      "why": "Feature-gated off by SKOPERATOR_HTTP. This is the reference implementation the stray surfaces are being retrofitted toward."
+    },
+    {
+      "id": "mcp-run-ansible-playbook",
+      "surface": "run_ansible_playbook (MCP)",
+      "repo": "skcapstone",
+      "evidence": "src/skcapstone/mcp_tools/ansible_tools.py",
+      "gate_symbol": null,
+      "gate": "none",
+      "freeze_coverage": "none",
+      "authorization_object": null,
+      "status": "UNGOVERNED_KNOWN",
+      "retrofit_card": "e51a3e7e",
+      "why": "Runs ansible-playbook against an arbitrary inventory as a raw subprocess. Direct grep 2026-08-25 found no freeze check, no capauth check, no ITIL requirement, no policy classification, and no allowlist. Reachable from any agent session holding the MCP surface."
+    },
+    {
+      "id": "mcp-trustee-lifecycle",
+      "surface": "trustee restart, scale, rotate (MCP)",
+      "repo": "skcapstone",
+      "evidence": "src/skcapstone/mcp_tools/trustee_tools.py",
+      "gate_symbol": null,
+      "gate": "audit after the fact only",
+      "freeze_coverage": "none",
+      "authorization_object": null,
+      "status": "UNGOVERNED_KNOWN",
+      "retrofit_card": "e51a3e7e",
+      "why": "TrusteeOps._audit records the action after it happens and does not gate it. An audit trail is a record, not a gate."
+    },
+    {
+      "id": "skharness-merge",
+      "surface": "skharness merge (twin gate)",
+      "repo": "skharness",
+      "evidence": "src/skharness/autocode/engineering.py",
+      "gate_symbol": "twin_gate_passed",
+      "gate": "twin gate by import from every merge path, fail-closed protected manifest, automerge_repos empty in all live configs",
+      "freeze_coverage": "n/a, governed by its own operator flags",
+      "authorization_object": "twin gate verdict plus the operator automerge list",
+      "status": "GOVERNED",
+      "retrofit_card": null,
+      "why": "live_execution and automerge_repos are operator flags outside any standard's gift."
+    }
+  ]
+}
