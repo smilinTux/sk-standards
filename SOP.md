@@ -548,6 +548,8 @@ checks:
     run: grep -q 'schema v1.2' reference/skworld-module/skworld.module.schema.json && grep -q 'schema is \*\*v1.2\*\*' standards/SKWORLD_AUTHORIZATION_STANDARD.md
   - name: PROVENANCE actor.id still requires the canonical fqid, never the capauth: wire form
     run: grep -q 'carried as the canonical fqid form' standards/PROVENANCE_AND_MUTATION_STANDARD.md && if grep -q 'wire form, .capauth:' standards/PROVENANCE_AND_MUTATION_STANDARD.md; then exit 1; fi
+  - name: a failed operator observe still reports Unknown, never healthy
+    run: grep -q 'report `Unknown`, never' standards/SKWORLD_MODULE_CONTRACT_STANDARD.md && if grep -q 'fail \*safe\* and report healthy' standards/SKWORLD_MODULE_CONTRACT_STANDARD.md; then exit 1; fi
   - name: no standard reintroduces the deprecated operator-prefixed subject as canonical
     run: if grep -rn 'operator:<device_fp>' standards/; then exit 1; fi
   - name: secret-scan still pins the documented gitleaks 8.28.0
