@@ -38,7 +38,11 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   review-only, non-normative proposal for stable application identities,
   keyless-by-default workload identities, purpose-bound credential slots,
   human-rooted authority provenance, opaque custody references, and a
-  boundary-based test for when another durable key is justified.
+  boundary-based test for when another durable key is justified. Architecture
+  review amendments distinguish the five-class fqid grammar from registration
+  metadata and capability-ceiling classes, scope the keyless model to SKLegal
+  with SKGateway as a migration target, and derive two current durable
+  credentials instead of using a fixed identity count.
 - `standards/SKWORLD_AUTHORIZATION_STANDARD.md`: one PDP (`capauth.authz.decide`), many
   thin PEPs, and the load-bearing rule that **route coverage, not shadow soak, is the
   enforce-safety criterion** (shadow mode structurally cannot see an unmapped route, so

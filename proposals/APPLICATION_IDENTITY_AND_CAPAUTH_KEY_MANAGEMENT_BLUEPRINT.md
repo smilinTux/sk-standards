@@ -67,11 +67,11 @@ This is a ceiling, not a quota. A small local application can begin with one
 application authority credential. A high-risk connector or offline release
 surface can be split later without renaming the application registration.
 
-## 3. Why the current seven-identity question is premature
+## 3. Why the former seven-identity question was premature
 
-The current SKLegal Phase 3 roster expects seven node or service entries, but
-the approved non-secret records do not define seven authoritative application
-boundaries. They define:
+The superseded SKLegal Phase 3 roster expected seven node or service entries,
+but the approved non-secret records did not define seven authoritative
+application boundaries. They define:
 
 - four SKLegal audiences: API, connector, model, and tool;
 - one local SKDashboard read-only candidate;
@@ -83,9 +83,9 @@ automatically a long-lived key. Approving seven key-bearing identities merely
 to satisfy a count would create management work without proving that seven
 independent revocation or custody boundaries exist.
 
-Recommendation: replace the fixed count with a boundary-derived roster. It is
-acceptable for the roster to contain seven logical identities while only one
-or two of them hold durable private credentials.
+The reviewed card amendment replaced the fixed count with a boundary-derived
+roster. Logical identity count and durable credential count remain separate
+results of that derivation.
 
 ### 3.1 Estate findings by product
 
@@ -112,13 +112,18 @@ CapAuth identity.
 
 These are observed gaps, not authority to repair them:
 
-1. The naming standard rejects downstream `capauth:` aliases, while live
-   CapAuth, SKGateway, SKHarness, and SKLegal paths still accept or emit aliases
-   and bare identifiers.
-2. CapAuth lacks enforced `service` and `connector` identity classes. A new
-   application principal must not enter permissive unclassified behavior.
-3. The seven-entry roster has one identified candidate and six unresolved
-   entries. Seven is not derived from a ratified split rule.
+1. `PROVENANCE_AND_MUTATION_STANDARD.md` formerly permitted either a canonical
+   fqid or the deprecated `capauth:` wire alias in `actor.id`, while
+   `IDENTITY_NAMING_STANDARD.md` required the canonical fqid. PR #22 resolved
+   the standards contradiction in favor of the canonical fqid. Live CapAuth,
+   SKGateway, SKHarness, and SKLegal alias paths remain migration targets.
+2. CapAuth lacks registered `service` and `connector` capability-ceiling
+   classes. These are ceiling classes over service-spelled fqid subjects, not
+   additional identity classes in the five-class grammar. A subject that
+   resolves to no ceiling class currently skips that layer instead of denying.
+3. The former seven-entry roster had one identified candidate and six
+   unresolved entries. Seven was not derived from a ratified split rule. The
+   card now requires a boundary-derived roster instead.
 4. A public roster field described as opaque contains a literal local custody
    path. Public metadata must use a typed, non-path handle.
 5. Jarvis is variously treated as service, agent, legacy trust anchor, and
@@ -129,27 +134,35 @@ These are observed gaps, not authority to repair them:
    node, delegation chain, policy revision, and authorization decision.
 8. The signed SKWorld module manifest lacks runtime principal, owner, custody,
    revocation, rotation, recovery, and delegation fields.
-9. One module-contract sentence says a failed observation should report
-   healthy, which contradicts the Unknown-first, fail-closed rule.
+9. One module-contract sentence said a failed observation should report
+   healthy, contradicting the Unknown-first, fail-closed rule. PR #23 resolved
+   the contradiction by requiring `Unknown`, never healthy.
 10. SKDashboard and SKGateway security documentation lags their current OIDC,
     TLS, and authorization paths.
 
-No new service principal should become active until items 1, 2, and the exact
-app-specific policy ceiling are resolved and tested.
+No new service or connector principal should become active until item 2 and
+the exact application-specific policy ceiling are resolved and tested.
 
 ## 4. Canonical identity classes
 
-This proposal retains the five subject classes in
-`standards/IDENTITY_NAMING_STANDARD.md` and adds a stable application
-registration above credential-bound subjects as metadata, not as a second
-subject grammar.
+This proposal retains the five subject grammar classes in
+`standards/IDENTITY_NAMING_STANDARD.md`. Application registration is a
+separate metadata layer above that grammar. It is never a policy-decision
+subject and does not add a sixth grammar class.
 
-| Class | What it represents | Durable key default | Authority ceiling |
+| Metadata layer | What it represents | Credential relationship | Authorization role |
 | --- | --- | --- | --- |
-| Human governance | The accountable human root, locally Casey | Existing protected root | Approve registries, delegations, recovery, and exceptional changes |
+| Application registration | One stable product and environment record | Owns purpose-bound credential slots and their public fingerprints | Owns the approved subject roster, policy ceiling, custody references, and lineage; never appears as a decision subject |
+
+When an application authority or workload is a policy subject, it uses the
+Service grammar row. The `service` and `connector` distinction belongs to the
+separate CapAuth capability-ceiling registry on the enrollment record.
+
+| Entity class | What it represents | Durable key default | Authority ceiling |
+| --- | --- | --- | --- |
+| Human | The accountable sovereign root, locally Casey | Existing protected root | Approve registries, delegations, recovery, and exceptional changes |
 | Agent | Jarvis, Atlas, or another attributable software actor | Durable for long-lived agents; none for ephemeral runs | Only explicitly delegated capabilities |
-| Application service | Stable product authority such as SKLegal or SKDashboard | One application authority credential per environment | Issue or validate authority only inside the approved application ceiling |
-| Workload service | API, connector, model gateway, tool gateway, worker, or broker | No durable key by default | One audience, purpose set, and operation ceiling |
+| Service | An application authority or a workload such as an API, connector, model gateway, tool gateway, worker, or broker | One credential for a durable application boundary; no durable key for workloads by default | The exact registered ceiling, audience, and purpose set |
 | Node | A host that must itself receive a host-scoped grant | No subject or key by default | Host operations only, never human or application authority |
 | Device seat | A human login device or browser authenticator | Device-bound credential | Establish a session for one human subject |
 
@@ -185,6 +198,13 @@ Human approval is an authority source, not an excuse to reuse the human
 private key inside services.
 
 ## 6. Agent model
+
+This delegated, keyless workload model is implemented and proven at SKLegal.
+It is a migration target, not a current fleet-wide claim, at SKGateway.
+SKGateway's `subjectFromIdentity()` does not inspect `identity.verified`, and
+its authorization path does not parse `capauth.delegated` chains. Until those
+gaps are repaired and qualified, caller attribution there is not evidence of
+the authenticated delegation model described below.
 
 ### 6.1 Jarvis
 
@@ -227,6 +247,12 @@ holds independently revocable authority, has a distinct accountable owner,
 or must sign artifacts that outlive its parent session.
 
 ## 7. Application and workload model
+
+The rules in this section describe the proven SKLegal model and the normative
+migration target for SKGateway. They do not claim that SKGateway currently
+authenticates keyless workloads. Its current `subjectFromIdentity()` path does
+not require `identity.verified` and does not validate delegated capability
+chains before producing a subject.
 
 ### 7.1 One stable application registration
 
@@ -287,19 +313,26 @@ The following is a proposal for review, not an enrollment roster.
 | SKLegal context broker | No by default | Mint one-use database context leases using short-lived authority and no application-table access |
 | SKLegal runtime pool | No signing key | Consume one-use database context leases; cannot choose a Principal |
 
-This yields seven logical records if useful for policy and provenance, but only
-one durable SKLegal issuer credential by default. Add a separate connector
-issuer when external dispatch is enabled and its compromise ceiling must be
-isolated. Add a context-broker credential only if short-lived injected
-authority cannot meet its custody or availability requirement.
+Applying the section 7.3 boundary split test produces one durable SKLegal
+credential today: the application authority has independent revocation and
+issuer-availability requirements. The API, model, tool, context-broker, and
+runtime-pool workloads remain keyless because no separate custody, external
+effect, classification, or durable-signature boundary is established. The
+connector remains keyless while dispatch is disabled and becomes a separate
+durable issuer when external dispatch creates that boundary.
 
 SKDashboard remains a separate application because it has a separate product
 boundary, audience, session surface, release cycle, and read-only policy. It
 should not be counted as an internal SKLegal workload merely to complete an
 SKLegal roster.
 
+SKDashboard adds one durable credential because its product, revocation, and
+custody boundaries are separate. SKGateway adds none today; a durable gateway
+credential remains conditional on a later decision to make it a
+self-authenticating service rather than a thin policy-enforcement point.
 Across the currently reviewed SKLegal and SKDashboard qualification surfaces,
-the likely durable workload inventory is therefore:
+the durable credential count is therefore exactly two today. The derivation
+and its future triggers are:
 
 1. one SKLegal application issuer;
 2. one SKDashboard OIDC client or workload credential;
@@ -307,8 +340,9 @@ the likely durable workload inventory is therefore:
 4. optionally one SKGateway service principal only when cross-host custody or
    independent revocation proves it is a separate trust boundary.
 
-That is two current application credentials, three with dispatch, or four with
-an independently managed gateway. It is not seven by default.
+That count becomes three when dispatch is enabled, or four only if SKGateway
+becomes a self-authenticating service with independent custody. Logical
+workload records are not used to manufacture a credential quota.
 
 ## 9. Node and machine identities
 
@@ -576,7 +610,6 @@ The following decisions remain open:
 
 | Decision | Recommended default |
 | --- | --- |
-| Exact-seven roster | Supersede it with the boundary split test; do not invent six principals to satisfy a count |
 | Release signing | Keep optional and offline only when durable release verification requires a separate compromise boundary |
 | Connector credential | Create only when external dispatch is enabled and the application issuer must not be able to mint dispatch authority |
 | Context broker credential | Start with short-lived injected authority; add a durable credential only if custody or availability proves necessary |
@@ -589,9 +622,9 @@ The following decisions remain open:
 | SKGateway identity | Keep separate only if cross-host custody, revocation, or exposure is independently managed |
 | Recovery availability | Default to tested offline recovery; add hot failover only when an approved recovery-time objective requires it |
 
-Recommendation: approve the architecture principle, supersede the exact-seven
-assumption, and review the manifest schema before approving any identity count
-or credential operation.
+Recommendation: approve the architecture principle and review the manifest
+schema before approving any identity count or credential operation. The
+fixed-count roster has already been superseded by the boundary split test.
 
 ## 20. Source and provenance ledger
 
@@ -607,7 +640,7 @@ runtime state.
 | --- | --- | --- |
 | `sk-standards/standards/IDENTITY_NAMING_STANDARD.md` | Canonical human, agent, service, node, and device-seat subject classes; key fingerprint roots identity; nodes are subjects only when policy requires it | Ratified standard |
 | `sk-standards/standards/SKWORLD_AUTHORIZATION_STANDARD.md` | One CapAuth PDP, thin PEPs, exact credential-derived subjects, capability and audience mapping, fail-closed decisions | Ratified standard |
-| `sk-standards/standards/PROVENANCE_AND_MUTATION_STANDARD.md` | Attributable actor, role, node, session, target, prior state, signature, and append-only mutation history; still permits a deprecated URI field | Ratified standard with recorded gap |
+| `sk-standards/standards/PROVENANCE_AND_MUTATION_STANDARD.md` | Attributable actor, role, node, session, target, prior state, signature, and append-only mutation history; `actor.id` now requires the canonical fqid | Ratified standard; live alias migration remains open |
 | `sk-standards/standards/SKWORLD_MODULE_CONTRACT_STANDARD.md` and `reference/skworld-module/skworld.module.schema.json` | One signed application manifest and audience-scoped auth context; identity lifecycle fields are absent | Ratified standard and schema |
 | `sk-standards/standards/MCP_TOOL_OWNERSHIP_STANDARD.md` | One authoritative semantic owner with thin delegates; CapAuth owns identity and authorization semantics | Ratified standard |
 | `sk-standards/standards/CRYPTOGRAPHY_STANDARD.md` and `CRYPTO_AGILITY_STANDARD.md` | Crypto agility, suite identifiers, additive migration, bounded overlap, and rollback | Ratified standards |
@@ -620,7 +653,7 @@ runtime state.
 | `skdashboard/SECURITY.md` and `SOP.md` | Some security prose and persona configuration predate current OIDC behavior | Current documentation with recorded drift |
 | `skcoord/src/skcoord/authorized_card_policy.py`, `authorized_card_snapshot.py`, and `portfolio_invocation.py` | Protected flows distinguish subject, acting principal, node, service, and authorization | Current implementation |
 | `skcoord/src/skcoord/card_store.py` and `SECURITY.md` | Legacy CardStore actor attribution is not cryptographic proof | Current implementation and documentation |
-| `skgateway/src/identity/capauth.mjs`, `policy/authz_routes.mjs`, and `config.mjs` | Optional fingerprints, deprecated aliases, bare IDs, and deployment-dependent enforcement coexist | Current implementation |
+| `skgateway/src/identity/capauth.mjs`, `policy/authz_routes.mjs`, and `config.mjs` | Optional fingerprints, deprecated aliases, bare IDs, and deployment-dependent enforcement coexist; `subjectFromIdentity()` does not inspect `identity.verified`, and delegated-chain parsing is absent | Current implementation and named migration gap |
 | `skharness/src/skharness/auth.py`, `activity.py`, and `docs/architecture/live-agent-observation-and-control.md` | Verified audience authority is separate from contextual ephemeral worker IDs | Current implementation and documentation |
 | `skmemory/skmemory/profile_registry.py` and `agents.py` | Profile selection and data ownership are distinct from authentication | Current implementation |
 | `skos/SECURITY.md`, `SOP.md`, and `src/skos/secrets/capauth.py` | SKOS is not an identity root; the CapAuth secret backend is incomplete | Detached local HEAD, not verified against origin/main |
