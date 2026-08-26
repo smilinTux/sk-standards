@@ -14,7 +14,8 @@ name: docs-check
 # Tiers (see standards/DOCS_FRESHNESS_STANDARD.md):
 #   1 presence  - the 7 required docs exist
 #   2 changelog - a PR touching src/** or pyproject.toml also touches CHANGELOG.md
-#   3 evidence  - every check in SOP.md's docs-evidence block still exits 0
+#   3 evidence  - every SOP.md docs-evidence check exits 0 and conventional
+#                 public API/configuration/SIEM inventories match source symbols
 #
 # Tier 3 is the one that matters. Tiers 1 and 2 catch a MISSING doc; tier 3 catches
 # a doc that is present, confident, and wrong, which is the case that hurts because
@@ -94,6 +95,9 @@ jobs:
             ARGS="$ARGS --changed-files /tmp/changed.txt"
           fi
           python .sk-standards/scripts/docs_check.py --repo . $ARGS
+
+      - name: Exercise public-doc source bindings (positive + stale/invented fixtures)
+        run: python .sk-standards/scripts/test_docs_check.py
 
       - name: Prove the gate can fail (negative control)
         # A gate that passes everything is worth no more than one that never ran.

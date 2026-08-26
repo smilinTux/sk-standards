@@ -78,7 +78,7 @@ If a pull request touches `src/**` or `pyproject.toml` but does **not** touch
 - The gate MUST log when the hatch is used. An unlogged escape hatch becomes the
   default path within a quarter.
 
-### 1.3 Self-verifying SOP (tier 3 — the one that catches drift)
+### 1.3 Source-bound evidence (tier 3 — the one that catches drift)
 
 `SOP.md` MUST carry a machine-readable evidence block. The gate executes every check
 in it and fails on any nonzero exit.
@@ -112,6 +112,34 @@ checks:
 - Grow the set when drift is found. Each incident that a check would have caught is a
   check to add.
 
+#### Public API, configuration, and SIEM claim inventories
+
+A repo that publishes any of the conventional public references below MUST also commit
+`docs/source-evidence.json` and mark one canonical inventory block in each document:
+
+| Kind | Document | Block marker | Authoritative source shape |
+|---|---|---|---|
+| API routes | `docs/API.md` | `docs-claims:api_routes` | exported JavaScript string array such as `PUBLIC_API_ROUTES` |
+| Configuration keys | `docs/CONFIGURATION.md` | `docs-claims:configuration_keys` | exported JavaScript string array such as `PUBLIC_CONFIGURATION_KEYS` |
+| SIEM event types | `docs/SIEM.md` | `docs-claims:siem_event_types` | JavaScript string-valued object such as `EventType` |
+
+Each block contains only one claim per Markdown bullet. API claims use
+`` `METHOD /path` ``; configuration and SIEM claims use a backticked key. The manifest
+binds each kind to one repository-relative source file, one `const` symbol, and either
+`array` or `object_values`. Tier 3 compares sets exactly, so a source claim omitted from
+the doc is stale and a doc claim absent from source is invented; either fails.
+
+This check is intentionally narrower than general documentation validation. It
+**certifies only exact inventory equality** for the three marked blocks. It does not
+prove that a route handler is reachable, that configuration keys are consumed or have
+the documented defaults/semantics, that an accepted SIEM event reaches a sink, that
+unmarked prose is correct, or that live/deployed state matches source. Those require
+separate source tests, evidence commands, and where authorized, runtime qualification.
+
+Repos without these conventional public documents report the check as not applicable.
+If any one exists without the manifest, tier 3 fails rather than silently certifying
+only `SOP.md`.
+
 ---
 
 ## 2. Rollout rules for the gate itself (MUST)
@@ -140,6 +168,7 @@ way.
 - [ ] All 7 required files present (tier 1 green)
 - [ ] `CHANGELOG.md` updated by any PR touching `src/**` or `pyproject.toml` (tier 2)
 - [ ] `SOP.md` carries a `docs-evidence` block with **>= 3** hermetic checks (tier 3)
+- [ ] Conventional `docs/API.md`, `docs/CONFIGURATION.md`, and `docs/SIEM.md` inventories are source-bound through `docs/source-evidence.json`, or none of those documents exists
 - [ ] `verified:` date is within the last 6 months
 - [ ] The gate's negative test is recorded in the PR that introduced it
 
@@ -153,4 +182,6 @@ way.
   still rely on the `verified:` date and human review. Prefer moving a fact into a
   checkable form over trusting the date.
 - A green `docs-check` means *the checks that exist* passed. Coverage is a property of
-  the check list, not of the gate. Grow it deliberately.
+  the check list, not of the gate. For marked public inventories, green means equality
+  to named source symbols—not reachability, semantics, delivery, or live behavior.
+  Grow coverage deliberately.

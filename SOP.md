@@ -106,10 +106,12 @@ The five files to open first, in this order:
    7 required files (section 1), the 9-section `SOP.md` template (section 2), the mermaid
    mandate (section 3), and the honest-claims gate (section 5).
 3. **`standards/DOCS_FRESHNESS_STANDARD.md`** - how those docs stay *true*: the
-   three-tier `docs-check` gate and the `docs-evidence` block schema (section 1.3).
+   three-tier `docs-check` gate, `docs-evidence` block schema, and source-bound public
+   API/configuration/SIEM inventory contract (section 1.3).
 4. **`scripts/docs_check.py`** - the validator that implements those three tiers. Read
    `REQUIRED` (the 7 filenames), `parse_evidence()` (the hand-rolled block parser, no
-   PyYAML on purpose), and `self_test()` (the negative control).
+   PyYAML on purpose), `tier3_public_claims()` (exact inventory equality), and
+   `self_test()` (the negative control).
 5. **`.github/workflows/docs-check.yml`** - the reusable gate itself. Its two inputs
    (`tiers`, `standards-ref`) are the whole consumer-facing API. Its sibling
    `.github/workflows/ci-gate-check.yml` follows the identical shape for
@@ -178,8 +180,11 @@ None of these use `|| true`. There is no step in this repo that swallows a nonze
 `python3 scripts/docs_check.py --self-test` builds a throwaway repo in a temp directory
 that is constructed to fail **all three tiers**: 6 of the 7 required files missing, a
 `src/app.py` change with no `CHANGELOG.md`, and three `docs-evidence` checks that exit
-3, fail a `test -f`, and run `false`. It then asserts every tier returned `False` and
-prints `BROKEN (a tier passed when it must not)` if any tier passed.
+3, fail a `test -f`, and run `false`. Separately, `scripts/test_docs_check.py` builds
+stdlib-only fixtures proving current source-bound public inventories pass while stale
+routes, invented configuration keys, and stale SIEM event types fail. The negative
+control asserts every tier returned `False` and prints
+`BROKEN (a tier passed when it must not)` if any tier passed.
 
 ```
 $ python3 scripts/docs_check.py --self-test
@@ -326,7 +331,8 @@ No other environment variable is read anywhere in this repo.
 Permissions requested: `contents: read`. Runner: `ubuntu-latest`, Python 3.12. The job
 checks out the repo under test at `fetch-depth: 0` (the changed-file diff needs history),
 checks out `sk-standards` into `.sk-standards`, computes the PR diff, honours the
-changelog escape hatch, runs `docs_check.py`, then runs `--self-test`.
+changelog escape hatch, runs `docs_check.py`, runs `scripts/test_docs_check.py`, then
+runs `--self-test`.
 
 **Escape hatch:** a `docs-exempt` label or `[skip-changelog]` in the PR title waives the
 tier-2 changelog requirement. The workflow emits a GitHub `::warning` when it is used.
@@ -356,6 +362,22 @@ Module constants that consumers depend on:
 | `REQUIRED` | `README.md`, `SOP.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`, `LICENSE` | Tier 1. Must stay identical to `SK_REPO_DOC_STANDARD` section 1. |
 | `CODE_GLOBS` | `src/`, `pyproject.toml` | Tier 2 trigger prefixes. |
 | `MIN_CHECKS` | `3` | Tier 3 minimum number of `docs-evidence` checks. |
+
+### Source-bound public inventories (tier 3 input format)
+
+If a consumer has any of `docs/API.md`, `docs/CONFIGURATION.md`, or `docs/SIEM.md`, it
+commits all three source bindings in `docs/source-evidence.json`. Each binding names a
+repository-relative document, source file, JavaScript `const` symbol, and source shape
+(`array` or `object_values`). The document marks exactly one corresponding inventory
+with `docs-claims:<kind>` / `/docs-claims:<kind>` HTML comments. The fixture test in
+`scripts/test_docs_check.py` is the executable example.
+
+The comparison is set equality. A source value omitted from the marked block is stale;
+a documented value absent from source is invented; duplicate claims, missing bindings,
+malformed markers, invalid syntax, and paths escaping the repo all fail closed. The
+result certifies only those exact three inventories. It does not certify route handler
+reachability, config use/defaults/semantics, SIEM sink delivery, prose outside marked
+blocks, or live state.
 
 ### The `docs-evidence` block (tier 3 input format)
 
@@ -464,6 +486,8 @@ host, so it is not hermetic and does not belong in a `docs-evidence` block.
 | Tier 3 runs checks you do not recognise, or reports `>= 3` when your block clearly has more. | The parser takes the **first** `docs-evidence` opening marker in the file. An example block documented earlier in the same `SOP.md` shadows the real one. Keep exactly one opening marker per file; see section 7, "Why the opening marker is not reproduced here". |
 | A `docs-evidence` check passes locally but fails in CI. | The runner has a clean Python 3.12 from `actions/setup-python` with **no** third-party packages. A check that shells out to `pytest`, `ruff`, or any pip-installed tool will fail there. Keep evidence checks to shell builtins, coreutils, and stdlib Python. |
 | A `docs-evidence` check is flaky. | It is not hermetic. Anything touching the network, a live service, `systemctl`, `ssh`, or `curl` belongs in that service's health endpoint, not here. A flaky gate gets disabled, and a disabled gate is worse than none. |
+| Tier 3 says `docs/source-evidence.json` is missing. | At least one conventional public claim document exists. Add all three source bindings and marked inventories, or deliberately rename/remove the non-conventional document in a separately authorized docs change. The gate will not silently certify SOP-only coverage. |
+| A public inventory passes but runtime behavior is wrong. | Expected limitation: the binding proves exact equality to a named source symbol only. Handler reachability, config consumption/semantics, and SIEM delivery need separate tests or qualification. |
 | `docs-lint` fails on a link that clearly resolves in a browser. | lychee runs with `--offline`: it validates **relative and file** links only. A broken relative path is a real failure; an `https://` URL is not checked at all. `.github/workflows/docs-lint.yml`. |
 | `docs-lint` fence-check fails after adding a diagram. | An unterminated fence. Run `python3 scripts/check_fences.py <file>` locally; it names the file and the line the fence opened on. |
 | `secret-scan` goes red. | A secret was **added**, because the full history scanned clean on 2026-08-14. Rotate it and purge it. Do **not** weaken the scan to an incremental one. `.github/workflows/secret-scan.yml`. |
@@ -524,6 +548,8 @@ verified: 2026-08-16
 checks:
   - name: the gate can still fail (docs_check negative control)
     run: python3 scripts/docs_check.py --self-test
+  - name: public-doc evidence fixtures prove current claims pass and stale or invented claims fail
+    run: python3 scripts/test_docs_check.py
   - name: validator required-doc list still matches SK_REPO_DOC_STANDARD section 1
     run: sed -n '/^REQUIRED = /,/\]$/p' scripts/docs_check.py | grep -oE '"[^"]+"' | tr -d '"' | while read -r f; do grep -q "| \`$f\`" standards/SK_REPO_DOC_STANDARD.md || exit 1; done
   - name: validator still requires exactly 7 documents (section 7 table)

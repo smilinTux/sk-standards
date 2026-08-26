@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Extended docs-check tier 3 with deterministic, fail-closed source bindings for the
+  conventional public API route, configuration-key, and SIEM EventType inventories.
+  Added stdlib fixtures proving current source-bound claims pass and stale or invented
+  claims fail. The gate reports its exact boundary: inventory equality does not prove
+  handler reachability, configuration semantics/defaults, SIEM delivery, unmarked
+  prose, or live state.
+
 All notable changes to `sk-standards` are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
