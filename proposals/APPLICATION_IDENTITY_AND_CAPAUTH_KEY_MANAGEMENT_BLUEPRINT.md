@@ -636,6 +636,26 @@ human-to-agent-to-workload authority provenance. No reviewer changed files,
 read private keys or passphrases, resolved secret-store values, or mutated
 runtime state.
 
+All source paths below are repository-relative, non-secret provenance. They do
+not disclose a user home, checkout location, temporary directory, or custody
+layout. Unless a row explicitly says otherwise, `Current implementation` and
+`Current documentation` mean the named repository's exact `origin/main`
+revision in the snapshot below. This pins the observation while allowing the
+proposal itself to remain free of host-private paths.
+
+| Repository | Read-only source revision |
+| --- | --- |
+| `sk-standards` | `3bd3ec389c9ddda5f5aab400f0d172849fedadc2` |
+| `capauth` | `30b1522bdc662226bd1b9428e5c3db7f904bf979` |
+| `skcapstone` | `b1c8a52f05df93eac247edf65882c1c88fe1b7e3` |
+| `skcoord` | `6234d3be8e8c8bf09b7583d1e22d7c13e77b7278` |
+| `skdashboard` | `8159033f560dda95f00e1d0b24cbfbb903d1f4dd` |
+| `skgateway` | `333c7b0dde299f93a24af8f612b8c5d6ed494950` |
+| `skharness` | `c70003f30d934fb99f64074b0829ab13035d9650` |
+| `skmemory` | `51aa16c21ac3696c6f9af7f94d376546de02991e` |
+| `skos` | `e41f34767f2363ca60577a10f6de0f31c5611510` |
+| `sklegal` | `54d2f2cdc3bae8249a147e7f82f56dd3241ade17` |
+
 | Source | Current fact supported | Evidence status |
 | --- | --- | --- |
 | `sk-standards/standards/IDENTITY_NAMING_STANDARD.md` | Canonical human, agent, service, node, and device-seat subject classes; key fingerprint roots identity; nodes are subjects only when policy requires it | Ratified standard |
@@ -656,12 +676,13 @@ runtime state.
 | `skgateway/src/identity/capauth.mjs`, `policy/authz_routes.mjs`, and `config.mjs` | Optional fingerprints, deprecated aliases, bare IDs, and deployment-dependent enforcement coexist; `subjectFromIdentity()` does not inspect `identity.verified`, and delegated-chain parsing is absent | Current implementation and named migration gap |
 | `skharness/src/skharness/auth.py`, `activity.py`, and `docs/architecture/live-agent-observation-and-control.md` | Verified audience authority is separate from contextual ephemeral worker IDs | Current implementation and documentation |
 | `skmemory/skmemory/profile_registry.py` and `agents.py` | Profile selection and data ownership are distinct from authentication | Current implementation |
-| `skos/SECURITY.md`, `SOP.md`, and `src/skos/secrets/capauth.py` | SKOS is not an identity root; the CapAuth secret backend is incomplete | Detached local HEAD, not verified against origin/main |
+| `skos/SECURITY.md`, `SOP.md`, and `src/skos/secrets/capauth.py` | SKOS is not an identity root; the CapAuth secret backend is incomplete | Pinned `origin/main` documentation and implementation |
 | `sklegal/packages/capauth/src/sklegal_capauth/issuer.py`, `authorization.py`, and `models.py` | Human and agent roots are excluded from application issuance; audiences, principal kinds, ceilings, and delegation are explicit | Current implementation |
 | `sklegal/deploy/chiap01/issuer-policy/trusted-issuers.json` | Current broad issuer spans four SKLegal audiences and materially different capabilities | Current committed policy metadata |
 | `sklegal/docs/architecture/POSTGRES-PRINCIPAL-SCALING.md` | Shared runtime pool plus separate context broker, database-owned one-use leases, and rejection of caller-selected identity | Current architecture |
 | `sklegal/docs/security/THREAT-MODEL.md` | Least-privilege service identity, secret references, short-lived capabilities, provenance, and fail-closed dependency behavior | Current architecture |
-| `sklegal/config/capauth/fleet-signer-phase1-design.json`, `fleet-signer-migration.json`, and `docs/evidence/capauth/SKL-CAPAUTH-SIGNER-P3P-ROSTER-2026-08-25.json` | Design-only one-per-node-or-service rule, exact-seven expectation, unresolved entries, and a non-opaque custody-path defect | Uncommitted working-tree evidence, not normative |
+| `sklegal/config/capauth/fleet-signer-migration.json` | Design-only one-per-node-or-service migration rule | Pinned committed design metadata, not normative |
+| Historical read-only review inputs `config/capauth/fleet-signer-phase1-design.json` and `docs/evidence/capauth/SKL-CAPAUTH-SIGNER-P3P-ROSTER-2026-08-25.json` in `sklegal` | Exact-seven expectation, unresolved entries, and a non-opaque custody-path defect described by the original review | Historical worktree-only observations, not present at the pinned revision and not independently reproducible from the current repository; retained as qualified provenance, not as normative or current fact |
 
 Live agent profile and fleet observations are discovery inputs only. They do
 not override versioned standards, policy, CardStore authority, or human
