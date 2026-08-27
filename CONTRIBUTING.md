@@ -172,10 +172,13 @@ yourself and say so in the PR. Do not assume CI caught it.
   on a scope the validator could not see` does.
 - **The honest-claim rules apply to commit messages too.**
 - When a contribution is co-authored by an AI agent, end the commit with a
-  `Co-Authored-By:` trailer, one per co-author:
+  `Co-Authored-By:` trailer, one per co-author. **Evidence is required:** the
+  co-author footer is added only when material contribution is supported by exact
+  request or session evidence (card ID, session ID, or pull request reference).
 
   ```
   Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+  # Card: 6a45c813, Session: pi-provenance-sweep-6a45c813@chiap08
   ```
 
 - **Never push a tag.** This repo has never been tagged, and introducing one creates a
