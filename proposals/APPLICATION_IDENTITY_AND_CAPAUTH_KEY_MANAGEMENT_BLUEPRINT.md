@@ -67,6 +67,43 @@ This is a ceiling, not a quota. A small local application can begin with one
 application authority credential. A high-risk connector or offline release
 surface can be split later without renaming the application registration.
 
+### 2.1 Mandatory baseline and optional higher-isolation profiles
+
+The following baseline is mandatory for every application registration. It is
+small enough for a single-host application and does not require one credential
+per process:
+
+- one stable application ID per product and environment;
+- one accountable human governance owner and named application, custody,
+  revocation, recovery, and deployment responsibilities;
+- canonical fqids for every policy subject and exact public fingerprints for
+  credential-bound principals;
+- least-privilege audience, purpose, and capability ceilings;
+- typed opaque custody references with no secret values or filesystem paths;
+- short-lived, attenuated delegation for ordinary workloads;
+- append-only lifecycle, authorization, delegation, rotation, revocation, and
+  recovery provenance;
+- fail-closed handling of unknown, stale, expired, revoked, or unavailable
+  identity state;
+- a tested revocation and offline recovery procedure before activation.
+
+Additional isolation is optional and must be justified by a named boundary from
+section 7.3. These profiles add controls without weakening the baseline:
+
+| Profile | Add only when | Additional control |
+| --- | --- | --- |
+| Separate release signer | Runtime compromise must not authorize durable releases | Offline or separately held release credential slot |
+| External-effect connector | A workload can dispatch, spend, file, message, or reach an external provider | Independently revocable connector issuer with narrower policy |
+| Host-attested node | Policy must authorize one host rather than merely record it | Host-bound node principal and custody, preferably hardware-backed |
+| High-isolation custody | Classification, tenant, organization, or ethical-wall boundaries differ | Separate custody owner, store class, and revocation boundary |
+| Availability failover | An approved recovery-time objective cannot tolerate offline recovery | Disabled-by-default secondary identity with separate custody and activation approval |
+| Durable agent signer | An agent persists across runs or signs artifacts that outlive its parent session | Independently owned and revocable agent principal |
+
+No optional profile is enabled merely because a deployment has another
+process, container, replica, repository, port, queue, or database pool. Optional
+profiles remain subject to the same mandatory ownership, audit, lifecycle,
+revocation, and human-authority controls.
+
 ## 3. Why the former seven-identity question was premature
 
 The superseded SKLegal Phase 3 roster expected seven node or service entries,
