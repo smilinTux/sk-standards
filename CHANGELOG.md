@@ -53,7 +53,10 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   review amendments distinguish the five-class fqid grammar from registration
   metadata and capability-ceiling classes, scope the keyless model to SKLegal
   with SKGateway as a migration target, and derive two current durable
-  credentials instead of using a fixed identity count.
+  credentials instead of using a fixed identity count. Its provenance ledger
+  now pins every cited repository to an exact public revision, uses only
+  repository-relative paths, and labels historical worktree-only observations
+  as non-reproducible rather than presenting them as current facts.
 - `standards/SKWORLD_AUTHORIZATION_STANDARD.md`: one PDP (`capauth.authz.decide`), many
   thin PEPs, and the load-bearing rule that **route coverage, not shadow soak, is the
   enforce-safety criterion** (shadow mode structurally cannot see an unmapped route, so
