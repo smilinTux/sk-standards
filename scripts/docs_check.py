@@ -4,7 +4,8 @@
 Three tiers, in increasing order of value:
 
   1. presence   - the 7 files SK_REPO_DOC_STANDARD requires exist.
-  2. changelog  - a PR touching src/** or pyproject.toml also touches CHANGELOG.md.
+  2. changelog  - a PR touching src/** or pyproject.toml also touches CHANGELOG.md
+                  OR adds a fragment under changelog.d/ (fragments never conflict).
   3. evidence   - every check in SOP.md's `docs-evidence` block still exits 0.
 
 Tier 3 is the one that catches drift. Tiers 1 and 2 catch a MISSING doc; tier 3
@@ -25,6 +26,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import pathlib
 from pathlib import Path
 
 REQUIRED = ["README.md", "SOP.md", "SECURITY.md", "CONTRIBUTING.md",
@@ -59,6 +61,9 @@ def tier1_presence(repo: Path) -> bool:
 
 
 # ---------------------------------------------------------------- tier 2
+CHANGELOG_FRAGMENT_DIR = "changelog.d/"
+
+
 def tier2_changelog(repo: Path, changed: list[str] | None) -> bool:
     if changed is None:
         return _ok("changelog check skipped (no diff context; not a PR)")
@@ -67,9 +72,28 @@ def tier2_changelog(repo: Path, changed: list[str] | None) -> bool:
         return _ok("changelog check n/a (no code touched)")
     if any(c == "CHANGELOG.md" for c in changed):
         return _ok("code changed and CHANGELOG.md updated")
-    return _fail("code under src/ or pyproject.toml changed but CHANGELOG.md did not. "
-                 "Add an entry, or use the docs-exempt label / [skip-changelog] for a "
-                 "genuinely trivial change.")
+    # A fragment under changelog.d/ satisfies the requirement equally.
+    #
+    # Requiring the single CHANGELOG.md made every concurrent PR edit the same
+    # [Unreleased] block, so PRs conflicted with each other on a file that has
+    # nothing to do with their code. Measured on the chi estate 2026-09-01: 15
+    # open PRs failed this gate and a further group conflicted on CHANGELOG.md
+    # alone, none for a reason connected to what they changed.
+    #
+    # A fragment is one new file per PR, so two PRs can never collide: git has
+    # no conflict to resolve between files that do not both exist yet. The
+    # release step concatenates them into CHANGELOG.md, which stays the
+    # released record.
+    frags = [c for c in changed
+             if c.startswith(CHANGELOG_FRAGMENT_DIR) and not c.endswith("/")
+             and pathlib.PurePosixPath(c).name not in {"README.md", ".gitkeep"}]
+    if frags:
+        return _ok("code changed and changelog fragment added (%s)" % frags[0])
+    return _fail("code under src/ or pyproject.toml changed but neither CHANGELOG.md "
+                 "nor a %s fragment did. Add a fragment (one new file, never "
+                 "conflicts), or an entry in CHANGELOG.md, or use the docs-exempt "
+                 "label / [skip-changelog] for a genuinely trivial change."
+                 % CHANGELOG_FRAGMENT_DIR)
 
 
 # ---------------------------------------------------------------- tier 3
