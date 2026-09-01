@@ -1,0 +1,26 @@
+name: commit-attribution
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require evidence for co-author trailers
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -n "$BASE_SHA" ] && [ -n "$HEAD_SHA" ]; then
+            python3 scripts/check_commit_attribution.py "$BASE_SHA..$HEAD_SHA"
+          else
+            python3 scripts/check_commit_attribution.py "HEAD^..HEAD"
+          fi

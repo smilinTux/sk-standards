@@ -171,15 +171,28 @@ yourself and say so in the PR. Do not assume CI caught it.
   subject that states the rule or the failure, the way `fix(audit): never report clean
   on a scope the validator could not see` does.
 - **The honest-claim rules apply to commit messages too.**
-- When a contribution is co-authored by an AI agent, end the commit with a
-  `Co-Authored-By:` trailer, one per co-author. **Evidence is required:** the
-  co-author footer is added only when material contribution is supported by exact
-  request or session evidence (card ID, session ID, or pull request reference).
+- Attribute every commit to its truthful author and committer. A person, agent, or
+  model is a co-author only when it made a material contribution and an exact
+  request or session record supports that credit. The tool used to create the
+  commit, a standing template, a card ID alone, a PR reference alone, or an
+  unevidenced assumption about the worker's model is not co-authorship evidence.
+- For every `Co-Authored-By:` trailer, add a matching
+  `Co-Authored-Evidence:` trailer. Name the same co-author, identify one exact
+  `request:<id>` or `session:<id>`, and briefly state the material contribution.
+  Omit both trailers when that evidence is unavailable.
 
+  ```text
+  Co-Authored-By: Example Model <model@example.invalid>
+  Co-Authored-Evidence: Example Model | session:session-123 | material:designed retry boundary
   ```
-  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-  # Card: 6a45c813, Session: pi-provenance-sweep-6a45c813@chiap08
-  ```
+
+  Pull requests run `scripts/check_commit_attribution.py` on new commits. The
+  check fails a co-author trailer without its matching exact evidence trailer.
+- Suspected historical false attribution is corrected append-only: record the
+  commit, classification, evidence searched, and proposed correction in a new
+  audit note or follow-up commit. Never rewrite merged public history unless an
+  authorized person gives explicit approval naming the exact repository and
+  commits. Preserve existing author and committer fields.
 
 - **Never push a tag.** This repo has never been tagged, and introducing one creates a
   pinning surface consumers will start depending on. That is a fleet decision, not a
