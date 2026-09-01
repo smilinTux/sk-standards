@@ -16,14 +16,38 @@ Re-run the command rather than trusting the number printed here.
 
 | Seat | Holder | Owns | Explicitly does not own |
 |---|---|---|---|
-| **Dispatcher** | `jarvis` | Fleet dispatch, lane routing, worker health, the rotation. Decides what runs where and when. | The merge queue, review assignment, actuation on apps |
-| **Integrator** | `link` | The trunk. Assigns independent reviewers, runs the merge queue, enforces the merge gate, decides what lands. Owns delivery quality. | Dispatch, actuation |
-| **Overseer** | `mero` | Measurement and charter. Reports what the estate finishes and what it is actually working on. Read-only by design. | Dispatch, merge, actuation. Mero never repairs what he measures |
+| **Fleet Dispatcher** | `jarvis` | Fleet claims, launches, releases, reassignment, rotation, lane routing, and worker health. | Review verdicts, the merge queue, application action dispatch, app actuation |
+| **Integrator** | `link` | Triage, independent-review assignment, the merge queue, and eligible merges under the PR 358 control. Owns delivery quality. | Fleet claims, launches, releases, reassignment, application action dispatch, app actuation |
+| **Overseer** | `mero` | Read-only measurement and charter. Observes drift, emits typed recommendations and alerts, and reports what the estate finishes and is working on. | Claims, launches, releases, reassignment, merge, application action dispatch, actuation, or repairing what Mero measures |
 | **Operations** | `ATLAS` | Apps and infra. Observes, reasons, repairs, under the Atlas Constitution. | The coordination board, which it provably does not read |
 | **Recorder** | *nobody* | A rule, not a role: every seat records its own decisions as it makes them. | n/a |
 
 The Recorder is deliberately unfilled. A seat whose job is writing down what
 other seats did is a seat that falls behind and is then blamed for the gap.
+
+"Fleet Dispatcher" is a coordination role, not the application action
+dispatcher defined by
+[`ACTION_AUTHORIZATION_STANDARD`](./standards/ACTION_AUTHORIZATION_STANDARD.md).
+Jarvis gains no application actuation authority from this roster. The action
+dispatcher remains a separate governed component with the closed inputs and ITIL
+authorization contract defined by that standard.
+
+### Typed recommendation handoff
+
+Mero and Link MAY append a `skfleet.dispatch-recommendation/v1` event to a card.
+The event is advice, never an instruction, and MUST contain `card_id`,
+`recommendation_id`, `recommender`, `observed_at`, `observed_claim_owner`,
+`observed_claim_revision`, `observed_process`, `reason`, and `evidence_sha256`.
+`recommendation_id` is the duplicate-suppression key.
+
+Only Jarvis MAY act on the recommendation. Immediately before any claim release,
+launch, stop, or reassignment, Jarvis MUST re-read the current CardStore owner and
+claim revision and the current process state. It MUST reject a duplicate
+`recommendation_id`, a missing or mismatched claim revision, stale process
+evidence, or an action outside Jarvis's fleet authority. Acting records the
+recommendation id, current readback, exact claim revision, result, and evidence
+hash as an append-only event. Mero and Link never perform the recommended fleet
+mutation themselves.
 
 ## How you know each seat is working
 
@@ -61,6 +85,18 @@ pull request open longer than 72 hours without a review decision.
 
 The seat is filled by name only. Naming `link` did not fill it, and this roster
 says so rather than implying a coverage that does not exist.
+
+Link MAY merge only when the source-only control introduced by SKCapstone PR 358
+returns eligible for the exact PR head. Eligibility requires a mergeable PR,
+zero failed checks, a full-SHA exact-head independent PASS by a distinct author,
+no unresolved FAIL or BLOCKED lineage, and a PR not authored by Link. The title
+and category MUST also exclude CapAuth, credential, custody, issuer, secret, key,
+rollback, deploy, production, release, migration, and any other sensitive class.
+Link records the exact head, check state, review identity, review evidence SHA256,
+lineage result, category result, and merge receipt as immutable evidence. Any
+failed predicate denies the merge and escalates to Chef. This role grants no
+deployment, restart, credential, provider, release, migration, or application
+actuation authority.
 
 ### Overseer (`mero`)
 

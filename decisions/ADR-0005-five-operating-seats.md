@@ -50,10 +50,10 @@ exists to close.
 
 | Seat | Owns | Explicitly does not own |
 |---|---|---|
-| **Dispatcher** | Rotation, claims, liveness. Board mechanics. | status reporting, reviewer assignment, relaying human decisions |
-| **Integrator** (`link`) | The trunk. Assigns independent reviewers, runs the merge queue, enforces the merge gate, decides what lands, owns delivery quality. | dispatch, actuation |
+| **Fleet Dispatcher** (`jarvis`) | Fleet claims, launches, releases, reassignment, rotation, lane routing, and worker health. | review verdicts, merge, application action dispatch, actuation |
+| **Integrator** (`link`) | Triage, independent-review assignment, the merge queue, and eligible merges under the PR 358 control. Owns delivery quality. | fleet claims, launches, releases, reassignment, application action dispatch, actuation |
 | **Operations** | Apps and infra. Observes, reasons, repairs, under the Atlas Constitution. | the coordination board, which it provably does not read |
-| **Overseer** | Convergence and drift. Emits observations, produces briefs. | any actuation whatsoever |
+| **Overseer** (`mero`) | Read-only convergence and drift measurement. Emits typed recommendations, alerts, observations, and briefs. | fleet mutation, merge, application action dispatch, or any actuation |
 | **Recorder** | Not an agent. A rule: a human decision lands as a signed artifact or an ITIL change record. | being a message forwarded by an agent |
 
 The Dispatcher seat is held by Jarvis, narrowed. The Operations seat is ATLAS.
@@ -74,6 +74,37 @@ in.
 The Recorder row is a rule rather than a role on purpose. There is no seat to
 appoint; the obligation is that a human decision must be durable and verifiable
 at the moment it is made, not reconstructed afterwards from a chat relay.
+
+The Fleet Dispatcher is not the application action dispatcher governed by
+[`ACTION_AUTHORIZATION_STANDARD`](../standards/ACTION_AUTHORIZATION_STANDARD.md).
+Jarvis coordinates CardStore work and worker processes. It does not append an
+application action `AUTHORIZED` event or actuate an app by implication. The
+application action dispatcher remains the separate component with the closed
+inputs, ITIL fold, readiness, freeze, and current-catalog checks in that
+standard.
+
+Link's merge authority is bounded by the source-only eligibility control
+introduced in SKCapstone PR 358. For the exact PR head, the PR must be mergeable,
+have zero failed checks, and carry an independent PASS with a full head SHA and
+hashed review evidence from an author distinct from the source author and Link.
+No unresolved FAIL or BLOCKED lineage may remain. Link MUST deny self-authored
+work and any title or category covering CapAuth, credential, custody, issuer,
+secret, key, rollback, deploy, production, release, migration, or another
+sensitive class. Every eligibility result and merge records the exact head,
+checks, identities, evidence SHA256, lineage, category decision, and receipt.
+Any denial escalates to Chef. The seat gains no deployment, restart, credential,
+provider, release, migration, or application actuation authority.
+
+Mero and Link findings cross the fleet boundary only as append-only
+`skfleet.dispatch-recommendation/v1` events. Each event carries the card id, a
+duplicate-suppression recommendation id, recommender, observation time, observed
+claim owner and revision, observed process state, reason, and evidence SHA256.
+Only Jarvis may act. Before a claim release, launch, stop, or reassignment,
+Jarvis re-reads current CardStore ownership and revision plus current process
+state, rejects duplicates and stale or mismatched observations, and fences the
+mutation to the exact current claim revision. The resulting event records the
+recommendation, readback, revision, outcome, and evidence hash. The
+recommendation itself carries no control authority.
 
 ### 2. Gates are relaxed by catalog edit, never by prompt
 
@@ -177,6 +208,12 @@ actuation-surface registry, no freeze story of its own, and no capability token.
 - The watcher undercount was verified by counting live worker processes across
   four hosts against the alert payload in the same minute.
 - The freeze-store absence was verified by direct filesystem check on six hosts.
+- ADR-0005 is intentional: open PR 34 reserves ADR-0003 and open PR 36 reserves
+  ADR-0004 under the allocation rule proposed in PR 41. This PR therefore uses
+  the next available number and does not renumber either earlier proposal.
+- The decision is Accepted because Chef approved the operating-seat decision;
+  the open pull request is its publication and review vehicle, not the approval
+  source.
 
 ## Related
 

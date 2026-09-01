@@ -28,6 +28,7 @@ the reusable gates in `.github/workflows/`).
 |---|---|---|
 | The standards | `standards/*.md` | 25 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
 | Decision log | `decisions/ADR-*.md` | Three accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering), ADR-0002 (two coding lanes with one merge bar), and ADR-0005 (five operating seats, and gates relaxed by catalog rather than by prompt). |
+| Operating seats | `ROSTER.md`, `decisions/ADR-0005-five-operating-seats.md` | Jarvis is Fleet Dispatcher, Link is Integrator, and Mero is the read-only Overseer. Fleet dispatch is distinct from application action dispatch. ADR-0005 follows the open-PR ordering that reserves ADR-0003 for PR 34 and ADR-0004 for PR 36. |
 | Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
 | Reference configs | `reference/ingress/`, `reference/systemd/`, `reference/skworld-module/` | Copy-paste artifacts for the ingress, service-unit, and module-contract standards. Includes a JSON Schema and two worked manifest examples. |
 | Validators | `scripts/` | Eleven validator scripts, including docs, CI, fences, module schema, service units, actuation registry, readiness, authorization, merge gate, coding lanes, and self-healing tiers. |
