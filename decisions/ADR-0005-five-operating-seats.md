@@ -1,4 +1,4 @@
-# ADR-0003: Five operating seats, and gates relaxed by catalog rather than by prompt
+# ADR-0005: Five operating seats, and gates relaxed by catalog rather than by prompt
 
 **Status:** Accepted
 **Date:** 2026-09-01
