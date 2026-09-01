@@ -11,6 +11,11 @@ and a repo disagree, the standard wins (or the standard is wrong and we fix it h
 
 ## The standards
 
+The operating-seat roster is [`ROSTER.md`](./ROSTER.md), governed by
+[`ADR-0005`](./decisions/ADR-0005-five-operating-seats.md). It separates the
+Fleet Dispatcher (`jarvis`), Integrator (`link`), and read-only Overseer
+(`mero`) from application action dispatch and actuation.
+
 | Standard | What it governs |
 |---|---|
 | [**CRYPTOGRAPHY_STANDARD**](./standards/CRYPTOGRAPHY_STANDARD.md) | The quantum-resistance bar: HNDL/Mosca threat model, the hybrid combiner `HKDF(X25519 ‖ ML-KEM-768)`, crypto-agility (suite-ids + backend ABC + self-report), the **honest-claim rules** (never "quantum-proof"), and the T0–T4 maturity tiers. |
