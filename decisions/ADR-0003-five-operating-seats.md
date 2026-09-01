@@ -51,14 +51,25 @@ exists to close.
 | Seat | Owns | Explicitly does not own |
 |---|---|---|
 | **Dispatcher** | Rotation, claims, liveness. Board mechanics. | status reporting, reviewer assignment, relaying human decisions |
-| **Integrator** | The trunk. Assigns independent reviewers, runs the merge queue, enforces the merge gate, decides what lands, owns delivery quality. | dispatch, actuation |
+| **Integrator** (`link`) | The trunk. Assigns independent reviewers, runs the merge queue, enforces the merge gate, decides what lands, owns delivery quality. | dispatch, actuation |
 | **Operations** | Apps and infra. Observes, reasons, repairs, under the Atlas Constitution. | the coordination board, which it provably does not read |
 | **Overseer** | Convergence and drift. Emits observations, produces briefs. | any actuation whatsoever |
 | **Recorder** | Not an agent. A rule: a human decision lands as a signed artifact or an ITIL change record. | being a message forwarded by an agent |
 
 The Dispatcher seat is held by Jarvis, narrowed. The Operations seat is ATLAS.
-The Overseer seat is Mero. **The Integrator seat is new and currently vacant**,
-and its absence is the direct cause of two of the six failures above.
+The Overseer seat is Mero. **The Integrator seat is new, named `link`, and
+currently unfilled**, and its absence is the direct cause of two of the six
+failures above.
+
+The name is not decoration. Link is the operator who sees where everyone is,
+routes them, and gets them in and out, which is the coordinating half of the
+seat. The other half is the reason it was chosen over the alternatives: a
+**linker** is the build stage that resolves symbols across separately compiled
+objects and produces the single final artifact. That is integration in the exact
+sense this seat means it. `lock` was rejected despite fitting the gate role,
+because the fleet already sends `FILE-LOCK` and `FILE-LOCK-RELEASE` on skmail
+constantly and an agent of that name would be ambiguous in the channel it works
+in.
 
 The Recorder row is a rule rather than a role on purpose. There is no seat to
 appoint; the obligation is that a human decision must be durable and verifiable
@@ -141,7 +152,10 @@ actuation-surface registry, no freeze story of its own, and no capability token.
 - Catalog relaxation requires lineage, so the first weeks of any new action class
   are gated by construction. That is the cost of the streamlining, paid once per
   class.
-- The Integrator seat is vacant. Naming it does not fill it.
+- The Integrator seat is unfilled. Naming it `link` does not fill it, and this
+  ADR deliberately does not assign it to an existing agent: handing it to
+  whoever currently holds the most context is how one seat came to carry four
+  jobs in the first place.
 
 ### Rejected alternatives
 
