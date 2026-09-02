@@ -31,6 +31,39 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- `standards/SITE_AND_HOST_NAMING_STANDARD.md`: how sites and hosts are named, the layer
+  below the `IDENTITY_NAMING_STANDARD` fqid grammar. Replaces the geography-plus-increment scheme
+  (`nor`/`chi`/`chi2`) with a closed three-character vocabulary claimed in a registry, and names
+  **the incrementing site** as the anti-pattern. Its load-bearing rule is that a site's name and
+  its addresses change on separate schedules: CMDB CI ids are keys rather than labels, so renaming
+  a CI is a delete plus a create that destroys the folded event log, which disqualifies bulk
+  renaming and makes alias-first the only adoptable migration.
+  Federation is explicit: the site vocabulary is **estate-local by design**, so every estate
+  having its own Zion is correct rather than a collision. A site code MUST NOT be respelled on
+  federation (that would re-propose the local/federated split `IDENTITY_NAMING_STANDARD` §3
+  overruled); cross-estate reference uses the fqid, whose `<operator>.<org-domain>` segment is
+  already the estate discriminator. Registries declare an `estate` and resolvers key sites by
+  `(estate, code)`.
+  Hostnames are bare (`zioap01`) and identical in every estate: the estate lives in the
+  resolution suffix and the fqid, never in the host label, since inside an estate a marker
+  carries no information. Each estate therefore owns its resolution namespace, which
+  Tailscale enforces for free (a shared device resolves only as `<host>.<tailnet>.ts.net`,
+  never by short name). `zio` is reserved and automatic per estate;
+  Adds the bridge-node topology that makes that namespace rule usable: estates federate
+  through a small enumerated set of user-owned bridge nodes rather than a full mesh, carrying
+  an application-layer exchange rather than general reachability, listed in the registry as
+  the estate's whole federation surface. Cost is N(N-1) one-time shares and does not grow with
+  machine count. Keeping bridges user-owned also sidesteps the one behaviour Tailscale's docs
+  leave unanswered, whether a tag-owned node can reach a user-shared machine.
+  every other code is claimed only when a site exists to claim it.
+  Estate identity defaults to an operator segment under a shared org-domain
+  (`cakjr.skworld.io`), not a purchased domain: the PGP primary key is the root identity and
+  the domain is a bound label, so sovereignty lives in the key, not the suffix. The cost is
+  paid explicitly instead of assumed, via a required permanent non-revocable delegation, with
+  `IDENTITY_NAMING_STANDARD` section 2.6 dated aliases as the documented exit. Estate tags are
+  `[a-z0-9]{2,12}` with no hyphen so the first hyphen in a hostname is always the delimiter.
+  Adds the account rule the estates already follow: a shared ops account NAME is fine, shared
+  CREDENTIALS are not, since one compromise would otherwise cross every estate at once.
 - Card f0c63c2a adds the backward-compatible v1.3 control-plane discovery
   facet, a public synthetic example, negative controls, and a CI contract gate.
 - `standards/AUTONOMY_STANDARD.md` plus `reference/autonomy/actuation-surfaces.json` and
