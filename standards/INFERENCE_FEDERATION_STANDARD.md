@@ -121,13 +121,30 @@ without anybody editing anything. Encoding it in config means a human or a scrip
 has to know something the gateway is already measuring.
 
 Mechanically, in the **Node `skgateway` implementation specifically**, adding or
-removing a backend requires a **full gateway restart**, not a config reload: the
-router's backend map is built once at startup (`_routerBackends` is a `const`
-assembled at `index.mjs:91-98`) and the SIGHUP path refreshes only the config
-snapshot and the authenticators, never the router. So dynamic membership would
-bounce the gateway, for every consumer, every time any contributor's box changed
-state. A static declaration plus quarantine gives the same behaviour with no
-restarts at all.
+removing a backend requires a **full gateway restart**, not a config reload.
+
+`_routerBackends` is a `const` assembled once at module scope, executed at import,
+and handed to `createRouter()` there. The SIGHUP path (`_cfgEmitter.on("config-changed", ...)`)
+does three things: it `Object.assign`s the fresh config over the snapshot and
+rebuilds the two authenticators. It never re-reads `config.backends`, never
+rebuilds `_routerBackends`, and never calls `createRouter()` again.
+
+It is worse than "the router is not rebuilt". The router holds a **shallow copy**
+of each backend (`{ ...b }`) taken at boot, so even the object identity is severed
+from the reloaded config. **And the failure is silent:** a SIGHUP after editing
+`backends` leaves the router serving the boot-time set, with no error and no log
+line saying it ignored you. That silence is what makes it a hazard rather than an
+inconvenience.
+
+*Cited by symbol, not by line.* Three separate readings of this file during
+drafting produced three different line numbers, because the fleet runs several
+checkouts of it at different revisions. A standard that pins line numbers is
+wrong the moment anyone rebases, and a reader who checks the cite against the
+wrong checkout concludes the rule is false.
+
+So dynamic membership would bounce the gateway, for every consumer, every time any
+contributor's box changed state. A static declaration plus quarantine gives the
+same behaviour with no restarts at all.
 
 ### Hazard: "skgateway" names four different things
 
@@ -139,15 +156,21 @@ gateway behaviour, because the fleet currently runs this (measured 2026-09-02):
 |---|---|
 | `noroc2027:18780` | The Node repo. This is "skgateway". |
 | `chiap01:18790` | The Node repo again, a staged codex instance from a separate checkout. |
-| `chiap04:18780` | **`skgateway-chi`**: a single 9KB Python uvicorn app, self-identifying under that name in `/health`, sharing nothing with the Node repo but the word. It is in **no git repository at all**, and it binds `127.0.0.1` only, so it is invisible to a tailnet probe and looks "down" rather than loopback-scoped. |
+| `chiap04:18780` | **`skgateway-chi`**: a single 9KB Python uvicorn app, self-identifying under that name in `/health`, sharing nothing with the Node repo but the word. Its directory **is not a git working tree** on that host, and it binds `127.0.0.1` only, so it is invisible to a tailnet probe and looks "down" rather than loopback-scoped. |
 | `chiap01:/opt/skgateway` | The Node repo, clean but detached and behind `main`, with nothing running from it. A deploy trap. |
 
 7. **Any rule about gateway behaviour MUST name the implementation it describes.**
    A statement scoped to "skgateway" is wrong in at least three places in the
-   current fleet. An unversioned single-file service answering on the same port
-   under the same name is the worst case: it cannot be reviewed, diffed, or
-   rolled back, and nothing about the Node implementation's behaviour can be
-   assumed of it.
+   current fleet. A single-file service answering on the same port under the same
+   name is the worst case: nothing about the Node implementation's behaviour can
+   be assumed of it.
+
+   Stated precisely, because the distinction matters: what was observed is that
+   the running host's copy is **not in a git working tree**. That is not the same
+   as "nobody manages it". Something upstream may generate or deploy it, and that
+   was not checked. The actionable point stands either way: whatever governs that
+   file, it is not the Node repository, so no statement about the Node repository
+   describes it.
 
 8. **A contributor declares its own admission ceiling**, because only the
    contributor knows the hardware. Ceilings are a property of the serving box (a
