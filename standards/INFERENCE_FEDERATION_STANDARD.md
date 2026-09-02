@@ -43,7 +43,24 @@ consequence.
    relationship already lives. An estate's paid capacity is never a pool
    contribution. If an estate wants to donate paid capacity, it donates the
    *output* through some deliberate mechanism, never by exposing the key.
-3. **A gateway serving the pool lane SHOULD NOT be the same process serving the
+3. **Distinguish subscription-BOUND upstreams from API-key upstreams.** Both are
+   estate-private, but for different reasons, and only one of them blocks a new
+   estate from standing itself up:
+
+   | | Provisioning | Effect on a new estate |
+   |---|---|---|
+   | **Subscription-bound** | Requires a **human login in that estate**. Cannot be provisioned remotely, and one machine owns the refresh. | **Blocks bootstrap.** The operator must sit down and log in. |
+   | **API key** | Copy the key. Not machine-bound. | Trivial. Hand it over and go. |
+
+   Anthropic (via `claude --print` through claude-code-api) and Codex (`codex
+   login` on one host, with the credential file synced read-only to others) are
+   subscription-bound. OpenRouter and similar are keys.
+
+   This is the line that matters when bootstrapping a peer estate. A plan that
+   treats "estate-private" as one category will assume a new estate can be handed
+   its inference access remotely, and it cannot: the subscription-bound half needs
+   a person in front of a browser, in that estate, before it works at all.
+4. **A gateway serving the pool lane SHOULD NOT be the same process serving the
    subscription lane.** Separate processes make rule 1 a deployment property
    rather than a configuration promise, so a mistake in a config file cannot
    expose a key that the process never loaded.
@@ -55,7 +72,7 @@ consequence.
 The obvious design is one shared pool gateway that every estate points at. Reject
 it.
 
-4. **Estates federate inference peer to peer, not through a central pool.** Each
+5. **Estates federate inference peer to peer, not through a central pool.** Each
    estate's gateway adds each peer's gateway as an upstream. The peer's gateway
    **is** its bridge node under
    [`SITE_AND_HOST_NAMING_STANDARD` rules 16 to 19](./SITE_AND_HOST_NAMING_STANDARD.md):
@@ -92,7 +109,7 @@ two entries in a config file.
 The instinct for a voluntary pool is dynamic registration: a box joins when it is
 idle and leaves when its owner starts gaming. Resist it.
 
-5. **Pool members MUST be declared statically in gateway configuration**, and a
+6. **Pool members MUST be declared statically in gateway configuration**, and a
    member that is powered off, busy, or unreachable MUST be handled by the
    gateway's health and quarantine layer rather than by removing it from config.
 
@@ -103,14 +120,36 @@ the runtime. A health layer already answers it continuously, for every backend,
 without anybody editing anything. Encoding it in config means a human or a script
 has to know something the gateway is already measuring.
 
-Mechanically, in the reference implementation adding or removing a backend
-requires a **full gateway restart**, not a config reload: the router's backend map
-is built once at startup and the reload path refreshes only the config snapshot.
-So dynamic membership would bounce the gateway, for every consumer, every time any
-contributor's box changed state. A static declaration plus quarantine gives the
-same behaviour with no restarts at all.
+Mechanically, in the **Node `skgateway` implementation specifically**, adding or
+removing a backend requires a **full gateway restart**, not a config reload: the
+router's backend map is built once at startup (`_routerBackends` is a `const`
+assembled at `index.mjs:91-98`) and the SIGHUP path refreshes only the config
+snapshot and the authenticators, never the router. So dynamic membership would
+bounce the gateway, for every consumer, every time any contributor's box changed
+state. A static declaration plus quarantine gives the same behaviour with no
+restarts at all.
 
-6. **A contributor declares its own admission ceiling**, because only the
+### Hazard: "skgateway" names four different things
+
+That restart rule is a property of one codebase, not of the name. Verify which
+implementation you are reasoning about before applying any statement about
+gateway behaviour, because the fleet currently runs this (measured 2026-09-02):
+
+| Endpoint | What it actually is |
+|---|---|
+| `noroc2027:18780` | The Node repo. This is "skgateway". |
+| `chiap01:18790` | The Node repo again, a staged codex instance from a separate checkout. |
+| `chiap04:18780` | **`skgateway-chi`**: a single 9KB Python uvicorn app, self-identifying under that name in `/health`, sharing nothing with the Node repo but the word. It is in **no git repository at all**, and it binds `127.0.0.1` only, so it is invisible to a tailnet probe and looks "down" rather than loopback-scoped. |
+| `chiap01:/opt/skgateway` | The Node repo, clean but detached and behind `main`, with nothing running from it. A deploy trap. |
+
+7. **Any rule about gateway behaviour MUST name the implementation it describes.**
+   A statement scoped to "skgateway" is wrong in at least three places in the
+   current fleet. An unversioned single-file service answering on the same port
+   under the same name is the worst case: it cannot be reviewed, diffed, or
+   rolled back, and nothing about the Node implementation's behaviour can be
+   assumed of it.
+
+8. **A contributor declares its own admission ceiling**, because only the
    contributor knows the hardware. Ceilings are a property of the serving box (a
    `llama-server --parallel 4` genuinely cannot take a fifth concurrent request),
    not a throttle to be guessed by the consumer.
@@ -119,14 +158,14 @@ same behaviour with no restarts at all.
 
 ## Authorization
 
-7. **A pool request is an authorization decision like any other.** The gateway is
+9. **A pool request is an authorization decision like any other.** The gateway is
    a Policy Enforcement Point and MUST run the
    [`SKWORLD_AUTHORIZATION_STANDARD` section 1](./SKWORLD_AUTHORIZATION_STANDARD.md)
    lifecycle: classify route, authenticate, resolve subject from the credential
    only, map to a capability, decide against the one PDP, emit the audit
    obligation. A gateway that accepts a peer's traffic because it arrived on the
    bridge interface has authenticated the *network*, not the *caller*.
-8. **Cross-estate inference REQUIRES the peer estates' trust roots to be
+10. **Cross-estate inference REQUIRES the peer estates' trust roots to be
    established first.** Until each estate has its own PGP primary key and a
    resolvable operator segment, a cross-estate capability grant has nothing to
    verify against. This is a hard ordering constraint: the pool cannot ship
@@ -141,12 +180,12 @@ of providers) are attractive for reach and for cost features an estate gateway m
 not have. The MIT licence means the good ideas can be taken directly, with
 attribution, which is usually the better move than adopting the whole service.
 
-9. **An aggregator MAY be adopted as a BACKEND behind the estate gateway. It MUST
+11. **An aggregator MAY be adopted as a BACKEND behind the estate gateway. It MUST
    NOT replace it.** The estate gateway is the PEP, the sanitizer and the
    admission controller, and those responsibilities are defined by other standards
    here. An aggregator reaches many providers; it is not a policy decision point
    and does not know the estate's authorization model.
-10. **An aggregator MUST live on the subscription lane only, never the pool
+12. **An aggregator MUST live on the subscription lane only, never the pool
     lane.** It exists to reach third-party APIs, precisely the traffic rule 1
     keeps away from peers. Estate-local also keeps its blast radius inside one
     estate.
@@ -162,7 +201,7 @@ nothing in common but the price. They MUST be treated separately.
 | Free tiers | A real account's free allowance (OAuth or API key) | **Allowed**, subject to data class below |
 | Web-session replay | Your logged-in browser cookie replayed against a consumer web UI | **Forbidden** |
 
-11. **Web-session-replay providers MUST NOT be enabled.** Pasting a
+13. **Web-session-replay providers MUST NOT be enabled.** Pasting a
     browser storage-state or cookie header so a gateway can impersonate your
     logged-in session against a consumer web UI breaches those services' terms,
     and the credential at risk is a **real personal account**, not an API key with
@@ -173,7 +212,7 @@ nothing in common but the price. They MUST be treated separately.
 
 ### Free tiers are paid for in data, so route by data class
 
-12. **Eligibility for a free tier is decided by the DATA CLASS of the request, never
+14. **Eligibility for a free tier is decided by the DATA CLASS of the request, never
     by cost.** Free tiers are generally free because the provider reserves the
     right to train on submitted content. For an ecosystem whose entire thesis is
     sovereign memory and private state, routing the wrong content through one
@@ -193,21 +232,21 @@ nothing in common but the price. They MUST be treated separately.
 
 ### What is worth taking
 
-13. **Cost-tier fallback laddering** (subscription, then paid API, then cheap,
+15. **Cost-tier fallback laddering** (subscription, then paid API, then cheap,
     then free) is a sound routing pattern and SHOULD be adopted, bounded by
     rule 12: the ladder never crosses into a free tier for a request whose data
     class forbids it.
-14. **Per-provider quota tracking with automatic rotation on exhaustion** is the
+16. **Per-provider quota tracking with automatic rotation on exhaustion** is the
     feature that makes many small free allowances usable in aggregate. Individually
     each free tier is too small to matter; tracked and rotated, they add up. This
     is the genuinely valuable engineering in an aggregator and is worth
     reimplementing natively.
-15. **Ranking free providers by independent model-quality scores** rather than
+17. **Ranking free providers by independent model-quality scores** rather than
     treating "free" as one undifferentiated bucket is worth copying. Joining a
     provider catalogue against crowd-sourced ELO scores answers "which free
     provider gives the best model" instead of "which free provider answered
     first", and a free frontier model is worth far more than a free legacy one.
-16. **Vendor performance claims MUST be measured locally before being relied
+18. **Vendor performance claims MUST be measured locally before being relied
     upon.** Compression ratios and cost savings are the vendor's numbers on the
     vendor's workloads. This is the
     [`TESTING_AND_CI_STANDARD`](./TESTING_AND_CI_STANDARD.md) "tests are evidence
@@ -224,7 +263,7 @@ what makes adopting it a bounded decision. Reimplementing a good idea natively
 
 ## Accounting
 
-17. **Donated capacity SHOULD be recorded**, at minimum as requests served and
+19. **Donated capacity SHOULD be recorded**, at minimum as requests served and
     tokens produced per contributing estate, through the existing SKJoule ledger
     rather than a parallel store.
 
@@ -240,6 +279,8 @@ rather than after somebody is annoyed.
 ## Compliance checklist
 
 - [ ] No paid credential is reachable from any pool-lane gateway.
+- [ ] Subscription-bound upstreams are distinguished from API-key ones in any bootstrap plan.
+- [ ] Every statement about gateway behaviour names the implementation it describes.
 - [ ] Subscription and pool lanes are separate processes, or the exception is written down.
 - [ ] Each estate's gateway sets its own upstream priority order.
 - [ ] Pool members are declared statically; availability is left to health and quarantine.
