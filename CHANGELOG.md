@@ -31,6 +31,14 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- `INFERENCE_FEDERATION_STANDARD` amended twice from fleet measurement. The restart-versus-SIGHUP
+  rule was scoped to "the reference implementation" but verified only against the Node repo, and
+  "skgateway" names four different things in the current fleet, one of which is an unversioned
+  single-file Python service answering on the same port under the same name in no git repository
+  at all. The rule now names the Node implementation and the collision is stated as a hazard.
+  Separately, subscription-bound upstreams are now distinguished from API-key ones: both are
+  estate-private, but only the subscription-bound half requires a human login inside the new
+  estate and therefore blocks bootstrapping it remotely.
 - `standards/INFERENCE_FEDERATION_STANDARD.md`: how estates share GPU capacity without
   sharing spend. Separates a private subscription lane from a federated pool lane that holds no
   paid credentials, chooses mesh over a central pool because routing priority is a local policy
