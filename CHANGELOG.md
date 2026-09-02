@@ -31,6 +31,15 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- `standards/INFERENCE_FEDERATION_STANDARD.md`: how estates share GPU capacity without
+  sharing spend. Separates a private subscription lane from a federated pool lane that holds no
+  paid credentials, chooses mesh over a central pool because routing priority is a local policy
+  decision, and makes pool membership static so the health/quarantine layer (not a config edit
+  plus a gateway restart) answers who is online. Also splits the three unrelated things sold as
+  "free": open endpoints and genuine free tiers are allowed, web-session replay is forbidden
+  because the credential at risk is a personal account rather than a capped key, and free-tier
+  eligibility is governed by data class rather than cost, since free tiers are paid for in
+  training data and a cost-ranked router cannot tell a public corpus from a soul file.
 - Card f0c63c2a adds the backward-compatible v1.3 control-plane discovery
   facet, a public synthetic example, negative controls, and a CI contract gate.
 - `standards/AUTONOMY_STANDARD.md` plus `reference/autonomy/actuation-surfaces.json` and
