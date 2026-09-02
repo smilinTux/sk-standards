@@ -31,6 +31,13 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- `standards/SITE_AND_HOST_NAMING_STANDARD.md`: how sites and hosts are named, the layer
+  below the `IDENTITY_NAMING_STANDARD` fqid grammar. Replaces the geography-plus-increment scheme
+  (`nor`/`chi`/`chi2`) with a closed three-character vocabulary claimed in a registry, and names
+  **the incrementing site** as the anti-pattern. Its load-bearing rule is that a site's name and
+  its addresses change on separate schedules: CMDB CI ids are keys rather than labels, so renaming
+  a CI is a delete plus a create that destroys the folded event log, which disqualifies bulk
+  renaming and makes alias-first the only adoptable migration.
 - Card f0c63c2a adds the backward-compatible v1.3 control-plane discovery
   facet, a public synthetic example, negative controls, and a CI contract gate.
 - `standards/AUTONOMY_STANDARD.md` plus `reference/autonomy/actuation-surfaces.json` and
