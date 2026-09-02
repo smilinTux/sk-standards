@@ -179,6 +179,59 @@ user-owned. Whether a tagged node can reach a machine shared to a user is **not
 answered by the documentation and MUST be tested before any migration depends on
 it.** Recorded here as an open dependency rather than an assumption.
 
+### Bridge nodes: how estates reach each other without merging
+
+Rule 15 says an estate should own its resolution namespace. That is only usable
+advice if there is an answer to "then how do two estates talk," so the answer is
+here. It is deliberately narrow, and the narrowness is the point.
+
+**There is no bulk mechanism, and you do not want one.** Tailscale shares devices
+one at a time, with no batch or whole-tailnet option, and the tailnet-level
+alternative (inviting a user into your tailnet) is not federation at all: the
+invited user becomes a member with default access to everything, both estates
+collapse into one namespace, and the bare-hostname rule breaks. Shared machines
+also do not advertise subnet routes, so "share one router, expose the LAN" is
+closed off too.
+
+Read as a constraint that is a naming problem, this looks bad. Read as an
+architecture, it is the correct default: **a peer estate should never have been
+able to enumerate your whole fleet.**
+
+16. **Estates federate through designated BRIDGE NODES, never as a full mesh.**
+    Each estate exposes a small, enumerated set of nodes (normally one) to a given
+    peer. Everything else in the estate is unreachable from outside it, by
+    construction rather than by policy.
+17. **A bridge node MUST be user-owned, not tag-owned.** Device shares are accepted
+    by users and a shared machine is documented as visible to the recipient *user*
+    rather than to their whole tailnet, so a tag-owned node is the wrong thing on
+    both ends of a share. Keeping bridges user-owned and everything else tagged
+    means cross-estate traffic is user-owned-bridge to user-owned-bridge, and the
+    question of whether a tagged node can reach a user-shared machine never has to
+    be answered.
+18. **A bridge is an APPLICATION-layer bridge, not a network route.** Because a
+    shared machine cannot advertise subnets, a bridge carries a specific,
+    enumerated exchange (a sync folder, a mailbox, a signed message queue), never
+    general reachability into the estate behind it. This is the same conclusion
+    the fleet reached independently: a narrow shared folder between rings rather
+    than merged state trees.
+19. **The bridge set MUST be enumerated in the registry.** It is the estate's
+    entire federation surface, so it is exactly the thing that should be reviewable
+    in one place, and a bridge that exists but is not written down is an
+    unaudited hole.
+
+**Cost, so it is not a surprise.** Pairwise bridging is `N(N-1)` one-time shares
+for `N` estates: six for three estates, done once. That is the whole ongoing
+burden, and it does not grow with the number of machines in an estate, only with
+the number of estates. An estate can add fifty nodes without a single new share.
+
+```
+  chef  <-> cakjr      2 shares
+  chef  <-> greg       2 shares
+  cakjr <-> greg       2 shares
+  ------------------------------
+  6 shares, one time, for any fleet size
+```
+
 ### Estate identity: a subdomain of one org is the default, and it costs nothing
 
 An estate needs a globally unique label. It does **not** need a registered domain
@@ -191,7 +244,7 @@ to work. So an estate whose operator holds its own primary key is sovereign
 regardless of whose domain its label sits under. Revoke the label tomorrow and the
 key is untouched; only the spelling would have to move.
 
-16. **The DEFAULT is an operator segment under a shared org-domain**, which is the
+20. **The DEFAULT is an operator segment under a shared org-domain**, which is the
     existing grammar with no new concept bolted on:
 
     ```
@@ -204,12 +257,12 @@ key is untouched; only the spelling would have to move.
     person's estate (`cakjr.skworld.io`), while that person as a sovereign root
     stays at the apex with no operator segment at all.
 
-17. **A subdomain delegation MUST be documented as permanent and non-revocable.**
+21. **A subdomain delegation MUST be documented as permanent and non-revocable.**
     This is the whole cost of the default, and it must be paid explicitly rather
     than assumed. An estate label that the parent-domain holder can reclaim is a
     label that can force a rename, and a forced rename breaks every stored
     reference. Write the commitment down; do not leave it to goodwill.
-18. **An estate MAY move to its own org-domain at any time**, and this is a
+22. **An estate MAY move to its own org-domain at any time**, and this is a
     supported migration rather than a rupture: it goes through
     [`IDENTITY_NAMING_STANDARD` §2.6](./IDENTITY_NAMING_STANDARD.md), which
     already defines dated, enumerated, removable aliases. Because that path
@@ -226,11 +279,11 @@ accepts either a local file or a `/.well-known` URL). Cheap now, useful later.
 The portability principle applies to operator accounts the same way it applies to
 hostnames, and it stops in exactly the same place.
 
-19. **An ops or admin account name MAY be identical across estates** (the fleet
+23. **An ops or admin account name MAY be identical across estates** (the fleet
     currently uses `skuser01`). That is the same win as identical hostname
     structure: an operator helping on a peer's box reaches for a name they already
     know.
-20. **Credentials MUST NOT be.** Passwords, SSH private keys, and any key material
+24. **Credentials MUST NOT be.** Passwords, SSH private keys, and any key material
     are **per estate**, never shared and never derived from a common secret. A
     shared account name is a convenience; a shared credential would make the
     estate boundary decorative, since one compromise would cross every estate at
@@ -431,3 +484,6 @@ def site_of(hostname, sites):
 - [ ] Each estate's operator segment matches `[a-z0-9]{2,12}` and contains no hyphen.
 - [ ] Any subdomain delegation is documented as permanent and non-revocable.
 - [ ] Ops account names may be shared; no credential is.
+- [ ] Every estate's bridge set is enumerated in its registry.
+- [ ] Every bridge node is user-owned, not tag-owned.
+- [ ] No bridge grants general reachability into the estate behind it.
