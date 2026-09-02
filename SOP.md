@@ -48,6 +48,37 @@ the reusable gates in `.github/workflows/`).
   `CRYPTO_AGILITY_STANDARD`; it holds no key material and performs no crypto
   operations, so it declares tier T0 and has no PQC posture of its own.
 
+### Operating-seat runtime procedure
+
+The normative placement, scheduling, health, and cold-standby rules for Link,
+Mero, and the Jarvis fenced consumer are in
+[`ROSTER.md`](./ROSTER.md#runtime-placement-and-scheduling). `sk-standards`
+documents the contract only. SKCapstone owns the executable, user units, timers,
+locking, revision fencing, evidence writer, installation, and rollback.
+
+Operational changes follow this order:
+
+1. Change and independently review SKCapstone source and tests.
+2. Install Link and Mero on `chiap08` with both timers initially disabled.
+3. Pin `active_host=chiap08`, then run one dry cycle per seat and verify exact
+   evidence and zero mutation.
+4. Enable only the `chiap08` timers and observe one normal cycle per seat.
+5. Install byte-identical Link and Mero standby units on `chiap01` but leave
+   both disabled. Do not change its ordinary fleet rotation.
+6. Record active-host, standby-host, hashes, timer state, health, and rollback.
+
+Rollback disables the affected timer, restores exact prior bytes, runs one
+read-only health check, and preserves all evidence. It does not promote the
+standby automatically.
+
+The Link service runtime limit is 120 seconds and the Mero service runtime
+limit is 180 seconds. Before any operational read, both validate the
+revision-pinned active-host record and refuse an inactive host. Failures emit a
+typed append-only alert to Jarvis with the unit, host, seat, cycle, timestamps,
+active-host revision, result, exit status, evidence hash, and redacted tail.
+After a fresh matching readback, Jarvis stops and disables only the affected
+timer.
+
 ---
 
 ## 2. Architecture

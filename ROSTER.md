@@ -49,6 +49,72 @@ recommendation id, current readback, exact claim revision, result, and evidence
 hash as an append-only event. Mero and Link never perform the recommended fleet
 mutation themselves.
 
+### Runtime placement and scheduling
+
+The active coordination control plane runs on `chiap08`. Link and Mero run as
+short-lived user services started by timers. They are not long-running daemons,
+and they are not active on every fleet node.
+
+| Unit | Active host | Cadence | Authority |
+|---|---|---|---|
+| `skfleet-link.service` and `skfleet-link.timer` | `chiap08` | Every 5 minutes | Read current PR and CardStore state, append revision-fenced reviewer and merge-eligibility recommendations |
+| `skfleet-mero.service` and `skfleet-mero.timer` | `chiap08` | Every 10 minutes, offset from Link | Read current coordination and worker state, append typed blocker observations and recommendations |
+| Jarvis fenced consumer | `chiap08` | Existing fleet rotation cadence | Re-read current state and perform only an independently authorized exact-revision fleet mutation |
+
+Each service MUST use a host-local nonblocking lock. A second invocation exits
+without work and records `overlap_refused`. Each cycle has a bounded runtime,
+records its source revisions and result, and leaves no persistent worker after
+exit. A recommendation carries no mutation authority.
+
+Before reading PR, CardStore, worker, or provider state, each cycle MUST read a
+revision-pinned control-plane record and compare its `active_host` with the
+local hostname. A mismatch exits without scanning or emitting recommendations
+and records only `inactive_host_refused` health evidence. Link has a 120-second
+runtime limit. Mero has a 180-second runtime limit. A timeout records failure
+and terminates the affected cycle.
+
+`chiap01` is the cold standby for the Link and Mero control-plane cycles only.
+Its ordinary fleet rotation remains active and is outside this standby rule.
+The Link and Mero unit files MAY be installed for byte parity, but both of
+their timers MUST remain disabled. Promotion requires all of the following:
+
+1. Fresh evidence that both `chiap08` timers are stopped and inactive.
+2. A revision-fenced promotion record naming the source and target hosts.
+3. Exact unit, executable, configuration, and package hash readback.
+4. One dry cycle on `chiap01` before either timer is enabled.
+5. Evidence that no second active scheduler exists.
+
+Automatic failover is forbidden. Running Link or Mero actively on more than one
+host recreates duplicate reviewer assignment, stale observation, and worker
+collision risks.
+
+### Runtime health and recovery
+
+Health is determined from evidence, not merely from unit state. Each cycle MUST
+record start time, finish time, host, seat identity, source revision, scanned
+population, emitted recommendation count, duplicate suppression count, error
+count, and evidence SHA256. The health check fails when:
+
+- the last successful cycle is older than twice its configured cadence;
+- a cycle exceeds its runtime bound or another cycle overlaps it;
+- Link acts on a PR head that differs from its observation;
+- Mero emits a mutation event or invokes a mutation command;
+- the same recommendation identifier is accepted twice; or
+- both `chiap08` and `chiap01` report an enabled timer for the same seat.
+
+Recovery stops the affected timer, preserves the failed cycle evidence, and
+restores the prior unit and executable bytes. It never clears a claim, changes a
+card, assigns a reviewer, merges a PR, or promotes the standby as part of the
+health check itself.
+
+Every health failure emits one typed append-only alert to the Jarvis SKMail
+inbox. The alert MUST contain the unit, host, seat, cycle identifier, start and
+finish time, active-host record revision, result, exit status, evidence SHA256,
+and a redacted diagnostic tail. Jarvis disables and stops only the affected
+timer after a fresh matching unit and cycle readback. Link and Mero cannot
+disable their own or another service. If alert delivery fails, the unit exits
+failed, retains its local evidence, and performs no coordination mutation.
+
 ## How you know each seat is working
 
 ### Dispatcher (`jarvis`)
