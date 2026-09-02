@@ -103,9 +103,19 @@ hostname grammar is:
 
 12. **The estate tag MUST be present on any host sharing a name resolution
     namespace with another estate** (one tailnet, one DNS zone, one `/etc/hosts`
-    fleet). It is lowercase ASCII, 2 to 8 characters, and MUST equal the operator
-    segment of that estate's fqid, so a hostname and an identity never disagree
-    about whose machine it is.
+    fleet), and MUST equal the operator segment of that estate's fqid, so a
+    hostname and an identity never disagree about whose machine it is.
+
+    **Grammar: `[a-z0-9]{2,12}`. No hyphen, ever.** The tag is hyphen-free so that
+    the FIRST hyphen in a hostname is always the estate delimiter. A tag
+    containing a hyphen makes the hostname unparseable:
+
+    ```
+      gmk-zioap01      estate=gmk  site=zio  role=ap  index=01
+      g-mk-zioap01     estate=g? estate=g-mk? unparseable
+    ```
+
+    Shorter is better, because the tag prefixes every hostname anyone ever types.
 13. **The tag names WHOSE, never WHAT STATUS.** This is not a reintroduction of the
     local/federated split that
     [`IDENTITY_NAMING_STANDARD` §3](./IDENTITY_NAMING_STANDARD.md) overruled. That
@@ -147,6 +157,69 @@ deliberately does not solve it a second time.
     of our codes to someone else's node manufactures exactly the ambiguity this
     section exists to prevent, and it asserts an authority over their naming that
     we do not have.
+
+### Estate identity: a subdomain of one org is the default, and it costs nothing
+
+An estate needs a globally unique label. It does **not** need a registered domain
+of its own, and buying one is usually the wrong first move.
+
+Per [`IDENTITY_NAMING_STANDARD`](./IDENTITY_NAMING_STANDARD.md), **the PGP
+primary-key fingerprint is the root identity and the subject string is a bound
+label.** The domain is a name, not an address. It never has to resolve for identity
+to work. So an estate whose operator holds its own primary key is sovereign
+regardless of whose domain its label sits under. Revoke the label tomorrow and the
+key is untouched; only the spelling would have to move.
+
+15. **The DEFAULT is an operator segment under a shared org-domain**, which is the
+    existing grammar with no new concept bolted on:
+
+    ```
+      cakjr-zioap01@cakjr.skworld.io
+                    ^^^^^ ^^^^^^^^^^
+                    operator  org-domain     (and the estate tag is `cakjr`)
+    ```
+
+    Note this composes with the human apex form unchanged: the operator is a
+    person's estate (`cakjr.skworld.io`), while that person as a sovereign root
+    stays at the apex with no operator segment at all.
+
+16. **A subdomain delegation MUST be documented as permanent and non-revocable.**
+    This is the whole cost of the default, and it must be paid explicitly rather
+    than assumed. An estate label that the parent-domain holder can reclaim is a
+    label that can force a rename, and a forced rename breaks every stored
+    reference. Write the commitment down; do not leave it to goodwill.
+17. **An estate MAY move to its own org-domain at any time**, and this is a
+    supported migration rather than a rupture: it goes through
+    [`IDENTITY_NAMING_STANDARD` §2.6](./IDENTITY_NAMING_STANDARD.md), which
+    already defines dated, enumerated, removable aliases. Because that path
+    exists, choosing a subdomain today forecloses nothing.
+
+**Make it resolve anyway.** Identity does not require it, but a resolvable estate
+domain gives the ecosystem's `/.well-known` discovery patterns somewhere to live
+(the module registry in
+[`SKWORLD_MODULE_CONTRACT_STANDARD`](./SKWORLD_MODULE_CONTRACT_STANDARD.md) already
+accepts either a local file or a `/.well-known` URL). Cheap now, useful later.
+
+### Shared account names, estate-scoped secrets
+
+The portability principle applies to operator accounts the same way it applies to
+hostnames, and it stops in exactly the same place.
+
+18. **An ops or admin account name MAY be identical across estates** (the fleet
+    currently uses `skuser01`). That is the same win as identical hostname
+    structure: an operator helping on a peer's box reaches for a name they already
+    know.
+19. **Credentials MUST NOT be.** Passwords, SSH private keys, and any key material
+    are **per estate**, never shared and never derived from a common secret. A
+    shared account name is a convenience; a shared credential would make the
+    estate boundary decorative, since one compromise would cross every estate at
+    once. The estates are already run this way and this rule records it rather
+    than changing it.
+
+**Out of scope, deliberately.** *How* those per-estate secrets are generated,
+stored, rotated and recovered is a credential-management question, not a naming
+question, and it is not settled here. This standard fixes only the invariant:
+**identical spelling, isolated secrets.**
 
 ### Human-readable form when two estates are in the room
 
@@ -334,3 +407,6 @@ def site_of(hostname, sites):
 - [ ] Each estate tag equals the operator segment of that estate's fqid.
 - [ ] Everything after the estate tag is spelled identically across estates.
 - [ ] No code was claimed for a site that does not exist yet.
+- [ ] Every estate tag matches `[a-z0-9]{2,12}` and contains no hyphen.
+- [ ] Any subdomain delegation is documented as permanent and non-revocable.
+- [ ] Ops account names may be shared; no credential is.
