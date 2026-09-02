@@ -49,6 +49,12 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   carries no information. Each estate therefore owns its resolution namespace, which
   Tailscale enforces for free (a shared device resolves only as `<host>.<tailnet>.ts.net`,
   never by short name). `zio` is reserved and automatic per estate;
+  Adds the bridge-node topology that makes that namespace rule usable: estates federate
+  through a small enumerated set of user-owned bridge nodes rather than a full mesh, carrying
+  an application-layer exchange rather than general reachability, listed in the registry as
+  the estate's whole federation surface. Cost is N(N-1) one-time shares and does not grow with
+  machine count. Keeping bridges user-owned also sidesteps the one behaviour Tailscale's docs
+  leave unanswered, whether a tag-owned node can reach a user-shared machine.
   every other code is claimed only when a site exists to claim it.
   Estate identity defaults to an operator segment under a shared org-domain
   (`cakjr.skworld.io`), not a purchased domain: the PGP primary key is the root identity and
