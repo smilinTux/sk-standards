@@ -136,14 +136,22 @@ from the reloaded config. **And the failure is silent:** a SIGHUP after editing
 line saying it ignored you. That silence is what makes it a hazard rather than an
 inconvenience.
 
-*Cited by symbol, not by line.* Three separate readings of this file during
-drafting produced three different line numbers, and the file had not changed:
-it was byte-identical across every commit involved. Both wrong readings came from
-a working tree rather than a commit, one stale and one dirty while an edit was in
-flight. **A working tree is not a commit, and a line number does not record which
-one it came from.** That is why the rule is to cite by symbol: it survives a
-rebase, a dirty tree, a wrong branch, and a deployed copy alike, none of which a
-line number survives, and only one of which a careful reader would think to check.
+*Cited by symbol, not by line.* Three readings of this file during drafting gave
+three different line numbers for a declaration whose surrounding code never
+changed. One was correct for a commit that has since moved twice, under two
+ordinary merges that touched neither the declaration nor its function. One came
+from a working tree with uncommitted edits in flight. One was current. **All three
+were honestly taken, and none of them could be checked without re-deriving it,
+because a line number does not record which tree it came from.**
+
+The ordinary case is the dangerous one. A stale cite is not an error anybody
+avoids by being careful: it was right when it was written, and two unrelated
+merges invalidated it silently, with nothing in the citation able to signal that
+to a reader. The dirty-tree case is rarer and more obviously a mistake. The stale
+case will happen to everyone who ever writes one down.
+
+Citing by symbol survives a rebase, a merge, a dirty tree, a wrong branch and a
+deployed copy alike. A line number survives none of them.
 
 So dynamic membership would bounce the gateway, for every consumer, every time any
 contributor's box changed state. A static declaration plus quarantine gives the
