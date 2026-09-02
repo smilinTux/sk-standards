@@ -28,11 +28,11 @@ This standard governs the **hostname** that appears in the `<host>` position, pl
 the site vocabulary above it. The two compose and do not compete:
 
 ```
-  IDENTITY_NAMING_STANDARD    zerap08@lumina.skworld.io
-                              ^^^^^^^
-  THIS STANDARD ------------- zerap08
-                              zer  ap  08
-                              site role index
+  IDENTITY_NAMING_STANDARD    chef-zioap01@chef.skworld.io
+                              ^^^^^^^^^^^^
+  THIS STANDARD ------------- chef-zioap01
+                              chef  zio  ap  01
+                              estate site role index
 ```
 
 A change here never changes an fqid's grammar. A change there never renames a host.
@@ -70,13 +70,54 @@ existing code plus a digit, the naming has not been done yet.
 
 ---
 
-## Federation: the vocabulary is estate-local by design
+## Federation: the vocabulary is estate-local, and the estate tag carries the difference
 
 SKCapstone is deployed by more than one operator. **Every estate will have its own
 Zion.** That is correct and expected, not a collision, in the same way that every
 company has a `prod` and every organisation has a `postmaster`. A site code names a
 *role within an estate*; it was never a globally unique identifier and MUST NOT be
 treated as one.
+
+The design goal this serves is **identical internal structure across every estate**.
+An operator who drops onto a peer's infrastructure to help should meet the same
+nomenclature they already know, with only the estate differing. That portability is
+the entire point, and it is why the home site is `zio` everywhere rather than a name
+each operator invents.
+
+### The estate tag is required on a shared network
+
+A site code alone is not a hostname. Three estates all coded `zio` on one Tailscale
+tailnet collide in MagicDNS, which resolves the collision by silently appending a
+numeric suffix. A naming standard that DNS overrules is not a standard. So the full
+hostname grammar is:
+
+```
+  <estate>-<site:3><role:2><index>
+
+    chef-ziooc2027       casey-zioap01        greg-zioap01
+    ^^^^                 ^^^^^                ^^^^
+    estate tag           estate tag           estate tag
+         ^^^^^^^^^            ^^^^^^^              ^^^^^^^
+         identical structure in every estate
+```
+
+12. **The estate tag MUST be present on any host sharing a name resolution
+    namespace with another estate** (one tailnet, one DNS zone, one `/etc/hosts`
+    fleet). It is lowercase ASCII, 2 to 8 characters, and MUST equal the operator
+    segment of that estate's fqid, so a hostname and an identity never disagree
+    about whose machine it is.
+13. **The tag names WHOSE, never WHAT STATUS.** This is not a reintroduction of the
+    local/federated split that
+    [`IDENTITY_NAMING_STANDARD` §3](./IDENTITY_NAMING_STANDARD.md) overruled. That
+    rejection was specific: a *subject spelling* must not encode *deployment
+    status*, because status changes on promotion and a spelling that changes on
+    promotion breaks every stored reference. An estate tag encodes ownership, which
+    does not change when an estate federates. A host that changes estates is a
+    transfer of ownership, a genuinely different event from a status promotion, and
+    it SHOULD be renamed because it now belongs to someone else.
+14. **Everything after the tag is identical across estates.** `zio` is the home site
+    in every estate, `oc` is a control node in every estate. An operator's knowledge
+    ports; only the tag changes.
 
 The disambiguation problem is already solved one layer up, and this standard
 deliberately does not solve it a second time.
@@ -93,11 +134,13 @@ deliberately does not solve it a second time.
     `<operator>.<org-domain>` segment carries the estate:
 
     ```
-    zerap08@lumina.skworld.io      our Zero One node 08
-    zerap08@casey.example.org      a peer's, same spelling, different estate
-    ^^^^^^^                        the site code is NOT the discriminator
-            ^^^^^^^^^^^^^^^^^^^    this is
+    chef-zioap01@chef.skworld.io     our Zion node 01
+    greg-zioap01@greg.example.org    Greg's Zion node 01, identical structure
+                 ^^^^^^^^^^^^^^^^    the operator segment is the discriminator
     ```
+
+    The estate tag prevents a DNS collision; the operator segment carries identity.
+    They agree by rule 12, so neither is guessing.
 
 11. **Never mint a local site code for a peer's infrastructure.** A peer's hosts
     belong to the peer's registry and are referenced by their fqid. Assigning one
@@ -137,18 +180,27 @@ it is closed enough to enumerate, deep enough that the estate will not exhaust i
 and because the source material already distinguishes places by role rather than
 by coordinates, which is exactly the distinction rule 1 asks for.
 
-| Code | Site | Role | Legacy prefix |
-|---|---|---|---|
-| `zio` | Zion | Home. Control plane, soul, memory of record. | `nor` |
-| `zer` | Zero One | The machine city. Standing compute, GPU, inference. | `chi` |
-| `ion` | IO | The second city. The 2026 expansion. | none, born named |
+### `zio` is assigned, everything else is chosen
 
-**Zion** is the last free human city: not the biggest site in the story and not
-the fastest, the one that must not fall. **Zero One** is the machine city of the
-Second Renaissance, endless industry and no ceremony. **IO**, in *Resurrections*,
-is the city humans built **after** Zion and explicitly not a rebuild of it, so the
-source already contains a word for "the next site after the first one," which is
-the exact thing `chi2` was failing to say.
+| Code | Site | Role | Assignment |
+|---|---|---|---|
+| `zio` | Zion | Home. Control plane, memory of record, the agent homes. | **Reserved and automatic.** Every estate's first site is Zion. |
+
+**Zion is not a choice.** It is the reserved role code for an estate's control
+plane, the way `root` and `localhost` are reserved words rather than names anyone
+picks. Assigning it automatically buys three things: a new operator makes no naming
+decision on the day they know least about their own topology, a shared runbook can
+say "run this on Zion" and be correct in every estate, and "their Zion" becomes
+unambiguous shorthand for "their control plane."
+
+In the lore Zion is the last free human city: not the biggest site in the story and
+not the fastest, the one that must not fall. That is a control plane.
+
+**Every other code is chosen**, and only when an estate grows a site that Zion is
+not. An estate with one site uses `zio` and nothing else. As of adoption, no SKWorld
+estate has a second site, so the rest of the vocabulary below is reserved and unused.
+That is the correct state: codes are claimed when a site exists to claim them, never
+in advance of one.
 
 ### Reserved codes
 
@@ -158,6 +210,8 @@ reviewed change rather than an accident.
 
 | Code | Site | Reserved for | Why it fits |
 |---|---|---|---|
+| `zer` | Zero One | An estate's standing compute pool: GPU hosts, inference backends, workers | The machine city of the Second Renaissance. Endless industry, no ceremony. The right name for capacity that does work and holds no authority. |
+| `ion` | IO | An estate's second city: a distinct site that is not the control plane | In *Resurrections*, IO is the city humans built **after** Zion and explicitly not a rebuild of it. The lore's own word for "the next site," which is the thing an incrementing name fails to say. |
 | `meg` | Mega City | Rented, hosted or cloud infrastructure | Mega City *is* the simulation. Anything on someone else's metal is inside the Matrix, so the hostname states the sovereignty boundary without a lookup. |
 | `mob` | Mobil Ave | Edge, transit, DMZ, relay | The station between worlds. Somewhere you pass through and never live, which is the correct semantics for a host that only forwards. |
 | `src` | The Source | A future core or primary of record | The machine mainframe. Deliberately expensive to spend. |
@@ -276,3 +330,7 @@ def site_of(hostname, sites):
 - [ ] The registry declares its `estate`, and any resolver reading more than one keys sites by `(estate, code)`.
 - [ ] No site was respelled to indicate federation status.
 - [ ] No local code has been minted for a peer's infrastructure.
+- [ ] Every host sharing a resolution namespace with another estate carries an estate tag.
+- [ ] Each estate tag equals the operator segment of that estate's fqid.
+- [ ] Everything after the estate tag is spelled identically across estates.
+- [ ] No code was claimed for a site that does not exist yet.

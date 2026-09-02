@@ -44,6 +44,11 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   overruled); cross-estate reference uses the fqid, whose `<operator>.<org-domain>` segment is
   already the estate discriminator. Registries declare an `estate` and resolvers key sites by
   `(estate, code)`.
+  The estate tag closes the practical gap: three estates all coded `zio` collide in
+  Tailscale MagicDNS, which resolves collisions by silently appending a suffix, so the
+  hostname grammar is `<estate>-<site><role><index>` and everything after the tag is
+  spelled identically in every estate. `zio` is reserved and automatic per estate;
+  every other code is claimed only when a site exists to claim it.
 - Card f0c63c2a adds the backward-compatible v1.3 control-plane discovery
   facet, a public synthetic example, negative controls, and a CI contract gate.
 - `standards/AUTONOMY_STANDARD.md` plus `reference/autonomy/actuation-surfaces.json` and
