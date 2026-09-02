@@ -70,6 +70,66 @@ existing code plus a digit, the naming has not been done yet.
 
 ---
 
+## Federation: the vocabulary is estate-local by design
+
+SKCapstone is deployed by more than one operator. **Every estate will have its own
+Zion.** That is correct and expected, not a collision, in the same way that every
+company has a `prod` and every organisation has a `postmaster`. A site code names a
+*role within an estate*; it was never a globally unique identifier and MUST NOT be
+treated as one.
+
+The disambiguation problem is already solved one layer up, and this standard
+deliberately does not solve it a second time.
+
+8. **A site code is unique within ONE estate, never globally.** Two federated
+   estates both using `zio` are both correct.
+9. **A site code MUST NOT change when an estate federates.** This inherits
+   [`IDENTITY_NAMING_STANDARD` rule 6](./IDENTITY_NAMING_STANDARD.md): sovereign
+   versus federated is a policy attribute, never a suffix, and no spelling encodes
+   deployment status. Respelling a site on promotion (`zio` becoming `zio-local`
+   or `zio.skworld`) re-proposes the local/federated split that standard's §3
+   already overruled. Do not reintroduce it here.
+10. **Cross-estate reference MUST use the fqid form**, where the existing
+    `<operator>.<org-domain>` segment carries the estate:
+
+    ```
+    zerap08@lumina.skworld.io      our Zero One node 08
+    zerap08@casey.example.org      a peer's, same spelling, different estate
+    ^^^^^^^                        the site code is NOT the discriminator
+            ^^^^^^^^^^^^^^^^^^^    this is
+    ```
+
+11. **Never mint a local site code for a peer's infrastructure.** A peer's hosts
+    belong to the peer's registry and are referenced by their fqid. Assigning one
+    of our codes to someone else's node manufactures exactly the ambiguity this
+    section exists to prevent, and it asserts an authority over their naming that
+    we do not have.
+
+### Human-readable form when two estates are in the room
+
+When context does not already fix the estate, qualify with the org-domain rather
+than inventing a new name: **"Zion (skworld.io)"**, never `zio2`. This is the email
+convention, and it is load-bearing for the same reason: nobody has ever needed
+globally unique mailbox names, because the domain does that work.
+
+### Registry requirement
+
+A registry file MUST declare the estate it describes, so a peer's registry
+obtained through federation or sync is never folded into ours:
+
+```yaml
+estate: skworld.io      # REQUIRED. Whose sites this file describes.
+schema_version: 1
+sites:
+  zion:
+    code: zio
+```
+
+A resolver that reads two registries MUST key sites by `(estate, code)`. Keying by
+`code` alone is the bug this requirement exists to prevent.
+
+---
+
 ## The vocabulary
 
 SKWorld sites are named for cities of *The Matrix*. The scheme was chosen because
@@ -101,7 +161,7 @@ reviewed change rather than an accident.
 | `meg` | Mega City | Rented, hosted or cloud infrastructure | Mega City *is* the simulation. Anything on someone else's metal is inside the Matrix, so the hostname states the sovereignty boundary without a lookup. |
 | `mob` | Mobil Ave | Edge, transit, DMZ, relay | The station between worlds. Somewhere you pass through and never live, which is the correct semantics for a host that only forwards. |
 | `src` | The Source | A future core or primary of record | The machine mainframe. Deliberately expensive to spend. |
-| `syn` | Synthient | Allied or federated third-party compute | The machines that took the human side: capacity that is not ours but is with us. |
+| `syn` | Synthient | Allied hardware **we operate**, e.g. donated or loaned capacity that is not ours but that we run | The machines that took the human side. Scoped deliberately: a federated PEER's own sites are named in the peer's registry and referenced by fqid (see Federation, rule 11), never given one of our codes. |
 | `tem` | The Temple | Unassigned | Held. |
 
 `meg` is the one that does real work. Labelling rented infrastructure "Mega City"
@@ -213,3 +273,6 @@ def site_of(hostname, sites):
 - [ ] No CMDB CI was renamed in order to adopt this standard.
 - [ ] Client-tenant and third-party hosts are outside the vocabulary.
 - [ ] Role-code meanings are stated as confirmed or inferred, never blurred.
+- [ ] The registry declares its `estate`, and any resolver reading more than one keys sites by `(estate, code)`.
+- [ ] No site was respelled to indicate federation status.
+- [ ] No local code has been minted for a peer's infrastructure.

@@ -38,6 +38,12 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   its addresses change on separate schedules: CMDB CI ids are keys rather than labels, so renaming
   a CI is a delete plus a create that destroys the folded event log, which disqualifies bulk
   renaming and makes alias-first the only adoptable migration.
+  Federation is explicit: the site vocabulary is **estate-local by design**, so every estate
+  having its own Zion is correct rather than a collision. A site code MUST NOT be respelled on
+  federation (that would re-propose the local/federated split `IDENTITY_NAMING_STANDARD` §3
+  overruled); cross-estate reference uses the fqid, whose `<operator>.<org-domain>` segment is
+  already the estate discriminator. Registries declare an `estate` and resolvers key sites by
+  `(estate, code)`.
 - Card f0c63c2a adds the backward-compatible v1.3 control-plane discovery
   facet, a public synthetic example, negative controls, and a CI contract gate.
 - `standards/AUTONOMY_STANDARD.md` plus `reference/autonomy/actuation-surfaces.json` and
