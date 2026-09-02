@@ -44,10 +44,11 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   overruled); cross-estate reference uses the fqid, whose `<operator>.<org-domain>` segment is
   already the estate discriminator. Registries declare an `estate` and resolvers key sites by
   `(estate, code)`.
-  The estate tag closes the practical gap: three estates all coded `zio` collide in
-  Tailscale MagicDNS, which resolves collisions by silently appending a suffix, so the
-  hostname grammar is `<estate>-<site><role><index>` and everything after the tag is
-  spelled identically in every estate. `zio` is reserved and automatic per estate;
+  Hostnames are bare (`zioap01`) and identical in every estate: the estate lives in the
+  resolution suffix and the fqid, never in the host label, since inside an estate a marker
+  carries no information. Each estate therefore owns its resolution namespace, which
+  Tailscale enforces for free (a shared device resolves only as `<host>.<tailnet>.ts.net`,
+  never by short name). `zio` is reserved and automatic per estate;
   every other code is claimed only when a site exists to claim it.
   Estate identity defaults to an operator segment under a shared org-domain
   (`cakjr.skworld.io`), not a purchased domain: the PGP primary key is the root identity and

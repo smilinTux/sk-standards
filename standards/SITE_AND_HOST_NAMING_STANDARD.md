@@ -28,11 +28,11 @@ This standard governs the **hostname** that appears in the `<host>` position, pl
 the site vocabulary above it. The two compose and do not compete:
 
 ```
-  IDENTITY_NAMING_STANDARD    chef-zioap01@chef.skworld.io
-                              ^^^^^^^^^^^^
-  THIS STANDARD ------------- chef-zioap01
-                              chef  zio  ap  01
-                              estate site role index
+  IDENTITY_NAMING_STANDARD    zioap01@chef.skworld.io
+                              ^^^^^^^
+  THIS STANDARD ------------- zioap01
+                              zio  ap  01
+                              site role index
 ```
 
 A change here never changes an fqid's grammar. A change there never renames a host.
@@ -70,7 +70,7 @@ existing code plus a digit, the naming has not been done yet.
 
 ---
 
-## Federation: the vocabulary is estate-local, and the estate tag carries the difference
+## Federation: the vocabulary is estate-local, and the suffix carries the difference
 
 SKCapstone is deployed by more than one operator. **Every estate will have its own
 Zion.** That is correct and expected, not a collision, in the same way that every
@@ -84,50 +84,7 @@ nomenclature they already know, with only the estate differing. That portability
 the entire point, and it is why the home site is `zio` everywhere rather than a name
 each operator invents.
 
-### The estate tag is required on a shared network
-
-A site code alone is not a hostname. Three estates all coded `zio` on one Tailscale
-tailnet collide in MagicDNS, which resolves the collision by silently appending a
-numeric suffix. A naming standard that DNS overrules is not a standard. So the full
-hostname grammar is:
-
-```
-  <estate>-<site:3><role:2><index>
-
-    chef-ziooc2027       casey-zioap01        greg-zioap01
-    ^^^^                 ^^^^^                ^^^^
-    estate tag           estate tag           estate tag
-         ^^^^^^^^^            ^^^^^^^              ^^^^^^^
-         identical structure in every estate
-```
-
-12. **The estate tag MUST be present on any host sharing a name resolution
-    namespace with another estate** (one tailnet, one DNS zone, one `/etc/hosts`
-    fleet), and MUST equal the operator segment of that estate's fqid, so a
-    hostname and an identity never disagree about whose machine it is.
-
-    **Grammar: `[a-z0-9]{2,12}`. No hyphen, ever.** The tag is hyphen-free so that
-    the FIRST hyphen in a hostname is always the estate delimiter. A tag
-    containing a hyphen makes the hostname unparseable:
-
-    ```
-      gmk-zioap01      estate=gmk  site=zio  role=ap  index=01
-      g-mk-zioap01     estate=g? estate=g-mk? unparseable
-    ```
-
-    Shorter is better, because the tag prefixes every hostname anyone ever types.
-13. **The tag names WHOSE, never WHAT STATUS.** This is not a reintroduction of the
-    local/federated split that
-    [`IDENTITY_NAMING_STANDARD` §3](./IDENTITY_NAMING_STANDARD.md) overruled. That
-    rejection was specific: a *subject spelling* must not encode *deployment
-    status*, because status changes on promotion and a spelling that changes on
-    promotion breaks every stored reference. An estate tag encodes ownership, which
-    does not change when an estate federates. A host that changes estates is a
-    transfer of ownership, a genuinely different event from a status promotion, and
-    it SHOULD be renamed because it now belongs to someone else.
-14. **Everything after the tag is identical across estates.** `zio` is the home site
-    in every estate, `oc` is a control node in every estate. An operator's knowledge
-    ports; only the tag changes.
+### Site codes are estate-local
 
 The disambiguation problem is already solved one layer up, and this standard
 deliberately does not solve it a second time.
@@ -144,19 +101,83 @@ deliberately does not solve it a second time.
     `<operator>.<org-domain>` segment carries the estate:
 
     ```
-    chef-zioap01@chef.skworld.io     our Zion node 01
-    greg-zioap01@greg.example.org    Greg's Zion node 01, identical structure
-                 ^^^^^^^^^^^^^^^^    the operator segment is the discriminator
+    zioap01@chef.skworld.io      our Zion node 01
+    zioap01@greg.example.org     Greg's Zion node 01, identical hostname
+            ^^^^^^^^^^^^^^^^     the operator segment is the discriminator
     ```
 
-    The estate tag prevents a DNS collision; the operator segment carries identity.
-    They agree by rule 12, so neither is guessing.
+    The hostname is bare and identical in both. The operator segment is the only
+    discriminator, which is why it must never be omitted in a cross-estate
+    reference.
 
 11. **Never mint a local site code for a peer's infrastructure.** A peer's hosts
     belong to the peer's registry and are referenced by their fqid. Assigning one
     of our codes to someone else's node manufactures exactly the ambiguity this
     section exists to prevent, and it asserts an authority over their naming that
     we do not have.
+
+### The estate belongs in the suffix, not in the hostname
+
+A hostname is **bare**: `zioap01`, `ziooc2027`. It carries no estate marker, and it
+is spelled identically in every estate. The estate lives in the **domain suffix**,
+which is where every naming system has always put it: `casey@cakjr.skworld.io`, not
+`cakjr-casey@...`; `web01.acme.com`, not `acme-web01`.
+
+The fqid already does this. `zioap01@cakjr.skworld.io` states the estate once, in
+the operator segment. Repeating it in the hostname is pure duplication, and inside
+an estate (where every host belongs to that estate) an estate prefix carries
+exactly zero information on every host you will ever type.
+
+```
+  hostname   zioap01                      bare, identical everywhere
+  FQDN       zioap01.<tailnet>.ts.net     suffix supplies the estate
+  fqid       zioap01@cakjr.skworld.io     estate stated once, here
+```
+
+12. **Hostnames MUST NOT encode the estate.** No prefix, no suffix, no marker of
+    any kind. `cakjr-zioap01` and `zioap01-cakjr` are both wrong: they duplicate
+    what the domain already says, and the latter additionally *looks* like a
+    domain suffix while being un-strippable by any resolver or search path.
+13. **The estate is carried by the resolution suffix**, and short names resolve
+    inside an estate through the search domain, which is ordinary DNS practice
+    and already in use in this fleet.
+14. **Everything is identical across estates.**
+    A runbook that says `ssh zioap01` is literally correct in every estate. That
+    is the strongest form of the portability this standard exists to provide, and
+    an estate marker in the hostname would have weakened it.
+
+### Why this does not collide, on Tailscale specifically
+
+The obvious objection is that two estates both naming a host `zioap01` collide in
+MagicDNS. They do **not**, provided the tailnet boundary matches the estate
+boundary, because Tailscale already enforces exactly the suffix rule above:
+
+> Recipients cannot access machines by using their short name. Shared devices use
+> the format `<hostname>.<tailnet-name>.ts.net`
+
+So a device shared from another tailnet is *only* reachable by its full name. The
+short name is scoped to its own tailnet by construction. Two estates on two
+tailnets can both hold a `zioap01` forever.
+
+15. **An estate SHOULD own its own resolution namespace** (its own tailnet, DNS
+    zone, or equivalent). This is not a naming preference: it is what makes the
+    bare hostname unambiguous. The alternative, several estates sharing one
+    namespace, forces the first registrant to win the bare name and the rest to be
+    silently renamed by the resolver, which is a naming standard being overruled
+    by DNS.
+
+**Verified constraints (Tailscale, checked 2026-09-02).** Device sharing is
+available on all plans including the free tier, and the free Personal plan carries
+up to 6 users, unlimited user devices, and 50 tagged resources per tailnet, so
+splitting one estate-shared tailnet into per-estate tailnets increases the tagged
+allowance rather than consuming it.
+
+**Unverified and load-bearing:** shares are accepted by *users*, and a shared
+machine is documented as visible only to the recipient user rather than to their
+whole tailnet, while most nodes in this fleet are tag-owned rather than
+user-owned. Whether a tagged node can reach a machine shared to a user is **not
+answered by the documentation and MUST be tested before any migration depends on
+it.** Recorded here as an open dependency rather than an assumption.
 
 ### Estate identity: a subdomain of one org is the default, and it costs nothing
 
@@ -170,25 +191,25 @@ to work. So an estate whose operator holds its own primary key is sovereign
 regardless of whose domain its label sits under. Revoke the label tomorrow and the
 key is untouched; only the spelling would have to move.
 
-15. **The DEFAULT is an operator segment under a shared org-domain**, which is the
+16. **The DEFAULT is an operator segment under a shared org-domain**, which is the
     existing grammar with no new concept bolted on:
 
     ```
-      cakjr-zioap01@cakjr.skworld.io
-                    ^^^^^ ^^^^^^^^^^
-                    operator  org-domain     (and the estate tag is `cakjr`)
+      zioap01@cakjr.skworld.io
+              ^^^^^ ^^^^^^^^^^
+              operator  org-domain     (the estate, stated once)
     ```
 
     Note this composes with the human apex form unchanged: the operator is a
     person's estate (`cakjr.skworld.io`), while that person as a sovereign root
     stays at the apex with no operator segment at all.
 
-16. **A subdomain delegation MUST be documented as permanent and non-revocable.**
+17. **A subdomain delegation MUST be documented as permanent and non-revocable.**
     This is the whole cost of the default, and it must be paid explicitly rather
     than assumed. An estate label that the parent-domain holder can reclaim is a
     label that can force a rename, and a forced rename breaks every stored
     reference. Write the commitment down; do not leave it to goodwill.
-17. **An estate MAY move to its own org-domain at any time**, and this is a
+18. **An estate MAY move to its own org-domain at any time**, and this is a
     supported migration rather than a rupture: it goes through
     [`IDENTITY_NAMING_STANDARD` §2.6](./IDENTITY_NAMING_STANDARD.md), which
     already defines dated, enumerated, removable aliases. Because that path
@@ -205,11 +226,11 @@ accepts either a local file or a `/.well-known` URL). Cheap now, useful later.
 The portability principle applies to operator accounts the same way it applies to
 hostnames, and it stops in exactly the same place.
 
-18. **An ops or admin account name MAY be identical across estates** (the fleet
+19. **An ops or admin account name MAY be identical across estates** (the fleet
     currently uses `skuser01`). That is the same win as identical hostname
     structure: an operator helping on a peer's box reaches for a name they already
     know.
-19. **Credentials MUST NOT be.** Passwords, SSH private keys, and any key material
+20. **Credentials MUST NOT be.** Passwords, SSH private keys, and any key material
     are **per estate**, never shared and never derived from a common secret. A
     shared account name is a convenience; a shared credential would make the
     estate boundary decorative, since one compromise would cross every estate at
@@ -403,10 +424,10 @@ def site_of(hostname, sites):
 - [ ] The registry declares its `estate`, and any resolver reading more than one keys sites by `(estate, code)`.
 - [ ] No site was respelled to indicate federation status.
 - [ ] No local code has been minted for a peer's infrastructure.
-- [ ] Every host sharing a resolution namespace with another estate carries an estate tag.
-- [ ] Each estate tag equals the operator segment of that estate's fqid.
-- [ ] Everything after the estate tag is spelled identically across estates.
+- [ ] No hostname encodes the estate, as a prefix or a suffix.
+- [ ] Hostnames are spelled identically across estates.
+- [ ] Each estate owns its own resolution namespace, or the shared-namespace risk is accepted in writing.
 - [ ] No code was claimed for a site that does not exist yet.
-- [ ] Every estate tag matches `[a-z0-9]{2,12}` and contains no hyphen.
+- [ ] Each estate's operator segment matches `[a-z0-9]{2,12}` and contains no hyphen.
 - [ ] Any subdomain delegation is documented as permanent and non-revocable.
 - [ ] Ops account names may be shared; no credential is.
