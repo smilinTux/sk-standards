@@ -81,7 +81,7 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   the estate's whole federation surface. Cost is N(N-1) one-time shares and does not grow with
   machine count. Keeping bridges user-owned also sidesteps the one behaviour Tailscale's docs
   leave unanswered, whether a tag-owned node can reach a user-shared machine.
-  Every other code is claimed only when a site exists to claim it.
+  every other code is claimed only when a site exists to claim it.
   Estate identity defaults to an operator segment under a shared org-domain
   (`cakjr.skworld.io`), not a purchased domain: the PGP primary key is the root identity and
   the domain is a bound label, so sovereignty lives in the key, not the suffix. The cost is
