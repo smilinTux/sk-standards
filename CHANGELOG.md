@@ -31,6 +31,19 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- `standards/OBSERVABILITY_AND_SCHEDULING_STANDARD.md` section 5, worker liveness. A
+  long-running worker that buffers its output until completion is indistinguishable from a
+  hang, so liveness, progress and disposition become three separate signals: a beat carries a
+  monotonic progress token rather than a bare pulse, a wrapper beat may never populate
+  progress, and blocking is self-reported from a closed vocabulary instead of inferred from
+  silence. The load-bearing rule is that beat absence is a telemetry fault and never actuates:
+  any release or reap additionally requires host-local systemd or cgroup negative proof plus an
+  exact owner and revision fence, stated as the invariant that no lease state is derived from
+  beat evidence alone. Cross-host timeouts must come from measured p95 rather than intuition,
+  because measurement on the chi cluster gave a Syncthing p95 of 292.3s with an observed
+  skipped window over 40 minutes and generations that vanished in transit, against which a
+  120s timeout manufactures false worker deaths as routine behaviour. Evidence and reference
+  implementation: `.skcapstone/docs/WORKER-BEAT-PROTOCOL.md`.
 - ADR-0006 (Proposed, card 8d5404ca): the dispatcher handoff. Niobe takes
   exactly the existing Fleet Dispatcher authority from Jarvis; Tank owns
   release/install mechanics and behavioral deployment evidence; Seraph is
