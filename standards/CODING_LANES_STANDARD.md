@@ -125,8 +125,6 @@ stub adapter, human interactive CLI sessions, and a gateway model identity.
 Without one sanctioned fleet meaning, routing and evidence could name different
 things with the same label.
 
----
-
 ### R6. Worktrees isolate files, not runtime
 
 Both lanes MUST treat a worktree as file isolation only. A worktree does NOT
@@ -136,11 +134,16 @@ failure below came from assuming it did.
 - A path named in a service unit's `ExecStart` IS production. It MUST sit on a
   release ref, and no agent may branch, `checkout` or install in it. See
   `SERVICE_UNIT_STANDARD` section 3.
-- Dependencies MUST be re-bootstrapped per worktree (`npm ci`, fresh venv).
-  Sharing or symlinking `node_modules` between trees is forbidden: one install
-  then silently mutates the other, including a live service.
-- A task MUST choose a distinct port before starting any listener. The default
-  port is assumed taken.
+- Dependencies MUST be re-bootstrapped per worktree (`npm ci`, fresh venv). A
+  worktree MUST NOT share a RESOLVED dependency tree with a path a service unit
+  runs from, and MUST NOT symlink one from another tree: an install in either
+  then rewrites the other, including a live service. A content-addressed shared
+  store (pnpm, uv) is fine, because installing does not rewrite another tree's
+  resolved tree.
+- A task MUST claim a listener port that is neither in the estate port registry
+  nor already bound, and MUST record it in the task record so a second task can
+  see it. The default port is assumed taken; "it worked on my machine" is a
+  statement about which worktree happened to start first.
 - A worktree whose branch is merged MUST be removed (`git worktree remove` then
   `git worktree prune`, never `rm -rf`). An abandoned worktree holds its branch,
   and one squatting `main` strands the shared checkout on a feature branch.
@@ -156,6 +159,8 @@ tree to `main` would have dropped a merged routing fix on the next restart. A
 second gateway started from a worktree collided with production on port 18781.
 None of these were file conflicts, which is what the existing worktree rule
 already prevents.
+
+---
 
 ## 2. Deterministic router
 
