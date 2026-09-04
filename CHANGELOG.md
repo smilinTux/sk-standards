@@ -31,6 +31,15 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- ADR-0006 (Proposed, card 8d5404ca): the dispatcher handoff. Niobe takes
+  exactly the existing Fleet Dispatcher authority from Jarvis; Tank owns
+  release/install mechanics and behavioral deployment evidence; Seraph is
+  verification-only with no merge, dispatch, or actuation; Link holds
+  evidence-bound technical arbitration with ambiguity escalation to Chef;
+  Jarvis's withdrawal to Casey personal-agent duties is gated on a hashed,
+  append-only handoff record (shadow parity, zero BLOCKED findings, no
+  Jarvis-cited authority, signed Chef or ITIL acceptance). ATLAS stays frozen
+  and last. Acceptance requires architecture review before implementation.
 - `INFERENCE_FEDERATION_STANDARD` amended twice from fleet measurement. The restart-versus-SIGHUP
   rule was scoped to "the reference implementation" but verified only against the Node repo, and
   "skgateway" names four different things in the current fleet, one of which is an unversioned
