@@ -140,6 +140,12 @@ failure below came from assuming it did.
   then rewrites the other, including a live service. A content-addressed shared
   store (pnpm, uv) is fine, because installing does not rewrite another tree's
   resolved tree.
+- An EDITABLE install (`pip install -e`, a `.pth` finder) from a shared checkout
+  DEFEATS `ExecStart` isolation and MUST be treated as part of the deployed
+  tree. The service imports the package, the package resolves back through the
+  editable path to the checkout, and a `git checkout` there changes what a
+  service running from somewhere else executes. Isolating such a unit needs its
+  own environment with non-editable installs, not just a repointed path.
 - A task MUST claim a listener port that is neither in the estate port registry
   nor already bound, and MUST record it in the task record so a second task can
   see it. The default port is assumed taken; "it worked on my machine" is a
