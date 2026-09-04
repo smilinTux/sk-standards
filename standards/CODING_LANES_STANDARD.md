@@ -127,6 +127,36 @@ things with the same label.
 
 ---
 
+### R6. Worktrees isolate files, not runtime
+
+Both lanes MUST treat a worktree as file isolation only. A worktree does NOT
+give a task its own ports, dependencies, databases or services, and every
+failure below came from assuming it did.
+
+- A path named in a service unit's `ExecStart` IS production. It MUST sit on a
+  release ref, and no agent may branch, `checkout` or install in it. See
+  `SERVICE_UNIT_STANDARD` section 3.
+- Dependencies MUST be re-bootstrapped per worktree (`npm ci`, fresh venv).
+  Sharing or symlinking `node_modules` between trees is forbidden: one install
+  then silently mutates the other, including a live service.
+- A task MUST choose a distinct port before starting any listener. The default
+  port is assumed taken.
+- A worktree whose branch is merged MUST be removed (`git worktree remove` then
+  `git worktree prune`, never `rm -rf`). An abandoned worktree holds its branch,
+  and one squatting `main` strands the shared checkout on a feature branch.
+- Two tasks MUST NOT edit the same file. Land a shared helper first, or agree
+  its interface up front and reconcile at merge.
+
+**Incident provenance:** one session on 2026-08-29, with skgateway's user unit
+pointed at the shared checkout `~/clawd/skcapstone-repos/skgateway`. An
+`npm install` for a new dependency mutated the running service's dependency
+tree with no deploy step. Five `systemctl restart` calls across three branches
+each silently redeployed whatever happened to be checked out. Returning that
+tree to `main` would have dropped a merged routing fix on the next restart. A
+second gateway started from a worktree collided with production on port 18781.
+None of these were file conflicts, which is what the existing worktree rule
+already prevents.
+
 ## 2. Deterministic router
 
 ```mermaid
@@ -183,6 +213,14 @@ The truth table is exhaustive:
     "otherwise": "lane_1"
   },
   "shared": ["coord_card", "imported_twin_gate", "run_record_vocabulary"],
+  "runtime_isolation": {
+    "worktree_scope": "task",
+    "deps": "per_worktree",
+    "shared_node_modules": false,
+    "ports": "distinct_per_listener",
+    "service_exec_start": "release_ref_only",
+    "merged_worktree": "remove_and_prune"
+  },
   "context": {
     "lane_1": "operator_context_allowed",
     "lane_2": "lean_sandbox"
@@ -222,6 +260,9 @@ is refused before git or tmux is touched.
 - [ ] Both lanes share the card, imported twin gate, and RunRecord vocabulary.
 - [ ] Lane 1 may carry operator context; lane 2 remains lean per ADR-0001.
 - [ ] `codex` in fleet tooling means only the skgateway model identity.
+- [ ] No service unit `ExecStart` points at a tree any agent branches in.
+- [ ] Each worktree has its own dependencies and its own ports; merged
+      worktrees are removed and pruned.
 
 ---
 
