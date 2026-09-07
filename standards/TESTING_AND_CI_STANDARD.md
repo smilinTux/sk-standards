@@ -360,6 +360,50 @@ Turning on a gate that is immediately red just recreates the problem in §6.
 The detective half (`sweep`) deliberately runs **outside** CI: a repo cannot notice
 from inside its own red build that it has been red for ten hours.
 
+### 6.6 Local CI-parity preflight before publication
+
+A machine-produced candidate runs a local preflight before its first branch push or
+review request. The preflight reuses the repository's checked-in CI commands and
+exact pinned tool versions. It does not introduce a second scanner or a looser set of
+checks.
+
+The terminal receipt binds the repository, exact base and head commits, head tree,
+ordered changed paths, full-index binary diff digest, every check name and exit code,
+and an overall `PASS` or `FAIL`. Hash the canonical receipt payload and record that
+digest with `PASS_FOR_REVIEW`. Check output is not evidence: secret scanners run with
+redaction and the receipt records no stdout, stderr, finding text, or secret value.
+
+The minimum parity set is:
+
+1. exact changed-path and full-index diff scope;
+2. repository-pinned format and lint checks;
+3. the docs and changelog evidence gate;
+4. the repository's existing gitleaks or detect-secrets command with redaction;
+5. repository-defined tests, including the full supported suite when CI defines it;
+6. any additional checked-in release or compatibility checks required by that repo.
+
+Missing tools, a dirty tree, an unknown check, path drift, a non-terminal result, or
+any nonzero exit fails closed. A producer then does not push, request review, or emit
+`PASS_FOR_REVIEW`. Link does not submit a GitHub review without a terminal receipt
+whose head matches the current pull request head. A reviewer reproduces the receipt
+against the exact head. Mero monitors missing, stale, and contradictory receipts but
+does not waive them.
+
+SKCapstone provides the current reference command:
+
+```bash
+python scripts/fleet/skfleet-pr-preflight.py \
+  --base "$EXACT_BASE" \
+  --expected-path src/example.py \
+  --expected-path tests/test_example.py \
+  --output "$HOME/.skcapstone/evidence/work/$CARD_ID/local-ci-preflight.json"
+```
+
+Use the gitleaks version pinned in the workflow, not whichever global executable is
+newest. Use an isolated runner such as `uvx --from black==X black` for pinned Python
+tools. The preflight may cache those exact versions but must not mutate a shared
+global tool installation.
+
 ---
 
 ## 7. Per-repo compliance checklist
@@ -379,6 +423,8 @@ from inside its own red build that it has been red for ten hours.
 - [ ] **Every job in the release graph has a `needs:` or `if:` guard**, so none runs on a bare branch push (§6.1).
 - [ ] A missing optional dependency yields an explicit **skip**, never a collection error (§6.3).
 - [ ] Checks that gate merges ship a **negative control** proving they can fail (§6.1).
+- [ ] Machine-produced candidates carry a terminal exact-head local CI receipt before
+      push or review (§6.6).
 
 ---
 
