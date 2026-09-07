@@ -1,0 +1,17 @@
+# Sensitive governance, workflow, release, and policy surfaces.
+/.github/ @chefboyrdave21
+/CODEOWNERS @chefboyrdave21
+/CHANGELOG.md @chefboyrdave21
+/CONTRIBUTING.md @chefboyrdave21
+/ROSTER.md @chefboyrdave21
+/SECURITY.md @chefboyrdave21
+/SOP.md @chefboyrdave21
+/decisions/ @chefboyrdave21
+/proposals/ @chefboyrdave21
+/reference/autonomy/ @chefboyrdave21
+/reference/scheduling/ @chefboyrdave21
+/scripts/check_fences.py @chefboyrdave21
+/scripts/ci_gate_check.py @chefboyrdave21
+/scripts/docs_check.py @chefboyrdave21
+/standards/ @chefboyrdave21
+/templates/ @chefboyrdave21
