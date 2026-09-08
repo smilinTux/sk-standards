@@ -6,7 +6,7 @@ name: ci-gate-check
 #
 #   jobs:
 #     ci-gates:
-#       uses: smilinTux/sk-standards/.github/workflows/ci-gate-check.yml@main
+#       uses: smilinTux/sk-standards/.github/workflows/ci-gate-check.yml@5739f753f1a7cb5196b6d5f257453660f3516dfc
 #
 # One canonical source. Thirty copies drift, which is the exact trap the standard
 # exists to close.
