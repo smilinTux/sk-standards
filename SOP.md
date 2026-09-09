@@ -27,8 +27,8 @@ the reusable gates in `.github/workflows/`).
 | Surface | Path | What it is |
 |---|---|---|
 | The standards | `standards/*.md` | 27 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
-| Decision log | `decisions/ADR-*.md` | Three accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering), ADR-0002 (two coding lanes with one merge bar), and ADR-0005 (five operating seats, and gates relaxed by catalog rather than by prompt). ADR-0006 (the dispatcher handoff to Niobe, Tank, and Seraph) is open for architecture review as Proposed; it joins this row when Accepted. |
-| Operating seats | `ROSTER.md`, `decisions/ADR-0005-five-operating-seats.md`, `decisions/ADR-0006-dispatch-handoff-niobe-tank-seraph.md` | Jarvis is Fleet Dispatcher, Link is Integrator, and Mero is the read-only Overseer. Fleet dispatch is distinct from application action dispatch. ADR-0005 follows the open-PR ordering that reserves ADR-0003 for PR 34 and ADR-0004 for PR 36. ADR-0006 proposes the evidence-gated transfer of dispatch from Jarvis to Niobe, with Tank on release and install, Seraph verification-only, and Link arbitrating technical conflicts. |
+| Decision log | `decisions/ADR-*.md` | Four accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering), ADR-0002 (two coding lanes with one merge bar), ADR-0005 (operating-seat separation), and ADR-0006 (the active six-seat lifecycle and Jarvis withdrawal). |
+| Operating seats | `ROSTER.md`, `decisions/ADR-0005-five-operating-seats.md`, `decisions/ADR-0006-dispatch-handoff-niobe-tank-seraph.md` | Niobe dispatches, Link integrates, Mero oversees, Seraph verifies, Tank releases and installs, and ATLAS handles bounded operations. Jarvis is Casey's assistant outside recurring lifecycle work, with emergency tools available only on Casey direction. Fleet dispatch is distinct from application action dispatch. |
 | Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
 | Reference configs | `reference/ingress/`, `reference/systemd/`, `reference/skworld-module/` | Copy-paste artifacts for the ingress, service-unit, and module-contract standards. Includes a JSON Schema and two worked manifest examples. |
 | Validators | `scripts/` | Eleven validator scripts, including docs, CI, fences, module schema, service units, actuation registry, readiness, authorization, merge gate, coding lanes, and self-healing tiers. |
@@ -50,8 +50,8 @@ the reusable gates in `.github/workflows/`).
 
 ### Operating-seat runtime procedure
 
-The normative placement, scheduling, health, and cold-standby rules for Link,
-Mero, and the Jarvis fenced consumer are in
+The normative placement, scheduling, health, and cold-standby rules for the six
+lifecycle seats and the Niobe fenced consumer are in
 [`ROSTER.md`](./ROSTER.md#runtime-placement-and-scheduling). `sk-standards`
 documents the contract only. SKCapstone owns the executable, user units, timers,
 locking, revision fencing, evidence writer, installation, and rollback.
@@ -59,8 +59,8 @@ locking, revision fencing, evidence writer, installation, and rollback.
 Operational changes follow this order:
 
 1. Change and independently review SKCapstone source and tests.
-2. Install Link and Mero on `chiap08` with both timers initially disabled.
-3. Pin `active_host=chiap08`, then run one dry cycle per seat and verify exact
+2. Install lifecycle-seat source and units on `chiap08` with new timers initially disabled.
+3. Pin `active_host=chiap08`, then run one dry cycle per recurring seat and verify exact
    evidence and zero mutation.
 4. Enable only the `chiap08` timers and observe one normal cycle per seat.
 5. Install byte-identical Link and Mero standby units on `chiap01` but leave

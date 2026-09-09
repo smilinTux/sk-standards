@@ -1,7 +1,9 @@
 # ADR-0006: The dispatcher handoff: Niobe takes dispatch, Tank takes release, Seraph verifies, Jarvis stands down
 
-**Status:** Proposed
-**Date:** 2026-09-02
+**Status:** Accepted and active
+**Date:** 2026-09-09
+**Acceptance evidence:** Casey decision card `c4e7a9b2`; implementation card
+`20a637fe`
 **Extends:** [`ADR-0005`](./ADR-0005-five-operating-seats.md)
 **Constituent of:** [`AUTONOMY_STANDARD`](../standards/AUTONOMY_STANDARD.md)
 **Purpose:** specify the complete transition by which the Fleet Dispatcher
@@ -106,74 +108,50 @@ question, Link escalates to Chef rather than resolving it by seniority, volume,
 or precedent. An escalated question is answered by a signed Chef artifact or an
 ITIL record, which then becomes the evidence the next arbitration cites.
 
-### 5. The transition sequence, gated by evidence, with Jarvis's withdrawal condition
+### 5. Active lifecycle contract and Jarvis withdrawal
 
-The transfer happens in this order. Each step appends its evidence to the
-coordination record before the next begins. **No step in this sequence
-provisions, enables, or depends on ATLAS. ATLAS remains frozen and last:** its
-unfreeze is a separate human decision under
-[`ACTUATION_READINESS_AND_FREEZE_STANDARD`](../standards/ACTUATION_READINESS_AND_FREEZE_STANDARD.md),
-and this transition must succeed entirely without it.
+Casey accepted the direct bounded transfer on card `c4e7a9b2`, replacing the
+proposed fourteen-day transition gate. The accepted path preserves the same
+role boundaries, exact-revision fencing, rollback, and evidence requirements
+without adding a redundant human wait to routine lifecycle work.
 
-1. **Stand up the seats.** Niobe, Tank, and Seraph receive their own capauth
-   identities, signed by the operator, distinct from Jarvis and from every other
-   seat, following the ceremony already written for standing up a seat. Naming
-   a seat does not fill it; the transfer starts only when the identity exists
-   and is verified distinct.
-2. **Shadow parity.** Niobe runs in shadow alongside Jarvis for at least 14
-   consecutive days. Jarvis keeps dispatching. Niobe, per cycle, computes the
-   dispatch decision it would have made and appends it as a typed
-   recommendation event; it executes nothing. Every shadow cycle records the
-   same health fields the roster already requires: start, finish, host, seat
-   identity, source revision, scanned population, decision count, duplicate
-   suppressions, errors, and evidence SHA256.
-3. **Parity gate.** The transfer advances only when the shadow window shows:
-   zero unsafe actions proposed (no launch against a failed health gate, no
-   release of a locked or unmerged candidate, no fenced-revision mismatch);
-   disagreement with Jarvis on at most 5 percent of decisions, with every
-   disagreement classified as either conservative (Niobe would have waited
-   where Jarvis acted) or missed-pickup (Niobe would have acted where Jarvis
-   waited), and zero missed-pickup disagreements unresolved; and the roster
-   dispatch metric (churn, claims per card) not regressed beyond the Jarvis
-   baseline. Seraph audits the parity evidence and states whether the gate is
-   met. Seraph's statement is evidence; it is not permission.
-4. **Authority transfer.** Link records the merge-queue state and confirms no
-   in-flight card depends on Jarvis's dispatch identity. Chef records the
-   transfer decision as a signed artifact or ITIL change. The fenced consumer
-   configuration moves dispatch authority to Niobe in one revision-fenced
-   mutation, and the resulting event records the exact revision, readback, and
-   evidence hash.
-5. **Post-transfer health evidence.** For 7 days after transfer, dispatch
-   health evidence (churn, zero zombie claims older than the reaper threshold,
-   zero duplicate-suppression failures) is appended daily. Tank runs one
-   rehearsal release of a harmless artifact with independent behavioral
-   verification by Seraph before Tank's first real release.
+Niobe holds recurring dispatcher authority on chiap08. Tank and Seraph are
+card-scoped, and ATLAS is active for bounded presence plus separately
+authorized operations. Card `20a637fe` records the source implementation.
 
-**Rollback.** During the shadow window and the 7-day post-transfer window, any
-of these reverts dispatch authority to Jarvis in one revision-fenced mutation,
-with the revert event recording the trigger and evidence hash: one unsafe
-action, one missed reaper breach, parity evidence going stale past twice the
-cycle cadence, or a Seraph BLOCKED against dispatch health that Niobe cannot
-clear within one cycle. Reversion is automatic in authority but recorded before
-it takes effect; if the recording itself fails, the safe state is Jarvis.
+**Rollback.** A verified unsafe dispatcher action, reaper breach, stale health
+evidence, or uncleared Seraph BLOCKED disables Niobe's live timer, preserves
+receipts, and restores the shadow timer. Rollback does not silently transfer
+another seat's authority.
 
-**The exact withdrawal condition.** Jarvis withdraws to Casey personal-agent
-duties when, and only when, a single append-only handoff record exists that
-contains all four of the following, each with its own evidence SHA256:
+Jarvis is outside recurring lifecycle scheduling and serves as Casey's
+personal assistant. Jarvis retains
+emergency card, fleet, merge, deployment, release, verification, and actuation
+tools only for explicit Casey-directed assistance. Tool availability is not
+ownership or authorization and cannot bypass another seat, a current card, a
+capability check, or an exact-revision gate.
 
-1. the shadow-parity evidence meeting the parity gate, covering at least 14
-   consecutive days, audited by Seraph with an explicit gate-met statement;
-2. a Seraph statement of zero open BLOCKED findings against Niobe's dispatch;
-3. Link's confirmation that no open card, PR, or arbitration cites Jarvis as
-   its dispatch authority; and
-4. the signed Chef artifact or ITIL record accepting the transfer.
+### 6. Presence, mail, beats, and safe retirement
 
-Until that record exists in full, Jarvis remains Fleet Dispatcher, and any
-agent that observes dispatch arriving from Jarvis after the record exists
-raises a BLOCKED against the handoff card. Withdrawal is complete when Jarvis's
-fleet mailbox, dispatch timers, and dispatch credentials are released, and the
-release is recorded; what remains is Casey's personal agent, which is the job
-that was always underneath the seat.
+Link, Mero, Seraph, Niobe, Tank, and ATLAS have distinct identities and SKMail
+write access. Each sends one startup hello to `all` per host boot and polls its
+own mailbox view, including direct and `all` traffic, on every bounded cycle.
+Each looks for help, handoff, dependency, and reviewer-conflict messages. Mail
+never grants authority and is never acknowledged automatically.
+
+Each seat emits bounded health evidence. Recurring services are one-shots with
+host-local nonblocking overlap protection, a maximum five-minute runtime, and
+immutable receipts. Abandonment requires exact proof that the prior boot ID,
+PID, and process start generation is no longer live. Retirement leaves no
+persistent child and preserves evidence. Tank and ATLAS presence cycles do not
+claim work. Niobe atomically claims and launches exact `seat-tank` and
+`seat-atlas` cards under their own identities.
+
+All six seats are scoped to SKCapstone, SKDashboard, and SKWorld on chiap08 and
+default to `sk-codex-mid`. Routine catalog-authorized actions are notify-only.
+Human interruption is reserved for an explicit catalog human class,
+protected-data egress, external authority, legal or financial commitment,
+irreversible material effect, or a requested role-contract exception.
 
 ## Consequences
 
@@ -200,11 +178,10 @@ that was always underneath the seat.
   Tank's, or Seraph's authority is a new decision with its own review, and for
   actuation it must follow the catalog-relaxation path in
   [`ACTION_AUTHORIZATION_STANDARD`](../standards/ACTION_AUTHORIZATION_STANDARD.md).
-- `ROSTER.md` and the SKCapstone runtime enforcement documents change only
-  after this ADR is Accepted; the implementation card carries those edits.
-- The shadow window costs two weeks of double coverage. That is deliberate:
-  the six failures ADR-0005 measured were all silences, and parity is the
-  anti-silence.
+- `ROSTER.md` and the SKCapstone runtime enforcement documents are aligned by
+  implementation card `20a637fe`.
+- Bounded activation preserves fail-closed health, exact-revision fencing, and
+  rollback evidence without a routine human wait.
 
 ### Rejected alternatives
 
@@ -230,13 +207,11 @@ that was always underneath the seat.
 - Tank's and Seraph's boundaries trace to AUTONOMY invariants 1, 2, 3, and 5:
   no second approval store, closed actuator inputs, no unregistered surface,
   observation carries no control weight.
-- The withdrawal condition is exact and machine-checkable: four named evidence
-  elements, each hashed, all append-only, and a named safe state on failure.
-- This ADR ships as **Proposed**. Acceptance requires architecture review by
-  Chef (authority source), Jarvis (outgoing seat), and Link (trunk owner)
-  before any implementation card lands; the open pull request is the review
-  vehicle, not the approval. No code, no roster edit, and no unit change is
-  contained in this change.
+- Jarvis exclusion is machine-checkable in the lifecycle profile and recurring
+  unit set, while emergency tools remain explicitly Casey-directed.
+- Acceptance is recorded by Casey decision card `c4e7a9b2`. Source changes,
+  tests, exact evidence, and independent review are carried by implementation
+  card `20a637fe`.
 
 ## Related
 

@@ -1,6 +1,6 @@
 # Chi cluster roster: seats, holders, and the number that proves each one works
 
-**Status:** ACTIVE. **Date:** 2026-09-01. **Decision:** [ADR-0005](./decisions/ADR-0005-five-operating-seats.md).
+**Status:** ACTIVE. **Date:** 2026-09-09. **Decisions:** [ADR-0005](./decisions/ADR-0005-five-operating-seats.md), [ADR-0006](./decisions/ADR-0006-dispatch-handoff-niobe-tank-seraph.md).
 
 Every seat below carries a metric and the command that prints it. That is the
 point of this document. A seat whose health can only be established by asking
@@ -16,10 +16,12 @@ Re-run the command rather than trusting the number printed here.
 
 | Seat | Holder | Owns | Explicitly does not own |
 |---|---|---|---|
-| **Fleet Dispatcher** | `jarvis` | Fleet claims, launches, releases, reassignment, rotation, lane routing, and worker health. | Review verdicts, the merge queue, application action dispatch, app actuation |
+| **Fleet Dispatcher** | `niobe` | Fleet claims, launches, releases, reassignment, rotation, lane routing, and worker health. | Review verdicts, merge, deployment, release, application action dispatch, app actuation |
 | **Integrator** | `link` | Triage, independent-review assignment, the merge queue, and eligible merges under the PR 358 control. Owns delivery quality. | Fleet claims, launches, releases, reassignment, application action dispatch, app actuation |
 | **Overseer** | `mero` | Read-only measurement and charter. Observes drift, emits typed recommendations and alerts, and reports what the estate finishes and is working on. | Claims, launches, releases, reassignment, merge, application action dispatch, actuation, or repairing what Mero measures |
-| **Operations** | `ATLAS` | Apps and infra. Observes, reasons, repairs, under the Atlas Constitution. | The coordination board, which it provably does not read |
+| **Independent Verifier** | `seraph` | Exact-candidate and release verification with PASS, FAIL, or BLOCKED evidence. | Self-review, merge, dispatch, deployment, release, actuation |
+| **Release and Install Operator** | `tank` | Release and installation of approved artifacts, behavioral verification, and bounded rollback. | Source authoring, self-approval, independent review of its own release, merge, dispatch |
+| **Operations** | `ATLAS` | Operational observation and authorized card-scoped action under the Atlas Constitution. | Coordination-board ownership, card claiming, reviewer assignment, merge, policy change, unratified action |
 | **Recorder** | *nobody* | A rule, not a role: every seat records its own decisions as it makes them. | n/a |
 
 The Recorder is deliberately unfilled. A seat whose job is writing down what
@@ -28,9 +30,14 @@ other seats did is a seat that falls behind and is then blamed for the gap.
 "Fleet Dispatcher" is a coordination role, not the application action
 dispatcher defined by
 [`ACTION_AUTHORIZATION_STANDARD`](./standards/ACTION_AUTHORIZATION_STANDARD.md).
-Jarvis gains no application actuation authority from this roster. The action
+Niobe gains no application actuation authority from this roster. The action
 dispatcher remains a separate governed component with the closed inputs and ITIL
 authorization contract defined by that standard.
+
+Jarvis is Casey's personal assistant, not a recurring lifecycle seat. Jarvis
+retains emergency card, fleet, merge, deployment, release, verification, and
+actuation tools for explicit Casey-directed help. Tool availability is not
+seat ownership or authorization and cannot bypass the governing card or policy.
 
 ### Typed recommendation handoff
 
@@ -40,11 +47,11 @@ The event is advice, never an instruction, and MUST contain `card_id`,
 `observed_claim_revision`, `observed_process`, `reason`, and `evidence_sha256`.
 `recommendation_id` is the duplicate-suppression key.
 
-Only Jarvis MAY act on the recommendation. Immediately before any claim release,
-launch, stop, or reassignment, Jarvis MUST re-read the current CardStore owner and
+Only Niobe MAY act on a recurring recommendation. Immediately before any claim release,
+launch, stop, or reassignment, Niobe MUST re-read the current CardStore owner and
 claim revision and the current process state. It MUST reject a duplicate
 `recommendation_id`, a missing or mismatched claim revision, stale process
-evidence, or an action outside Jarvis's fleet authority. Acting records the
+evidence, or an action outside Niobe's fleet authority. Acting records the
 recommendation id, current readback, exact claim revision, result, and evidence
 hash as an append-only event. Mero and Link never perform the recommended fleet
 mutation themselves.
@@ -58,8 +65,25 @@ and they are not active on every fleet node.
 | Unit | Active host | Cadence | Authority |
 |---|---|---|---|
 | `skfleet-link.service` and `skfleet-link.timer` | `chiap08` | Every 5 minutes | Read current PR and CardStore state, append revision-fenced reviewer and merge-eligibility recommendations |
-| `skfleet-mero.service` and `skfleet-mero.timer` | `chiap08` | Every 10 minutes, offset from Link | Read current coordination and worker state, append typed blocker observations and recommendations |
-| Jarvis fenced consumer | `chiap08` | Existing fleet rotation cadence | Re-read current state and perform only an independently authorized exact-revision fleet mutation |
+| `skfleet-mero.service` and `skfleet-mero.timer` | `chiap08` | Every 5 minutes, offset from Link | Read current coordination and worker state, append typed blocker observations and recommendations |
+| Niobe fenced consumer | `chiap08` | Every 5 minutes | Re-read current state and perform only an independently authorized exact-revision fleet mutation |
+| `skfleet-seraph.service` and `skfleet-seraph.timer` | `chiap08` | Every 5 minutes | Launch bounded independent review work under an exact distinct reviewer identity |
+| `skfleet-tank.service` and `skfleet-tank.timer` | `chiap08` | Every 5 minutes | Presence, SKMail, and health only; exact release cards arrive through Niobe |
+| `skfleet-atlas.service` and `skfleet-atlas.timer` | `chiap08` | Every 15 minutes | Presence, SKMail, and health only; exact operations cards arrive through Niobe |
+
+All six seats use distinct identities, the three-product scope SKCapstone,
+SKDashboard, and SKWorld, and the default route `sk-codex-mid`. The governed
+repositories are `smilinTux/skcapstone`, `smilinTux/skdashboard`,
+`smilinTux/skworld`, and the supporting `smilinTux/sk-standards`. Each sends a
+startup hello to `all`, reads its direct and `all` SKMail view every bounded
+cycle, and looks for help, handoff, dependency, and reviewer-conflict traffic.
+Mail is coordination data, never authority, and is not acknowledged
+automatically.
+
+Each recurring process is a bounded one-shot. A host-local nonblocking lock
+records overlap as a no-op. Abandonment requires exact proof that the prior
+boot ID, PID, and process start generation is dead. Retirement preserves
+receipts and leaves no persistent child worker.
 
 Each service MUST use a host-local nonblocking lock. A second invocation exits
 without work and records `overlap_refused`. Each cycle has a bounded runtime,
@@ -117,7 +141,7 @@ failed, retains its local evidence, and performs no coordination mutation.
 
 ## How you know each seat is working
 
-### Dispatcher (`jarvis`)
+### Dispatcher (`niobe`)
 
 **Metric:** churn, claims per card. Wasted dispatch is the failure mode.
 
