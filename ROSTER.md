@@ -74,7 +74,7 @@ and they are not active on every fleet node.
 | Niobe fenced consumer | `chiap08` | Every 5 minutes | Re-read current state and perform only an independently authorized exact-revision fleet mutation |
 | `skfleet-seraph.service` and `skfleet-seraph.timer` | `chiap08` | Every 5 minutes | Launch bounded independent review work under an exact distinct reviewer identity |
 | `skfleet-tank.service` and `skfleet-tank.timer` | `chiap08` | Every 5 minutes | Presence, SKMail, and health only; exact release cards arrive through Niobe |
-| `skfleet-atlas.service` and `skfleet-atlas.timer` | `chiap08` | Every 15 minutes | Presence, SKMail, and health only; exact operations cards arrive through Niobe |
+| `skfleet-atlas.service` and `skfleet-atlas.timer` | `chiap08` | Every 5 minutes | Presence, SKMail, and health only; exact operations cards arrive through Niobe |
 
 All six seats use distinct identities, the three-product scope SKCapstone,
 SKDashboard, and SKWorld, and the default route `sk-codex-mid`. The governed
@@ -89,6 +89,12 @@ Each recurring process is a bounded one-shot. A host-local nonblocking lock
 records overlap as a no-op. Abandonment requires exact proof that the prior
 boot ID, PID, and process start generation is dead. Retirement preserves
 receipts and leaves no persistent child worker.
+
+Before changing this roster or the SKCapstone lifecycle profile, run
+`python scripts/check_lifecycle_seat_alignment.py --skcapstone-profile
+../skcapstone/src/skcapstone/data/lifecycle-seat-profiles.json`. The check reads
+both repositories and fails if the six-seat cadence or default model contract
+diverges.
 
 Each service MUST use a host-local nonblocking lock. A second invocation exits
 without work and records `overlap_refused`. Each cycle has a bounded runtime,

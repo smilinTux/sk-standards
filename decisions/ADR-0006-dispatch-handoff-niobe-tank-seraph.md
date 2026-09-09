@@ -183,7 +183,8 @@ irreversible material effect, or a requested role-contract exception.
   actuation it must follow the catalog-relaxation path in
   [`ACTION_AUTHORIZATION_STANDARD`](../standards/ACTION_AUTHORIZATION_STANDARD.md).
 - `ROSTER.md` and the SKCapstone runtime enforcement documents are aligned by
-  implementation card `20a637fe`.
+  implementation card `20a637fe` and checked together by
+  `scripts/check_lifecycle_seat_alignment.py`.
 - Bounded activation preserves fail-closed health, exact-revision fencing, and
   rollback evidence without a routine human wait.
 
