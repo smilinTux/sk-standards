@@ -163,7 +163,7 @@ fix rather than better recording.
 reason the seat exists.
 
 ```bash
-for r in skcapstone skdashboard sk-standards capauth skgateway sklegal; do
+for r in skcapstone skdashboard skworld sk-standards; do
   cd ~/work/$r 2>/dev/null || continue
   n=$(gh pr list --state open --json reviewDecision -q '[.[]|select((.reviewDecision//"")=="")]|length')
   echo "$r unreviewed=$n"

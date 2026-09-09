@@ -29,6 +29,9 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- Card `20a637fe`: limit lifecycle roster measurement to SKCapstone,
+  SKDashboard, SKWorld, and the supporting sk-standards repository.
+
 ### Added
 
 - Card `20a637fe`: accept and activate the six-seat software lifecycle for
