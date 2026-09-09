@@ -129,6 +129,9 @@ flowchart TD
 ```
 
 ### Repos
+- 🔁 [**SKRSI**](https://github.com/smilinTux/skrsi): SK Recursive SELF
+  Improvement: the Systematic Evaluation, Learning, and Feedback control plane
+  for evidence-first software lifecycle improvement.
 - 🦀🐍 [**sk_pgp**](https://github.com/smilinTux/sk_pgp) — sovereign Python OpenPGP-PQC (PyO3→Sequoia); the PGPy replacement that lets Python sign with v6/PQC keys.
 - 🎯 [**sk_pqc**](https://github.com/smilinTux/sk-pqc-dart) — Dart/Flutter hybrid KEM (X25519+ML-KEM-768), web + native, in the browser.
 - 🔑 [**capauth**](https://github.com/smilinTux/capauth) — sovereign identity, DID, the PQC signing root; the crypto home (sign/verify + seal/unseal).
