@@ -31,6 +31,10 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- Card `2d2a6d4d`: add SKRSI to the ecosystem index using its canonical name,
+  SK Recursive SELF Improvement, where SELF means Systematic Evaluation,
+  Learning, and Feedback.
+
 - ADR-0006 (Proposed, card 8d5404ca): the dispatcher handoff. Niobe takes
   exactly the existing Fleet Dispatcher authority from Jarvis; Tank owns
   release/install mechanics and behavioral deployment evidence; Seraph is
