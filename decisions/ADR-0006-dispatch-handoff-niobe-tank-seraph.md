@@ -130,6 +130,10 @@ emergency card, fleet, merge, deployment, release, verification, and actuation
 tools only for explicit Casey-directed assistance. Tool availability is not
 ownership or authorization and cannot bypass another seat, a current card, a
 capability check, or an exact-revision gate.
+All such operations use SKCapstone's single `JarvisEmergencyGateway`; it
+verifies a signed, unexpired Casey envelope bound to the exact action, target,
+change, and SKCapstone/SKDashboard/SKWorld scope before calling the mutation.
+No direct or recurring Jarvis lifecycle path is authorized.
 
 ### 6. Presence, mail, beats, and safe retirement
 

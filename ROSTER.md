@@ -38,6 +38,11 @@ Jarvis is Casey's personal assistant, not a recurring lifecycle seat. Jarvis
 retains emergency card, fleet, merge, deployment, release, verification, and
 actuation tools for explicit Casey-directed help. Tool availability is not
 seat ownership or authorization and cannot bypass the governing card or policy.
+Every emergency operation enters through SKCapstone's
+`JarvisEmergencyGateway`, which verifies a signed, unexpired Casey direction
+bound to the exact action, target, change, and scope before mutation. The only
+permitted product scope is SKCapstone, SKDashboard, and SKWorld. Missing,
+forged, expired, substituted, or out-of-scope directions fail closed.
 
 ### Typed recommendation handoff
 
