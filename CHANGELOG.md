@@ -29,7 +29,20 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- Card `20a637fe`: require every Jarvis emergency lifecycle operation to enter
+  through SKCapstone's signed, exact-action Casey-direction gateway.
+
+- Card `20a637fe`: limit lifecycle roster measurement to SKCapstone,
+  SKDashboard, SKWorld, and the supporting sk-standards repository.
+
 ### Added
+
+- Card `20a637fe`: accept and activate the six-seat software lifecycle for
+  SKCapstone, SKDashboard, and SKWorld. Niobe dispatches, Link integrates,
+  Mero oversees, Seraph verifies, Tank releases and installs, and ATLAS handles
+  bounded operations. All use `sk-codex-mid`, SKMail startup and polling,
+  bounded beats, safe retirement, and notify-only routine gates. Jarvis remains
+  Casey's assistant outside recurring lifecycle work with emergency tools.
 
 - Card `2d2a6d4d`: add SKRSI to the ecosystem index using its canonical name,
   SK Recursive SELF Improvement, where SELF means Systematic Evaluation,
