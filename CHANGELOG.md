@@ -29,6 +29,20 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- Roster reconciliation against measured behaviour (chi card-event census,
+  30 days to 2026-09-18): fold the dissolved Tank seat into Operations with a
+  record of where every duty went (skcapstone PR 751); add per-writer
+  permitted and prohibited verb tables so boundaries are checkable instead of
+  prose; add an automation-writers table assigning an owning seat to every
+  measured writer identity, including the nonconformant `jarvis` identity the
+  fleet rotation still writes under (12,230 events, 4,487 after ADR-0006);
+  add a Seraph metric section and re-baseline the Operations section (1,166
+  cycles, zero dispatches, freeze store absent on all five hosts); update the
+  runtime placement table to the measured unit and timer state; reduce
+  `check_lifecycle_seat_alignment.py` to the five canonical seats so the gate
+  passes again (it has failed against skcapstone main since the fold landed);
+  and stamp the Tank amendment on ADR-0006.
+
 - Card `20a637fe`: require every Jarvis emergency lifecycle operation to enter
   through SKCapstone's signed, exact-action Casey-direction gateway.
 
