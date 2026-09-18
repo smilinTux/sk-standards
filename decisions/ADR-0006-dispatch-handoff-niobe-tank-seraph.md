@@ -1,6 +1,12 @@
 # ADR-0006: The dispatcher handoff: Niobe takes dispatch, Tank takes release, Seraph verifies, Jarvis stands down
 
 **Status:** Accepted and active
+**Amendment (2026-09-18):** the Tank seat defined in section 2 was dissolved
+on 2026-09-17 by skcapstone PR 751 (nimble-factory Plan B2), which folded its
+release, install, behavioral-verification, and bounded-rollback duties into
+ATLAS. The duties transfer, not lapse; see `ROSTER.md` for where each one
+lives and skcapstone `docs/fleet/seat-charters.md` for the boundary. The
+rest of this ADR stands as decided.
 **Date:** 2026-09-09
 **Acceptance evidence:** Casey decision card `c4e7a9b2`; implementation card
 `20a637fe`

@@ -1,6 +1,6 @@
 # Chi cluster roster: seats, holders, and the number that proves each one works
 
-**Status:** ACTIVE. **Date:** 2026-09-09. **Decisions:** [ADR-0005](./decisions/ADR-0005-five-operating-seats.md), [ADR-0006](./decisions/ADR-0006-dispatch-handoff-niobe-tank-seraph.md).
+**Status:** ACTIVE. **Date:** 2026-09-18. **Decisions:** [ADR-0005](./decisions/ADR-0005-five-operating-seats.md), [ADR-0006](./decisions/ADR-0006-dispatch-handoff-niobe-tank-seraph.md).
 
 Every seat below carries a metric and the command that prints it. That is the
 point of this document. A seat whose health can only be established by asking
@@ -20,9 +20,29 @@ Re-run the command rather than trusting the number printed here.
 | **Integrator** | `link` | Triage, independent-review assignment, the merge queue, and eligible merges under the PR 358 control. Owns delivery quality. | Fleet claims, launches, releases, reassignment, application action dispatch, app actuation |
 | **Overseer** | `mero` | Read-only measurement and charter. Observes drift, emits typed recommendations and alerts, and reports what the estate finishes and is working on. | Claims, launches, releases, reassignment, merge, application action dispatch, actuation, or repairing what Mero measures |
 | **Independent Verifier** | `seraph` | Exact-candidate and release verification with PASS, FAIL, or BLOCKED evidence. | Self-review, merge, dispatch, deployment, release, actuation |
-| **Release and Install Operator** | `tank` | Release and installation of approved artifacts, behavioral verification, and bounded rollback. | Source authoring, self-approval, independent review of its own release, merge, dispatch |
-| **Operations** | `ATLAS` | Operational observation and authorized card-scoped action under the Atlas Constitution. | Coordination-board ownership, card claiming, reviewer assignment, merge, policy change, unratified action |
+| **Operations** | `ATLAS` | Operational observation, postcondition and behavioral verification, and authorized card-scoped action under the Atlas Constitution. Release, installation, and bounded rollback of exact approved artifacts, absorbed from the dissolved Tank seat (skcapstone PR 751, 2026-09-17): a duty on paper until the freeze store is provisioned and `DEPLOY` is granted. | Coordination-board ownership, card claiming outside its admitted `seat-atlas` lane, reviewer assignment, merge, policy change, unratified action, source authoring, self-approval, independent review of its own release |
 | **Recorder** | *nobody* | A rule, not a role: every seat records its own decisions as it makes them. | n/a |
+
+**Tank is dissolved, and none of its jobs are unowned.** skcapstone PR 751
+(2026-09-17, nimble-factory Plan B2) folded the seat into ATLAS;
+`LIFECYCLE_SEATS` and `lifecycle-seat-profiles.json` now carry five seats.
+Measured close-out: Tank identities wrote 33 board events in the 30 days to
+2026-09-18, all coordination on DEPLOY cards, zero releases, and no tank unit
+or timer exists on chiap08. Where each duty lives now:
+
+- Release and install of exact approved artifacts: ATLAS on paper; in practice
+  a human invoking `skcapstone fleet rollout` / `rollback` (dry run by
+  default) until the freeze store and the `Action.DEPLOY` grant land.
+- Behavioral verification, "is what we merged actually running?": ATLAS's
+  postcondition duty, instrumented by `skfleet-readiness.timer`, `skcapstone
+  fleet node drift`, and the daily report-only `skfleet-install-audit.timer`
+  on all five chi hosts.
+- Bounded rollback: `rollout_history.previous_manifest` plus
+  `execute_rollback`, human-invoked.
+
+The full boundary, with permitted and prohibited verb lists per seat, is in
+skcapstone `docs/fleet/seat-charters.md`; the verb tables below are the
+roster-level copy.
 
 The Recorder is deliberately unfilled. A seat whose job is writing down what
 other seats did is a seat that falls behind and is then blamed for the gap.
@@ -61,6 +81,60 @@ recommendation id, current readback, exact claim revision, result, and evidence
 hash as an append-only event. Mero and Link never perform the recommended fleet
 mutation themselves.
 
+### Owned verbs by writer identity
+
+"Read-only" as prose is what failed: it named no verbs, so nothing could
+check it, and it was violated for two weeks unnoticed. Every board write
+lands in `~/.skcapstone/cards/<id>/events/<writer>@<host>.jsonl`; the
+filename is the writer, the record field is `action`. These lists are the
+checkable contract, and the census query at the end of this section is the
+check.
+
+| Writer | Permitted actions | Prohibited actions |
+|---|---|---|
+| `niobe` | claim, release_claim, move, complete, void, archive, add_dependency, remove_dependency, amend_criteria, describe, priority, reopen, unassign, review_assignment_launch, link | pass_for_review, blocked, review_assignment_recommendation, mero_observation, mero_blocker_recommendation |
+| `link` | review_assignment_recommendation, link, move, describe, priority | claim, release_claim, void, archive, review_assignment_launch |
+| `mero` | mero_observation, mero_blocker_recommendation, link | claim, release_claim, move, complete, void, archive, add_dependency, remove_dependency, amend_criteria, describe, priority, reopen, unassign |
+| `seraph` | claim, move, complete, release_claim (own review lane), review_assignment_launch (bounded `pi-seraph-*` workers), link, pass_for_review, blocked | void, archive, add_dependency, remove_dependency, amend_criteria, describe, priority, reopen, unassign, add_label, review_assignment_recommendation, mero_observation, mero_blocker_recommendation |
+| `atlas` | claim, move, complete, release_claim (only on cards labeled `seat-atlas` plus `dispatch-approved`), link | claim on any card lacking that label pair, void, archive, review_assignment_launch, review_assignment_recommendation, add_dependency, remove_dependency, amend_criteria, priority |
+| `jarvis` | any verb, only under a verified signed Casey direction through `JarvisEmergencyGateway` | any scheduled or recurring write of any verb |
+
+### Automation writers and their owning seats
+
+The event store carries writer identities that are automation, not seats. A
+writer identity that maps to no row here and no seat above is itself a
+finding: an unowned job. Measured over the 30 days to 2026-09-18 on chi:
+
+| Writer | 30-day events | Owning seat | Note |
+|---|---|---|---|
+| `jarvis` (written by `skfleet-rotate` on chiap01 to chiap04) | 12,230 | Fleet Dispatcher | NONCONFORMANT identity: 4,487 of these landed after ADR-0006 removed Jarvis from recurring scheduling. The rotate script defaults its writer to `jarvis`; moving it to `niobe` is the named fix, and until it lands the Jarvis boundary is uncheckable. |
+| `archive-done` | 2,031 | Fleet Dispatcher | Board hygiene: archives terminal cards |
+| `fleet-liveness-reaper` | 656 | Fleet Dispatcher | Worker health |
+| `stale-sweep` | 369 | Fleet Dispatcher | Board hygiene |
+| `coord-move` | 274 | Fleet Dispatcher | Board hygiene |
+| `lifecycle-reconciler` | 198 | Fleet Dispatcher | Board hygiene |
+| `fleet-review-closer` | 65 | Integrator | Review-lane closure |
+| `lumina-ghost-reaper` | 60 | Fleet Dispatcher | Worker health |
+| `skfleet-install-audit`, `skfleet-readiness`, `skcapstone fleet node drift` | no board writes | Operations | Report-only deploy and install instruments |
+
+Census query (read-only), which reproduces every number above and flags any
+writer this roster does not own:
+
+```bash
+python3 - <<'EOF'
+import json, os, glob, collections
+c = collections.Counter()
+for f in glob.glob(os.path.expanduser("~/.skcapstone/cards/*/events/*.jsonl")):
+    w = os.path.basename(f).split("@")[0]
+    for line in open(f):
+        try: r = json.loads(line)
+        except Exception: continue
+        c[(w, r.get("action","?"))] += 1
+for (w, a), n in c.most_common(80):
+    print(w, a, n)
+EOF
+```
+
 ### Runtime placement and scheduling
 
 The active coordination control plane runs on `chiap08`. Link and Mero run as
@@ -71,12 +145,14 @@ and they are not active on every fleet node.
 |---|---|---|---|
 | `skfleet-link.service` and `skfleet-link.timer` | `chiap08` | Every 5 minutes | Read current PR and CardStore state, append revision-fenced reviewer and merge-eligibility recommendations |
 | `skfleet-mero.service` and `skfleet-mero.timer` | `chiap08` | Every 5 minutes, offset from Link | Read current coordination and worker state, append typed blocker observations and recommendations |
-| Niobe fenced consumer | `chiap08` | Every 5 minutes | Re-read current state and perform only an independently authorized exact-revision fleet mutation |
-| `skfleet-seraph.service` and `skfleet-seraph.timer` | `chiap08` | Every 5 minutes | Launch bounded independent review work under an exact distinct reviewer identity |
-| `skfleet-tank.service` and `skfleet-tank.timer` | `chiap08` | Every 5 minutes | Presence, SKMail, and health only; exact release cards arrive through Niobe |
-| `skfleet-atlas.service` and `skfleet-atlas.timer` | `chiap08` | Every 5 minutes | Presence, SKMail, and health only; exact operations cards arrive through Niobe |
+| Niobe fenced consumer (dedicated `skfleet-niobe` timers installed but disabled; the cycle runs serialized inside `skfleet-seat-cycle.service`) | `chiap08` | Every 5 minutes | Re-read current state and perform only an independently authorized exact-revision fleet mutation |
+| `skfleet-seraph.service` (dedicated timer installed but disabled; the cycle runs serialized inside `skfleet-seat-cycle.service`) | `chiap08` | Every 5 minutes | Launch bounded independent review work under an exact distinct reviewer identity |
+| `skfleet-atlas.service` and `skfleet-atlas.timer` | `chiap08` | Every 5 minutes | Presence, SKMail, health, and admitted `seat-atlas` cards through Niobe; overlap with a seat-cycle generation records as a no-op |
+| `skfleet-rotate.service` and `skfleet-rotate.timer` | `chiap01` to `chiap04` | Every 5 minutes | Fleet dispatch rotation. NONCONFORMANT writer identity: writes to the CardStore as `jarvis`; the identity must move to `niobe` (see Automation writers above) |
+| `skfleet-readiness.service` and `skfleet-readiness.timer` | all five chi hosts | Every 15 minutes | Report-only readiness and drift check |
+| `skfleet-install-audit.service` and `skfleet-install-audit.timer` | all five chi hosts | Daily | Report-only install hygiene audit |
 
-All six seats use distinct identities, the three-product scope SKCapstone,
+All five seats use distinct identities, the three-product scope SKCapstone,
 SKDashboard, and SKWorld, and the default route `sk-codex-mid`. The governed
 repositories are `smilinTux/skcapstone`, `smilinTux/skdashboard`,
 `smilinTux/skworld`, and the supporting `smilinTux/sk-standards`. Each sends a
@@ -168,6 +244,16 @@ AFTER its verdict was recovered and it was moved to review, which means recovery
 alone does not stop re-dispatch, and the breaker on card `daf2b889` is the real
 fix rather than better recording.
 
+**Identity conformance, measured 2026-09-18:** the seat's job is being done,
+but not under the seat's identity. In the 30 days to 2026-09-18 the `niobe`
+writer produced 11 card events while the `jarvis` writer produced 12,230, of
+which 4,487 landed after ADR-0006 removed Jarvis from recurring scheduling.
+The producer is `skfleet-rotate` on chiap01 to chiap04, whose writer identity
+defaults to `jarvis`. **Target:** scheduled `jarvis` events per day reach
+zero and the rotate cycles appear as `niobe`. Until then the dispatcher
+boundary cannot be checked against the event store, because sanctioned
+automation and out-of-seat action are indistinguishable.
+
 ### Integrator (`link`)
 
 **Metric:** open pull requests carrying no review decision. This is the whole
@@ -218,6 +304,32 @@ has never been scored against an independent labeller. Card `48136bad` exists to
 fix exactly that, and it must not be claimed by `mero`. Until it passes, treat
 the distribution as directionally right and every individual rate as provisional.
 
+### Independent Verifier (`seraph`)
+
+**Metric:** verdict production, and lane conformance of its writes.
+
+```bash
+python3 - <<'EOF'
+import json, os, glob, collections
+c = collections.Counter()
+for f in glob.glob(os.path.expanduser("~/.skcapstone/cards/*/events/*.jsonl")):
+    w = os.path.basename(f).split("@")[0]
+    if "seraph" not in w: continue
+    for line in open(f):
+        try: c[json.loads(line).get("action","?")] += 1
+        except Exception: pass
+print(dict(c.most_common()))
+EOF
+```
+
+**BASELINE (30 days to 2026-09-18):** 2,596 events across `seraph` and its
+`pi-seraph-*` review workers: claim 849, move 808, complete 492,
+release_claim 193, review_assignment_launch 176. The seat is real and
+working. Out-of-lane drift at the same measurement: 20 void, 20 archive, and
+21 dependency or metadata writes, which the verb table above now prohibits.
+**Target:** verdict-bearing actions keep flowing and the prohibited-verb
+count is zero.
+
 ### Operations (`ATLAS`)
 
 **Metric:** whether it is running at all.
@@ -227,11 +339,19 @@ skcapstone atlas eyes
 ls ~/.skcapstone/agents/atlas/objects/_freeze.json
 ```
 
-**BASELINE:** installed on all five chi hosts and running on none of them. The
-freeze store was never provisioned, and AUTONOMY invariant 4 holds that an absent
-kill switch means no actuation, so the seat is correctly refusing to act.
-**Target:** provision the freeze store, or record in writing that Operations
-stays unheld.
+**BASELINE (re-measured 2026-09-18):** the cycle now runs and the work does
+not. `skfleet-atlas.timer` on chiap08 has produced 1,166 cycle records in 30
+days and every one records `dispatch_succeeded: 0` (`atlas_no_eligible_work`
+or `atlas_rotation_overlap`). The freeze store is still absent on all five
+chi hosts, and AUTONOMY invariant 4 holds that an absent kill switch means no
+actuation, so the seat is correctly refusing every effect. Meanwhile
+identities matching `*atlas*` wrote 34 board events in the same window,
+including claims on two cards carrying no `seat-atlas` label and void plus
+archive on two `seat-seraph` review cards, which the verb table above now
+prohibits. The seat is idle on its own job and active outside it.
+**Target:** provision the freeze store and grant the bounded `DEPLOY` per
+skcapstone `docs/fleet/seat-charters.md`, or record in writing that
+Operations stays unheld; either way, prohibited-verb count zero.
 
 This is the one seat where doing nothing is the correct behaviour. It needs a
 decision from Chef, not a repair from an agent.
