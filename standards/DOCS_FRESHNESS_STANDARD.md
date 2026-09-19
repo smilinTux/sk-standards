@@ -71,12 +71,35 @@ new repo spawned from a bad template.
 
 ### 1.2 Changelog-on-code-change (tier 2)
 
-If a pull request touches `src/**` or `pyproject.toml` but does **not** touch
-`CHANGELOG.md`, fail.
+If a pull request touches `src/**` or `pyproject.toml` but records **no changelog
+entry**, fail. An entry is either of:
+
+1. **A new fragment: `changelog.d/<slug>.md`.** Preferred. One file per PR.
+2. **An edit to `CHANGELOG.md`.** Still accepted, and still correct for a repo with
+   few concurrent PRs.
+
+Only a `.md` file sitting **directly** in `changelog.d/` counts. The directory's own
+scaffolding (`README.md`, `.gitkeep`, `.gitignore`) and anything in a nested subdir do
+not, or a repo would satisfy tier 2 for free just by having the directory.
+
+**Why the fragment directory exists.** Every PR appending to the same region of one
+`CHANGELOG.md` makes a rebase conflict the default outcome once more than one PR is
+open. On `smilinTux/skcapstone`, running a dozen concurrent agents, nearly every PR hit
+one; three were resolved by hand on 2026-09-18 alone. A fragment per PR means two PRs
+never touch the same lines, so the conflict is not merely rarer, it is structurally
+impossible. Fragments are folded into `CHANGELOG.md` by the consuming repo's own
+assembly step.
+
+This is a widening, not a loosening: a `src/**` change with neither a fragment nor a
+`CHANGELOG.md` edit still fails, exactly as before.
 
 - Escape hatch: a `docs-exempt` label, or `[skip-changelog]` in the PR title.
+  Unchanged, and deliberately so.
 - The gate MUST log when the hatch is used. An unlogged escape hatch becomes the
   default path within a quarter.
+- The gate's `--self-test` carries a **positive** control alongside the negative one:
+  it proves a fragment-only diff passes tier 2 and that a bare `src/**` diff still
+  fails. Widening a gate without that proof is how a gate rots into a no-op.
 
 ### 1.3 Self-verifying SOP (tier 3 — the one that catches drift)
 
@@ -138,7 +161,8 @@ way.
 
 - [ ] `.github/workflows/docs-check.yml` present, calling the shared reusable workflow
 - [ ] All 7 required files present (tier 1 green)
-- [ ] `CHANGELOG.md` updated by any PR touching `src/**` or `pyproject.toml` (tier 2)
+- [ ] A changelog entry (`changelog.d/<slug>.md` **or** `CHANGELOG.md`) recorded by
+      any PR touching `src/**` or `pyproject.toml` (tier 2)
 - [ ] `SOP.md` carries a `docs-evidence` block with **>= 3** hermetic checks (tier 3)
 - [ ] `verified:` date is within the last 6 months
 - [ ] The gate's negative test is recorded in the PR that introduced it

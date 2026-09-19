@@ -29,6 +29,20 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- DOCS_FRESHNESS_STANDARD tier 2 now accepts a `changelog.d/<slug>.md` fragment as a
+  changelog entry, alongside the existing `CHANGELOG.md` edit. Every PR appending to the
+  same region of one shared `CHANGELOG.md` makes a rebase conflict the default outcome
+  once more than one PR is open; on `smilinTux/skcapstone` with a dozen concurrent agents
+  nearly every PR hit one, three resolved by hand on 2026-09-18. One file per PR means two
+  PRs never touch the same lines, so the conflict is structurally impossible rather than
+  merely rarer. Only a `.md` directly in `changelog.d/` counts: the directory's own
+  `README.md` / `.gitkeep` / `.gitignore` and nested subdirs do not, or a repo would clear
+  tier 2 for free just by having the directory. This is a widening, not a loosening; a
+  `src/**` change with neither kind of entry still fails, and the `docs-exempt` label and
+  `[skip-changelog]` title hatches are untouched. `docs_check.py --self-test` gains a
+  **positive** control next to the negative one, proving in CI on every run that a
+  fragment-only diff passes tier 2 while a bare `src/**` diff still fails.
+
 - Roster reconciliation against measured behaviour (chi card-event census,
   30 days to 2026-09-18): fold the dissolved Tank seat into Operations with a
   record of where every duty went (skcapstone PR 751); add per-writer
