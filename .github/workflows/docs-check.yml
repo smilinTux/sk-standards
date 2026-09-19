@@ -57,18 +57,44 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Collect changed files (pull requests only)
+      - name: Collect changed files (pull requests and merge queue)
         id: changed
-        if: github.event_name == 'pull_request'
+        # Without this also covering merge_group, tier 2 silently no-ops for
+        # every merge-queue run: `github.base_ref` is only populated for
+        # pull_request, so this step used to be skipped entirely under
+        # merge_group, /tmp/changed.txt was never written, and the "Run
+        # docs-check" step below falls through to calling docs_check.py with
+        # no --changed-files at all - which tier2_changelog treats as "not a
+        # PR, skip" and passes unconditionally, regardless of what changed.
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
         run: |
           set -euo pipefail
-          git fetch --no-tags origin "${{ github.base_ref }}" --depth=50 || true
-          git diff --name-only "origin/${{ github.base_ref }}...HEAD" > /tmp/changed.txt || true
+          if [ "${{ github.event_name }}" = "merge_group" ]; then
+            # merge_group carries no pull_request context (github.base_ref is
+            # empty here); the event itself names the base ref being tested.
+            base_ref="${{ github.event.merge_group.base_ref }}"
+          else
+            base_ref="${{ github.base_ref }}"
+          fi
+          base_ref="${base_ref#refs/heads/}"
+          git fetch --no-tags origin "$base_ref" --depth=50 || true
+          git diff --name-only "origin/$base_ref...HEAD" > /tmp/changed.txt || true
           echo "count=$(wc -l < /tmp/changed.txt)" >> "$GITHUB_OUTPUT"
           cat /tmp/changed.txt
 
       - name: Honour the changelog escape hatch
         id: hatch
+        # Deliberately NOT extended to merge_group: that event carries no
+        # pull_request context (no title, no labels), so there is nothing
+        # here to read the docs-exempt label or [skip-changelog] title from.
+        # Left as pull_request-only, this step simply does not run under
+        # merge_group, `hatch.outputs.used` is then empty (not "yes"), and
+        # the "Run docs-check" step below treats that the same as "not
+        # waived" - i.e. this fails CLOSED under merge_group rather than
+        # silently re-granting an exemption. Net effect: a PR that used the
+        # escape hatch during review is NOT exempt again at merge-queue time
+        # and must actually satisfy tier 2 there. Known, intentional
+        # limitation - revisit only if that turns out to block real PRs.
         if: github.event_name == 'pull_request'
         env:
           TITLE: ${{ github.event.pull_request.title }}
