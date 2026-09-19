@@ -4,7 +4,9 @@
 Three tiers, in increasing order of value:
 
   1. presence   - the 7 files SK_REPO_DOC_STANDARD requires exist.
-  2. changelog  - a PR touching src/** or pyproject.toml also touches CHANGELOG.md.
+  2. changelog  - a PR touching src/** or pyproject.toml also records a changelog
+                  entry: either a new changelog.d/<slug>.md fragment (preferred)
+                  or a CHANGELOG.md edit.
   3. evidence   - every check in SOP.md's `docs-evidence` block still exits 0.
 
 Tier 3 is the one that catches drift. Tiers 1 and 2 catch a MISSING doc; tier 3
@@ -30,6 +32,12 @@ from pathlib import Path
 REQUIRED = ["README.md", "SOP.md", "SECURITY.md", "CONTRIBUTING.md",
             "CODE_OF_CONDUCT.md", "CHANGELOG.md", "LICENSE"]
 CODE_GLOBS = ("src/", "pyproject.toml")
+# One file per PR, so two PRs never touch the same lines and the rebase conflict
+# that a single shared CHANGELOG.md guarantees becomes structurally impossible.
+FRAGMENT_DIR = "changelog.d/"
+# Scaffolding inside the fragment dir is not itself an entry. Without this a repo
+# that merely HAS a changelog.d/README.md would satisfy the gate for free.
+FRAGMENT_NON_ENTRIES = {"README.md", ".gitkeep", ".gitignore"}
 EVIDENCE_RE = re.compile(r"<!--\s*docs-evidence(.*?)-->", re.S)
 MIN_CHECKS = 3
 
@@ -59,17 +67,38 @@ def tier1_presence(repo: Path) -> bool:
 
 
 # ---------------------------------------------------------------- tier 2
+def _is_fragment(path: str) -> bool:
+    """True for a real changelog.d entry, false for the dir's own scaffolding."""
+    if not path.startswith(FRAGMENT_DIR):
+        return False
+    rest = path[len(FRAGMENT_DIR):]
+    if not rest or "/" in rest:          # nested dirs are not entries
+        return False
+    return rest not in FRAGMENT_NON_ENTRIES and rest.endswith(".md")
+
+
 def tier2_changelog(repo: Path, changed: list[str] | None) -> bool:
     if changed is None:
         return _ok("changelog check skipped (no diff context; not a PR)")
     touches_code = any(c.startswith(CODE_GLOBS) for c in changed)
     if not touches_code:
         return _ok("changelog check n/a (no code touched)")
+    fragments = [c for c in changed if _is_fragment(c)]
+    if fragments:
+        return _ok(f"code changed and changelog fragment added ({fragments[0]})")
     if any(c == "CHANGELOG.md" for c in changed):
         return _ok("code changed and CHANGELOG.md updated")
-    return _fail("code under src/ or pyproject.toml changed but CHANGELOG.md did not. "
-                 "Add an entry, or use the docs-exempt label / [skip-changelog] for a "
-                 "genuinely trivial change.")
+    return _fail(
+        "code under src/ or pyproject.toml changed but no changelog entry was "
+        "recorded. Add ONE of:\n"
+        "           1. a NEW fragment file  changelog.d/<slug>.md   <- preferred.\n"
+        "              One file per PR, so concurrent PRs never conflict on rebase.\n"
+        "              e.g.  changelog.d/fix-lane-admission-timeout.md\n"
+        "           2. an entry in the shared CHANGELOG.md (still accepted; expect\n"
+        "              a rebase conflict when other PRs are open).\n"
+        "         Or waive it for a genuinely trivial change: add the `docs-exempt`\n"
+        "         label, or put [skip-changelog] in the PR title."
+    )
 
 
 # ---------------------------------------------------------------- tier 3
@@ -126,9 +155,13 @@ def tier3_evidence(repo: Path) -> bool:
 
 # ---------------------------------------------------------------- negative control
 def self_test() -> bool:
-    """Prove the checks can FAIL. A gate that passes everything is worth no more
-    than one that never ran, so this is not optional ceremony."""
-    print("negative control: building a repo that SHOULD fail every tier")
+    """Prove the checks can FAIL, and that the accepted paths actually pass.
+
+    A gate that passes everything is worth no more than one that never ran, so the
+    negative control is not optional ceremony. The positive control is the other
+    half: it is the standing proof that a fragment-only PR clears tier 2, so the
+    changelog.d path cannot silently rot back into "CHANGELOG.md or nothing"."""
+    print("negative control: cases that MUST fail")
     with tempfile.TemporaryDirectory() as td:
         repo = Path(td)
         (repo / "README.md").write_text("x")          # 6 of 7 required files missing
@@ -137,18 +170,38 @@ def self_test() -> bool:
             "checks:\n  - name: deliberately broken\n    run: exit 3\n"
             "  - name: also broken\n    run: test -f definitely-not-here\n"
             "  - name: third\n    run: false\n-->\n")
-        results = {
+        must_fail = {
             "tier1 (presence)": tier1_presence(repo),
-            "tier2 (changelog)": tier2_changelog(repo, ["src/app.py"]),
+            "tier2 (src change, no changelog of either kind)":
+                tier2_changelog(repo, ["src/app.py"]),
+            # changelog.d scaffolding is not an entry. If this ever passes, every
+            # repo that merely HAS the directory satisfies tier 2 for free.
+            "tier2 (src change, only changelog.d/README.md)":
+                tier2_changelog(repo, ["src/app.py", "changelog.d/README.md"]),
+            "tier2 (src change, fragment in a nested subdir)":
+                tier2_changelog(repo, ["src/app.py", "changelog.d/old/x.md"]),
             "tier3 (evidence)": tier3_evidence(repo),
         }
+
+        print("\npositive control: inputs that MUST satisfy the changelog gate")
+        must_pass = {
+            "tier2 (src change + changelog.d fragment)":
+                tier2_changelog(repo, ["src/app.py", "changelog.d/fix-lane-pin.md"]),
+            "tier2 (src change + CHANGELOG.md, the legacy path)":
+                tier2_changelog(repo, ["src/app.py", "CHANGELOG.md"]),
+            "tier2 (no code touched)":
+                tier2_changelog(repo, ["docs/architecture.md"]),
+        }
     print()
-    passed = all(v is False for v in results.values())
-    for k, v in results.items():
+    passed = (all(v is False for v in must_fail.values())
+              and all(v is True for v in must_pass.values()))
+    for k, v in must_fail.items():
         print(f"  {k}: {'correctly FAILED' if v is False else 'WRONGLY PASSED'}")
+    for k, v in must_pass.items():
+        print(f"  {k}: {'correctly passed' if v is True else 'WRONGLY FAILED'}")
     print()
-    print("negative control:", "PASS (the gate can fail)" if passed
-          else "BROKEN (a tier passed when it must not)")
+    print("self-test:", "PASS (the gate fails what it must and passes what it must)"
+          if passed else "BROKEN (a case came out the wrong way)")
     return passed
 
 
