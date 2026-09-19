@@ -4,7 +4,8 @@
 Three tiers, in increasing order of value:
 
   1. presence   - the 7 files SK_REPO_DOC_STANDARD requires exist.
-  2. changelog  - a PR touching src/** or pyproject.toml also touches CHANGELOG.md.
+  2. changelog  - a PR touching src/** or pyproject.toml also touches CHANGELOG.md,
+                  OR adds a changelog.d/<slug>.md fragment.
   3. evidence   - every check in SOP.md's `docs-evidence` block still exits 0.
 
 Tier 3 is the one that catches drift. Tiers 1 and 2 catch a MISSING doc; tier 3
@@ -32,6 +33,26 @@ REQUIRED = ["README.md", "SOP.md", "SECURITY.md", "CONTRIBUTING.md",
 CODE_GLOBS = ("src/", "pyproject.toml")
 EVIDENCE_RE = re.compile(r"<!--\s*docs-evidence(.*?)-->", re.S)
 MIN_CHECKS = 3
+
+# changelog.d/ fragments (see skcapstone's changelog.d/README.md for the
+# authoring workflow): a fragment is an ADDITIONAL way to satisfy tier 2,
+# never a replacement for editing CHANGELOG.md directly, which still works.
+CHANGELOG_FRAGMENT_DIR = "changelog.d/"
+CHANGELOG_FRAGMENT_IGNORE = {"README.md", ".gitkeep", ".gitignore"}
+
+
+def _is_changelog_fragment(path: str) -> bool:
+    """A fragment must be a .md file sitting DIRECTLY in changelog.d/ - not a
+    nested subdirectory, and not one of the directory's own housekeeping
+    files (which would satisfy tier 2 for free just by existing)."""
+    if not path.startswith(CHANGELOG_FRAGMENT_DIR):
+        return False
+    rest = path[len(CHANGELOG_FRAGMENT_DIR):]
+    if not rest or "/" in rest:
+        return False
+    if rest in CHANGELOG_FRAGMENT_IGNORE:
+        return False
+    return rest.endswith(".md")
 
 OK, BAD = "  ok   ", "  FAIL "
 
@@ -67,7 +88,11 @@ def tier2_changelog(repo: Path, changed: list[str] | None) -> bool:
         return _ok("changelog check n/a (no code touched)")
     if any(c == "CHANGELOG.md" for c in changed):
         return _ok("code changed and CHANGELOG.md updated")
-    return _fail("code under src/ or pyproject.toml changed but CHANGELOG.md did not. "
+    fragments = [c for c in changed if _is_changelog_fragment(c)]
+    if fragments:
+        return _ok(f"code changed and changelog.d/ fragment added: {fragments[0]}")
+    return _fail("code under src/ or pyproject.toml changed but neither CHANGELOG.md "
+                 "nor a changelog.d/<slug>.md fragment was added. "
                  "Add an entry, or use the docs-exempt label / [skip-changelog] for a "
                  "genuinely trivial change.")
 
@@ -149,7 +174,36 @@ def self_test() -> bool:
     print()
     print("negative control:", "PASS (the gate can fail)" if passed
           else "BROKEN (a tier passed when it must not)")
-    return passed
+
+    # ---------------------------------------------------------------- additive control
+    # The negative control above proves the gate CAN fail. This proves the
+    # changelog.d/ fragment widening is correctly ADDITIVE: a fragment opens a
+    # new way to pass tier 2, a fragment-less src/ change still fails it, and
+    # the directory's own housekeeping files (README.md) or a nested
+    # subdirectory do not count as an entry for free.
+    print("\nadditive control: changelog.d/ fragment is an ALTERNATE pass path for tier 2")
+    repo = Path(tempfile.mkdtemp())  # no CHANGELOG.md here at all - fragment must be enough
+    checks = {
+        "src/ change + CHANGELOG.md edit still passes":
+            tier2_changelog(repo, ["src/app.py", "CHANGELOG.md"]) is True,
+        "src/ change + changelog.d/<slug>.md fragment passes":
+            tier2_changelog(repo, ["src/app.py", "changelog.d/my-fix.md"]) is True,
+        "src/ change + changelog.d/README.md ALONE still fails":
+            tier2_changelog(repo, ["src/app.py", "changelog.d/README.md"]) is False,
+        "src/ change + nested changelog.d/sub/x.md still fails":
+            tier2_changelog(repo, ["src/app.py", "changelog.d/sub/x.md"]) is False,
+        "src/ change + neither still fails (gate not weakened)":
+            tier2_changelog(repo, ["src/app.py"]) is False,
+    }
+    additive_ok = True
+    for name, ok in checks.items():
+        print(f"  {'correct' if ok else 'WRONG '}: {name}")
+        additive_ok = additive_ok and ok
+    print()
+    print("additive control:", "PASS (fragment widening is strictly additive)" if additive_ok
+          else "BROKEN (the fragment widening changed the gate's existing behaviour)")
+
+    return passed and additive_ok
 
 
 def main() -> int:
