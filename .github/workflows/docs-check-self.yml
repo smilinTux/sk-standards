@@ -11,6 +11,16 @@ name: docs-check-self
 # against the caller's own commit. So a PR that changes the gate is checked by the
 # changed gate, not by the copy on main.
 #
+# That was only ever half true, and the half that was false was the half that
+# matters. `uses: ./` pins the workflow YAML to this commit, but the workflow then
+# fetches the VALIDATOR SCRIPT separately, at `standards-ref`, which defaults to
+# "main". All the tier logic lives in scripts/docs_check.py, so until this comment
+# was written every PR changing the gate was checked by main's copy of the gate:
+# self-testing everything except the thing being changed. Caught on the PR adding
+# changelog.d support, whose new --self-test cases did not appear in its own CI log.
+#
+# Passing the PR head sha closes it. Now the changed validator checks itself.
+#
 # tiers "1,2" per DOCS_FRESHNESS_STANDARD section 2 ("green on day one"). SOP.md
 # already carries a docs-evidence block; moving to "1,2,3" is a deliberate follow-up
 # once this has run clean, never a same-PR gamble.
@@ -25,3 +35,7 @@ jobs:
     uses: ./.github/workflows/docs-check.yml
     with:
       tiers: "1,2,3"
+      # The commit under test, so scripts/docs_check.py comes from THIS PR and not
+      # from main. On a pull_request, github.sha is the ephemeral merge commit,
+      # which actions/checkout cannot fetch from a plain `ref:`; the head sha can.
+      standards-ref: ${{ github.event.pull_request.head.sha || github.sha }}
