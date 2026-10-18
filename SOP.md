@@ -1,6 +1,6 @@
 # sk-standards - Standard Operating Procedures
 
-`sk-standards` is the canonical home of the SKWorld engineering standards: 27 standards
+`sk-standards` is the canonical home of the SKWorld engineering standards: 30 standards
 documents, two accepted ADRs, the README/SOP templates, copy-paste reference configs,
 eleven validators, and two **reusable GitHub Actions workflows** that other `sk*` repos call.
 It is a **docs-and-reference repo**: nothing here installs, listens, or runs as a
@@ -26,7 +26,7 @@ the reusable gates in `.github/workflows/`).
 
 | Surface | Path | What it is |
 |---|---|---|
-| The standards | `standards/*.md` | 27 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
+| The standards | `standards/*.md` | 30 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
 | Decision log | `decisions/ADR-*.md` | Four accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering), ADR-0002 (two coding lanes with one merge bar), ADR-0005 (operating-seat separation), and ADR-0006 (the active six-seat lifecycle and Jarvis withdrawal). |
 | Operating seats | `ROSTER.md`, `decisions/ADR-0005-five-operating-seats.md`, `decisions/ADR-0006-dispatch-handoff-niobe-tank-seraph.md` | Niobe dispatches, Link integrates, Mero oversees, Seraph verifies, Tank releases and installs, and ATLAS handles bounded operations. Jarvis is Casey's assistant outside recurring lifecycle work; its emergency tools all require an exact signed Casey direction through one runtime gateway. Fleet dispatch is distinct from application action dispatch. |
 | Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
@@ -91,8 +91,8 @@ this repo and runs it against the consumer's tree).
 ```mermaid
 flowchart TD
     subgraph skstd["sk-standards (this repo, no runtime)"]
-      README["README.md<br/>the hub: indexes all 27 standards"]:::doc
-      STD["standards/*.md<br/>27 canonical standards"]:::doc
+      README["README.md<br/>the hub: indexes all 30 standards"]:::doc
+      STD["standards/*.md<br/>30 canonical standards"]:::doc
       TPL["templates/<br/>README + SOP skeletons"]:::doc
       REF["reference/<br/>ingress · systemd · skworld-module"]:::doc
       ADR["decisions/<br/>ADR log"]:::doc
@@ -132,7 +132,7 @@ flowchart TD
 
 The five files to open first, in this order:
 
-1. **`README.md`** - the hub. A one-line "what it governs" for each of the 27 standards,
+1. **`README.md`** - the hub. A one-line "what it governs" for each of the 30 standards,
    plus the ecosystem project graph. If you read one file, read this.
 2. **`standards/SK_REPO_DOC_STANDARD.md`** - what every repo's docs must *contain*: the
    7 required files (section 1), the 9-section `SOP.md` template (section 2), the mermaid
@@ -573,7 +573,7 @@ checks:
   - name: every standard in standards/ is linked from the README hub
     run: ls standards/*.md | while read -r f; do grep -q "$(basename "$f")" README.md || exit 1; done
   - name: the standards count claimed throughout this SOP still matches the tree
-    run: test "$(ls standards/*.md | wc -l)" = 27
+    run: test "$(ls standards/*.md | wc -l)" = 30
   - name: the accepted ADR count claimed in this SOP still matches the tree
     run: test "$(grep -l '^\*\*Status:\*\* Accepted$' decisions/ADR-*.md | wc -l)" = 3
   - name: the module schema still has NO authz facet, as SKWORLD_AUTHORIZATION_STANDARD section 7 states

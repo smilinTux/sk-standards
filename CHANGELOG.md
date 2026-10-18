@@ -29,6 +29,13 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- Add the FWE standards: `FWE_MATTER_DOCUMENT_GENERATION_STANDARD` (architecture and
+  data flow of matter document generation on SKHub and Windmill),
+  `FWE_AGENT_OPERATING_STANDARD` (agent rules, decisions D1 to D5, write paths and
+  never list) and `FWE_ONBOARDING_QUICKREF`. Distilled from the 2026-10-17 drift
+  where an agent built a parallel offline process because it did not know Windmill
+  existed. No consumer repo can turn red: these are documents with no validator.
+
 - Roster reconciliation against measured behaviour (chi card-event census,
   30 days to 2026-09-18): fold the dissolved Tank seat into Operations with a
   record of where every duty went (skcapstone PR 751); add per-writer
