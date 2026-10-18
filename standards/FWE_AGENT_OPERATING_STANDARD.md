@@ -4,7 +4,8 @@
 that touches the FWE matter pipeline. Architecture lives in
 [`FWE_MATTER_DOCUMENT_GENERATION_STANDARD`](./FWE_MATTER_DOCUMENT_GENERATION_STANDARD.md);
 URLs and commands live in [`FWE_ONBOARDING_QUICKREF`](./FWE_ONBOARDING_QUICKREF.md).
-Decisions D1 to D5 below were made by Chef on 2026-10-18.
+Decisions D1 to D5 below were made by Chef on 2026-10-18, amended the same day by the
+AI-first design change in section 6.
 
 **Why:** On 2026-10-17 an agent working for Casey built a parallel offline publishing
 process because nothing told it that Windmill and the stage-machine worker existed. In
@@ -27,9 +28,10 @@ bind an agent, so these are written to be read cold and followed literally.
    presentment text, no added brackets.
 5. Missing input means HOLD with **no document body**. A changed fact cancels earlier
    approval.
-6. Every draft gets supervised review against the source, the facts and the real DOCX
-   and PDF. An AI review is not a human or legal review. **Nothing is mailed without a
-   person's sign-off.**
+6. Every draft gets independent review against the source, the facts and the real DOCX
+   and PDF, by a reviewer that is not the composer (section 6). An AI review is not
+   legal advice. **Mailing is a physical act**; the system produces labels and the
+   mailing checklist on release and never mails by itself.
 7. Work lives in Nextcloud. A case counts as **delivered only after a fresh download
    matches its hash.**
 8. No reboot and no service stop without saved work and an owner's approval.
@@ -40,8 +42,8 @@ bind an agent, so these are written to be read cold and followed literally.
 
 | Id | Decision | What it means for you |
 |---|---|---|
-| D1 | No agent merges to `main`, rolls images, or writes into Nextcloud `Matters/` directly. Everything goes through PRs reviewed by another lane and through Windmill flows. Approvals happen in Windmill | Section 3 and section 4 |
-| D2 | One named person approves per matter: Casey (Authentik `mrarchitect`, Windmill `caseyjr@kobez.net`) or Chef (`chefboyrdave2.1`, `chefboyrdave2.1@gmail.com`), signed in through SSO | An agent is never the approver; "approved by agent" is not a state |
+| D1 | No agent merges to `main`, rolls images, or writes into Nextcloud `Matters/` directly. Everything goes through PRs reviewed by another lane and through Windmill flows. Approvals are recorded by the Windmill flow | Section 3 and section 4 |
+| D2 (amended: AI-first) | The system is AI-first with no mandatory human gate. Approval is satisfied by an independent reviewer agent. A named person (Casey, Authentik `mrarchitect`, Windmill `caseyjr@kobez.net`; or Chef, `chefboyrdave2.1`, `chefboyrdave2.1@gmail.com`) approves through SSO only on matters set to `review_mode: "human"` | The composer is never its own approver; section 6 |
 | D3 | Practice and study material moves to the documented top-level `Matters/Library/`. In progress (2026-10-18) | Do not create new top-level folders in `Matters/`; put study material under `Library/` |
 | D4 | For now use the existing example matters FWE-2026-0004 to 0008. Real and sample matters come later through `Matters/Intake/FWE/` | Do not invent new matter numbers to test with |
 | D5 | Credential rotation happens at a quiet moment and values go to skvault. The coordinator does this | Do not rotate, and do not paste values anywhere |
@@ -87,7 +89,9 @@ reminders.
     silently.
 11. Never use em or en dashes in code comments, docs, commits, generated text or
     calendar text. The worker strips them from new drafts; do not add them back.
-12. Never build a second process. If you need a gate the worker lacks, write it into
+12. Never approve your own draft. The reviewer agent must be a different model and
+    identity than the composer.
+13. Never build a second process. If you need a gate the worker lacks, write it into
     the worker (PR) or the Windmill flow (PR), not beside them.
 
 ---
@@ -118,26 +122,39 @@ Two supported ways. Both end at the same worker.
    `deploy/fwe/README.md` ("Indexed candidate generation").
 2. **Windmill form.** The "New FWE matter" form in workspace `fwe` lets a person start
    a matter with no agent. In progress (2026-10-18).
+3. **Agent driving.** Call the Windmill flows through the Windmill API, or use
+   `scripts/fwe/fwectl.py` (see hammerTime `docs/fwe/agent-driving.md`). In progress
+   (2026-10-18). Agents drive every workflow end to end; there is no mandatory human
+   step.
 
 Do not set `"demo": true` on real matters. Missing facts produce `needs-information`
 with the field list in `Audit/status.json`; supply them with the same matter id.
 
 ---
 
-## 6. Approvals and release
+## 6. Approvals and release (AI-first)
 
-- Generation produces a **candidate** draft, visibly marked. Generation, a typography
-  check or an AI review never clears candidate status.
-- A release decision belongs to **one named person per matter** (D2), signed in to
-  Windmill through Authentik SSO so the approval carries a real name. The Windmill
-  approval step is **in progress (2026-10-18)**; until it is deployed, release is
-  recorded by that person in the matter, and no agent substitutes for them.
-- A changed fact (any fact an earlier step used) returns 409 and cancels earlier
-  approval. Re-approval is required.
-- After the person approves: correct labels for the step, mailing by the chosen
-  `mail_method` (certificate of mailing PS Form 3665 by default, or certified PS 3800
-  and 3811), scan proof into `Mailing/`, then `/advance` to the next stage. Never infer
-  mailing from generation.
+Chef's design change of 2026-10-18: agents can drive every workflow end to end with no
+mandatory human gate. Status of the pieces: **in progress (2026-10-18)**.
+
+- Generation produces a **candidate** draft, visibly marked, until release.
+- **Default release** is satisfied by an **independent reviewer agent**: a different
+  model and a different identity than the composer. The approval record carries
+  `approver_type: "agent"`, the **facts hash** and the **review hash**. The flow rejects
+  self-approval. A changed fact invalidates the approval and the step must be reviewed
+  again.
+- **Optional human mode.** A matter with `review_mode: "human"` needs one named person,
+  Casey or Chef, to approve in Windmill, signed in through Authentik SSO so the approval
+  carries a real name. This is a per-matter choice, not the default.
+- **Automated gates stay and fail closed**, in both modes: HOLD on missing facts (no
+  document body), second-model clause review, DOCX and PDF render check, and publish
+  then re-download hash verification. A gate that cannot run is a failure, not a pass.
+- An AI review is not legal advice, and it does not turn a HOLD into a document.
+- On release the system produces the envelope labels and mailing checklist
+  automatically. **Mailing is a physical act**: a person takes the pieces to the
+  post office. Scan proof into `Mailing/` (certificate of mailing PS Form 3665 by
+  default, or certified PS 3800 and 3811), then `/advance` to the next stage. Never
+  infer mailing from generation.
 
 ---
 
@@ -190,6 +207,7 @@ output or a file, say so in your report and do not repeat it.
 | Every file matches its manifest | Download and sha256 against `generation-manifest.json` |
 | Deployed image equals reviewed pin | `docker service inspect` digest equals `deploy/fwe/stack.yml` on `main` |
 | No unreviewed merge | skgit PR list: every merged FWE PR has a reviewer who is not its author |
+| Approver is not the composer | The approval record has `approver_type`, facts hash and review hash, and the reviewer identity differs from the composer identity |
 | No dashes in new output | `test_new_output_dashes.py`; CI that makes a missing asset fail is in progress (2026-10-18) |
 
 ---

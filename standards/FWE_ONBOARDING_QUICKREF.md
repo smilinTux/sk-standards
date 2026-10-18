@@ -18,7 +18,9 @@ The first thing to learn is that it does, and where.
 3. You change things by **PR** (reviewed by another lane), never by direct write, merge
    or deploy.
 4. Missing input or missing source is a **HOLD**, never a guess.
-5. One named person (Casey or Chef) approves per matter, in Windmill, through SSO.
+5. The system is AI-first: an independent reviewer agent (different model and identity
+   than the composer) satisfies approval. Human approval in Windmill (Casey or Chef,
+   SSO) is an optional per-matter mode, `review_mode: "human"`. Mailing is a physical act.
 
 ## 2. URLs and hosts
 
@@ -46,7 +48,8 @@ The first thing to learn is that it does, and where.
 | `corpora/freedom-with-equity/` | Pack: `processes.json`, `document-layouts.json`, `template-registry.json`, `instructions.md`, `source-format-review.md`, `templates/`, `candidates/` |
 | `docs/fwe/team-folder-layout.md` | Folder layout and how to start a matter |
 | `docs/fwe/README.md` | Pointer from the repo to these standards |
-| `scripts/fwe/` | `build-worker-context.py`, `register_batch.py`, corpus helpers |
+| `scripts/fwe/` | `build-worker-context.py`, `register_batch.py`, corpus helpers; `fwectl.py` agent client (in progress, 2026-10-18) |
+| `docs/fwe/agent-driving.md` | How an agent drives the flows through the Windmill API (in progress, 2026-10-18) |
 
 Shared checkout on chiap08 is `/mnt/cloud/onedrive/projects/DAVE-AI/hammerTime`. **Do
 not edit it or switch its branch.** Make a worktree:
@@ -103,9 +106,10 @@ synthetic matters. Study and practice material moves to `Matters/Library/` (in p
 
 ## 7. In progress on 2026-10-18
 
-Gates in the worker (HOLD with no body, input approval bound to a facts hash, clause
-review by a second model, DOCX and PDF render check, publish then re-download hash
-verify), the Windmill approval step, the "New FWE matter" form, worker CI that fails on
+Gates in the worker (HOLD with no body, clause review by a second model, DOCX and PDF
+render check, publish then re-download hash verify, approval bound to a facts hash),
+the reviewer-agent approval step with `approver_type`, facts hash and review hash, the
+agent client `scripts/fwe/fwectl.py` and `docs/fwe/agent-driving.md`, the "New FWE matter" form, worker CI that fails on
 missing assets, the process registry growth, and the `Matters/Library/` move. Check the
 open PR list on skgit before assuming any of these exists on `main`.
 

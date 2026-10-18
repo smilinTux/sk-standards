@@ -26,7 +26,8 @@ verify with the commands in [`FWE_ONBOARDING_QUICKREF`](./FWE_ONBOARDING_QUICKRE
 
 ## 1. One process, one path
 
-There is exactly one way a document is generated: a request reaches the **FWE worker**
+The system is **AI-first**: agents can drive every workflow end to end with no mandatory
+human gate (section 3.6). There is exactly one way a document is generated: a request reaches the **FWE worker**
 through a **Windmill flow**, the worker composes, renders and publishes into the
 Nextcloud **Matters** Team Folder, and the next stage goes back through `/advance`.
 Anything that writes into `Matters/` by another route (a script, a laptop, a model
@@ -40,7 +41,8 @@ gate is missing from the worker, the fix is a PR against the worker, not a side 
 
 ```mermaid
 flowchart LR
-    person([Casey or Chef]) -->|"SSO login"| wm
+    person([Casey or Chef]) -->|"optional: SSO login, human review"| wm
+    agent([Agent: composer and reviewer]) -->|"Windmill API, fwectl.py<br/>(in progress)"| wm
     person -->|"scan + request.json"| intake[("Matters/Intake/FWE")]
     sso[Authentik<br/>sksso-prod] -.->|"OIDC, group skflow-operators"| wm
     subgraph skflow[skflow stack on NAM]
@@ -64,7 +66,8 @@ Per-hop notes:
 
 | Hop | Mechanism | Boundary |
 |---|---|---|
-| Person to Windmill | Authentik OIDC ("SKWorld SSO" button), limited to group `skflow-operators` | A real named person signs in; the admin password login is break-glass only |
+| Person to Windmill | Authentik OIDC ("SKWorld SSO" button), limited to group `skflow-operators` | Used for the optional human review mode and for operators; the admin password login is break-glass only |
+| Agent to Windmill | Windmill API with a workspace token, or the client script `scripts/fwe/fwectl.py` (in progress, 2026-10-18; see `docs/fwe/agent-driving.md`) | Token held by the coordinator, never printed |
 | Windmill to worker | HTTP on the `skflow-prod` overlay, `http://skfwe-prod_fwe-worker:8080`, bearer from Windmill secret variable `f/fwe/worker_token` | Worker has no public route |
 | Worker to Nextcloud | WebDAV as `svc-fwe`; password from Swarm secret file, never in env or repo | The worker only uses `MKCOL`, `PUT`, `GET`, `PROPFIND`; it never deletes, renames or moves |
 | Worker to model | OpenAI-compatible chat completions through skgateway on chi (`FWE_MODEL_URL`) | `/v1/responses` is never used for GLM (it EOL-gates the model) |
@@ -170,10 +173,10 @@ and the 17 held branches as disabled entries that name the missing source.
 until the course source is found and a person lifts the hold. UCC1Ad, UCC3 and the
 no-trespass sign are on HOLD.
 
-**Gates** (HOLD on missing facts with no body, input approval bound to a facts hash,
-second-model clause review, render check of the real DOCX and PDF, publish then
-re-download and hash verify): **in progress (2026-10-18)**, being ported from the
-offline branch into the worker.
+**Gates** (HOLD on missing facts with no body, second-model clause review, render check
+of the real DOCX and PDF, publish then re-download and hash verify, and approval bound
+to a facts hash): **in progress (2026-10-18)**, being ported from the offline branch
+into the worker. Gates fail closed: a failed gate stops the step and nothing is released.
 
 ### 3.4 Envelope labels and mailing methods
 
@@ -212,14 +215,25 @@ sources are in hammerTime `deploy/fwe/windmill/` (`.py` plus `.flow.json`):
 | `f/fwe/inquiry` | Start a matter (step 1) through `/process` |
 | `f/fwe/advance` | Generate step N+1 through `/advance` with `expect_step_index` |
 | `f/fwe/poll-intake` | Every minute, picks up `*.request.json` sidecars in `Matters/Intake/FWE/` |
-| Approval step in `inquiry` and `advance` | A named person approves before release. **In progress (2026-10-18)** |
+| Approval step in `inquiry` and `advance` | Satisfied by an independent reviewer agent by default, or by a named person when the matter has `review_mode: "human"`. See below. **In progress (2026-10-18)** |
 | "New FWE matter" form | Lets a person start a matter without an agent. **In progress (2026-10-18)** |
+| Agent driving | `scripts/fwe/fwectl.py` and `docs/fwe/agent-driving.md` (hammerTime), so an agent runs every flow through the Windmill API. **In progress (2026-10-18)** |
+
+**Approval and release (AI-first, in progress 2026-10-18).** The default path has no
+mandatory human gate. Release is satisfied by an **independent reviewer agent**: a
+different model and a different identity than the composer, recorded with
+`approver_type: "agent"`, the facts hash and the review hash. Self-approval (reviewer
+identity equal to composer identity) is rejected. A changed fact invalidates the
+approval. A matter may opt in to human review with `review_mode: "human"`: then one
+named person per matter, Casey or Chef, approves in Windmill signed in through SSO.
+Automated gates stay either way. Mailing remains a physical act; on release the labels
+and mailing checklist are produced automatically, and an AI review is not legal advice.
 
 The scripts retry only 502, 503 and 504 (at most twice), wait up to 900 s for the worker,
 and raise 4xx with the worker's reason. Authentik (`sksso-prod`,
 `https://sso.nativeassetmanagement.com`) provides app and provider `skflow-windmill`,
 bound to group `skflow-operators`; Windmill's global `oauths` setting carries the
-`authentik` entry. Approver identities: Casey is Authentik user `mrarchitect`
+`authentik` entry. Human-mode approver identities: Casey is Authentik user `mrarchitect`
 (Windmill email `caseyjr@kobez.net`); Chef is `chefboyrdave2.1`
 (`chefboyrdave2.1@gmail.com`).
 
