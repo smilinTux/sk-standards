@@ -29,6 +29,15 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+### Changed
+
+- Amended the lifecycle roster, ADR-0005, and operating SOP: Niobe is the
+  successor dispatcher and remains shadow-only until activation gates pass;
+  Tank and Seraph own release/install and independent verification boundaries;
+  Jarvis is Casey's personal assistant and is excluded from lifecycle
+  workflow. Added the mandatory startup hello, periodic SKMail polling,
+  `all`-recipient handling, acknowledgement, and bounded agent-help examples.
+
 ### Added
 
 - Card f0c63c2a adds the backward-compatible v1.3 control-plane discovery

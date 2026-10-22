@@ -1,6 +1,6 @@
 # ADR-0005: Five operating seats, and gates relaxed by catalog rather than by prompt
 
-**Status:** Accepted
+**Status:** Accepted, amended 2026-09-06
 **Date:** 2026-09-01
 **Deciders:** Chef, Mero
 **Extends:** [`ADR-0002`](./ADR-0002-two-coding-lanes.md)
@@ -8,6 +8,24 @@
 **Purpose:** separate the operating roles that had collapsed into one seat, and
 record the sanctioned path to running in production without a human prompt on
 every action.
+
+## Owner-directed transition amendment, 2026-09-06
+
+Casey superseded the original Jarvis dispatcher assignment for the SKCapstone,
+SKDashboard, and SKWorld software lifecycle. Jarvis is Casey's personal
+assistant only. It is not a lifecycle seat, is not in the normal card workflow,
+and may not consume fleet recommendations or authorize claims, completion,
+release, merge, deployment, verification, or actuation. Casey may direct Jarvis
+to use retained emergency tools or relay information, but those tools do not
+create ownership or approval authority.
+
+The current lifecycle seats are Link as Integrator, Mero as Overseer, Niobe as
+successor Fleet Dispatcher, Tank as Release and Install Operator, Seraph as
+Independent Verifier, and ATLAS as Operations. Niobe is shadow-only until its
+identity, mailbox, card contract, exact revision fencing, dry-cycle, handoff,
+and rollback evidence pass review. Casey and Chef remain the human authority
+and irreversible-action gates. This amendment is normative wherever the
+original decision names Jarvis as dispatcher.
 
 ## Context
 
@@ -50,16 +68,18 @@ exists to close.
 
 | Seat | Owns | Explicitly does not own |
 |---|---|---|
-| **Fleet Dispatcher** (`jarvis`) | Fleet claims, launches, releases, reassignment, rotation, lane routing, and worker health. | review verdicts, merge, application action dispatch, actuation |
+| **Fleet Dispatcher** (`niobe`, shadow-only until activated) | Fleet claims, launches, releases, reassignment, rotation, lane routing, and worker health after activation gates pass. | review verdicts, merge, application action dispatch, actuation, and all mutation while shadow-only |
 | **Integrator** (`link`) | Triage, independent-review assignment, the merge queue, and eligible merges under the PR 358 control. Owns delivery quality. | fleet claims, launches, releases, reassignment, application action dispatch, actuation |
 | **Operations** | Apps and infra. Observes, reasons, repairs, under the Atlas Constitution. | the coordination board, which it provably does not read |
 | **Overseer** (`mero`) | Read-only convergence and drift measurement. Emits typed recommendations, alerts, observations, and briefs. | fleet mutation, merge, application action dispatch, or any actuation |
+| **Release and Install Operator** (`tank`) | One exact approved artifact, release evidence, deployment verification, and governed rollback. | approval, merge, arbitrary claims, artifact substitution, self-review |
+| **Independent Verifier** (`seraph`) | Independent candidate, release, and deployment verification. | merge, dispatch, deploy, release, claim, approval, actuation |
+| **Human authority and gates** (`casey`, `chef`) | Product direction, approvals, exceptions, and irreversible-action decisions. | delegation of authority through an agent relay |
 | **Recorder** | Not an agent. A rule: a human decision lands as a signed artifact or an ITIL change record. | being a message forwarded by an agent |
 
-The Dispatcher seat is held by Jarvis, narrowed. The Operations seat is ATLAS.
-The Overseer seat is Mero. **The Integrator seat is new, named `link`, and
-currently unfilled**, and its absence is the direct cause of two of the six
-failures above.
+The Operations seat is ATLAS and remains frozen until its gates are provisioned.
+The Overseer seat is Mero. The Integrator seat is Link. Niobe is the successor
+dispatcher and is not active until the stated handoff gates pass.
 
 The name is not decoration. Link is the operator who sees where everyone is,
 routes them, and gets them in and out, which is the coordinating half of the
@@ -77,11 +97,11 @@ at the moment it is made, not reconstructed afterwards from a chat relay.
 
 The Fleet Dispatcher is not the application action dispatcher governed by
 [`ACTION_AUTHORIZATION_STANDARD`](../standards/ACTION_AUTHORIZATION_STANDARD.md).
-Jarvis coordinates CardStore work and worker processes. It does not append an
-application action `AUTHORIZED` event or actuate an app by implication. The
-application action dispatcher remains the separate component with the closed
-inputs, ITIL fold, readiness, freeze, and current-catalog checks in that
-standard.
+Niobe coordinates CardStore work and worker processes only after activation. It
+does not append an application action `AUTHORIZED` event or actuate an app by
+implication. The application action dispatcher remains the separate component
+with the closed inputs, ITIL fold, readiness, freeze, and current-catalog checks
+in that standard. Jarvis is not in this path.
 
 Link's merge authority is bounded by the source-only eligibility control
 introduced in SKCapstone PR 358. For the exact PR head, the PR must be mergeable,
@@ -99,12 +119,38 @@ Mero and Link findings cross the fleet boundary only as append-only
 `skfleet.dispatch-recommendation/v1` events. Each event carries the card id, a
 duplicate-suppression recommendation id, recommender, observation time, observed
 claim owner and revision, observed process state, reason, and evidence SHA256.
-Only Jarvis may act. Before a claim release, launch, stop, or reassignment,
-Jarvis re-reads current CardStore ownership and revision plus current process
-state, rejects duplicates and stale or mismatched observations, and fences the
-mutation to the exact current claim revision. The resulting event records the
-recommendation, readback, revision, outcome, and evidence hash. The
-recommendation itself carries no control authority.
+Only an activated Fleet Dispatcher may act. Before a claim release, launch,
+stop, or reassignment, Niobe re-reads current CardStore ownership and revision
+plus current process state, rejects duplicates and stale or mismatched
+observations, and fences the mutation to the exact current claim revision. The
+resulting event records the recommendation, readback, revision, outcome, and
+evidence hash. While Niobe is shadow-only, no agent performs the mutation. The
+recommendation itself carries no control authority, and Jarvis cannot be its
+consumer.
+
+Every lifecycle agent sends a signed startup hello to SKMail, reads its own and
+mail addressed to `all` before work, and checks again at least every five minutes while
+active. It acknowledges applicable messages and looks for help requests,
+dependency changes, and handoffs. For example, Tank can ask Seraph to verify an
+exact release hash; Seraph can return `PASS_FOR_REVIEW` with the evidence hash;
+neither message approves the release. Mail coordinates work and preserves an
+audit trail, but never expands a role or substitutes for a card gate.
+
+Each active seat also emits a lightweight lifecycle beat containing seat,
+activation state, host, current card, mailbox poll time, and bounded status.
+Long-running card workers use the separate worker beat protocol with a claim
+revision and progress token. Short-lived Link and Mero cycles use one beat per
+cycle, Tank and Seraph beat only while executing a card, Niobe beats in
+shadow-only mode without mutation, and frozen ATLAS emits no healthy beat.
+Missing or stale beats produce an observation, not an automatic claim release,
+unless the separate worker lease contract and human or activated dispatcher gate
+permit that action.
+
+The generic SKCapstone agent daemon is not an implementation of these seats.
+Seat runners must be bounded, role-scoped units that register only callbacks
+allowed by the active manifest. Mero cannot inherit global ITIL or mutation
+callbacks, and an inactive seat cannot register recurring work. Unknown or
+malformed seat state fails closed.
 
 ### 2. Gates are relaxed by catalog edit, never by prompt
 
@@ -190,14 +236,27 @@ actuation-surface registry, no freeze story of its own, and no capability token.
 
 ### Rejected alternatives
 
-- **Replace the Dispatcher.** Rejected. The seat was not being held badly, it was
-  holding four jobs. Replacing the occupant would have carried all four across.
+- **Activate a successor without a shadow and handoff period.** Rejected. The
+  successor must prove identity, mailbox, card, fencing, dry-cycle, handoff,
+  and rollback evidence before activation.
 - **Add human gates to raise quality.** Rejected on evidence. All six failures
   were failures to notice, and none was a failure to approve. More gates would
   add latency to the paths that already work while leaving every silence intact.
 - **Give the Overseer bounded override authority.** Rejected. Operations already
   holds that chair with a constitution, a freeze, escalation and ITIL. A second
   actuator would violate the one-approval-store invariant.
+
+The human-gate ceiling is explicit: reversible, non-production, shadow,
+documentation, evidence, mailbox, rollback-rehearsal, and independent-
+verification work proceeds under the card and capability contract with
+notification only. Casey or Chef is interrupted only for external authority,
+production authorization, protected-data egress, irreversible material
+effects, or an exception to this ADR.
+
+The default reasoning route for every seat is Luna medium through
+`sk-codex-mid`. A stronger route is an opt-in card-scoped boost for a
+demonstrated intelligence need; it is reported, does not wake human
+authority, and cannot expand the seat's permissions.
 
 ## Verification
 

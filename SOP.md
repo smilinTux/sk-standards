@@ -28,7 +28,7 @@ the reusable gates in `.github/workflows/`).
 |---|---|---|
 | The standards | `standards/*.md` | 25 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
 | Decision log | `decisions/ADR-*.md` | Three accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering), ADR-0002 (two coding lanes with one merge bar), and ADR-0005 (five operating seats, and gates relaxed by catalog rather than by prompt). |
-| Operating seats | `ROSTER.md`, `decisions/ADR-0005-five-operating-seats.md` | Jarvis is Fleet Dispatcher, Link is Integrator, and Mero is the read-only Overseer. Fleet dispatch is distinct from application action dispatch. ADR-0005 follows the open-PR ordering that reserves ADR-0003 for PR 34 and ADR-0004 for PR 36. |
+| Operating seats | `ROSTER.md`, `decisions/ADR-0005-five-operating-seats.md` | Niobe is the successor Fleet Dispatcher and remains shadow-only until activation gates pass. Link is Integrator, Mero is Overseer, Tank is Release and Install Operator, Seraph is Independent Verifier, and ATLAS is frozen Operations. Jarvis is Casey's assistant only and is excluded from lifecycle workflow. |
 | Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
 | Reference configs | `reference/ingress/`, `reference/systemd/`, `reference/skworld-module/` | Copy-paste artifacts for the ingress, service-unit, and module-contract standards. Includes a JSON Schema and two worked manifest examples. |
 | Validators | `scripts/` | Eleven validator scripts, including docs, CI, fences, module schema, service units, actuation registry, readiness, authorization, merge gate, coding lanes, and self-healing tiers. |
@@ -51,7 +51,7 @@ the reusable gates in `.github/workflows/`).
 ### Operating-seat runtime procedure
 
 The normative placement, scheduling, health, and cold-standby rules for Link,
-Mero, and the Jarvis fenced consumer are in
+Mero, and the Niobe successor dispatcher are in
 [`ROSTER.md`](./ROSTER.md#runtime-placement-and-scheduling). `sk-standards`
 documents the contract only. SKCapstone owns the executable, user units, timers,
 locking, revision fencing, evidence writer, installation, and rollback.
@@ -62,10 +62,12 @@ Operational changes follow this order:
 2. Install Link and Mero on `chiap08` with both timers initially disabled.
 3. Pin `active_host=chiap08`, then run one dry cycle per seat and verify exact
    evidence and zero mutation.
-4. Enable only the `chiap08` timers and observe one normal cycle per seat.
+4. Verify the reviewed mediated Link observation producer is present and fresh,
+   then enable only the `chiap08` timers and observe one normal cycle per seat.
 5. Install byte-identical Link and Mero standby units on `chiap01` but leave
    both disabled. Do not change its ordinary fleet rotation.
-6. Record active-host, standby-host, hashes, timer state, health, and rollback.
+6. Record active-host, standby-host, hashes, timer state, health, mailbox
+   startup acknowledgement, and rollback.
 
 Rollback disables the affected timer, restores exact prior bytes, runs one
 read-only health check, and preserves all evidence. It does not promote the
@@ -74,10 +76,105 @@ standby automatically.
 The Link service runtime limit is 120 seconds and the Mero service runtime
 limit is 180 seconds. Before any operational read, both validate the
 revision-pinned active-host record and refuse an inactive host. Failures emit a
-typed append-only alert to Jarvis with the unit, host, seat, cycle, timestamps,
-active-host revision, result, exit status, evidence hash, and redacted tail.
-After a fresh matching readback, Jarvis stops and disables only the affected
-timer.
+typed append-only alert to the Casey or Chef operational mailbox with the unit,
+host, seat, cycle, timestamps, active-host revision, result, exit status,
+evidence hash, and redacted tail. After a fresh matching readback, the human
+operator or activated dispatcher stops and disables only the affected timer.
+
+### Lifecycle agent startup and mailbox procedure
+
+Every lifecycle identity is provisioned with SKMail read, acknowledge, and write
+access. On startup, the agent must send a signed hello to `all` containing its
+identity, seat, product scope, host, activation state, card or `none`, bounded
+capabilities, and next mailbox-check time. It then reads its own inbox and the
+`all` traffic before doing work. It repeats the check at least every five
+minutes while active, and also before claiming, changing, completing, releasing,
+deploying, verifying, or actuating anything.
+
+Example startup:
+
+```text
+skmail send seraph all normal "HELLO seraph startup" \
+  "seat=independent_verifier; scope=skcapstone,skdashboard,skworld; host=chiap08; state=provisioned_not_activated; card=none; capabilities=verify_only; next_mail_check=5m"
+```
+
+Example help exchange:
+
+```text
+skmail read seraph
+skmail tail
+skmail send seraph tank normal "ACK help request" \
+  "card=abc123; evidence=sha256:<hash>; verdict=PASS_FOR_REVIEW; release_authority=none"
+```
+
+Agents look for other agents asking for help, dependency updates, handoffs,
+stale claims, or conflict signals. They acknowledge applicable mail and reply
+with evidence, a bounded question, or an escalation. Mail is coordination and
+audit evidence, not an approval channel. An `all` message never overrides a
+card dependency, exact-version approval, capability ceiling, or human gate.
+Jarvis may relay a message only when Casey directs it and is never a normal
+lifecycle mailbox participant.
+
+### Automation default and human-gate ceiling
+
+The default is autonomous execution inside an eligible card and the seat's
+capability ceiling. Agents notify Casey or Chef after reversible work,
+blocked work, failures, and ordinary lifecycle transitions; they do not wake
+or interrupt human authority for those events. A human gate is allowed only
+when the action changes external authority or creates an irreversible or
+materially consequential effect, including repository administration,
+production authorization, protected-data egress, legal or financial
+commitment, or an exception to the ratified role contract. Shadow runs,
+documentation, mailbox handling, evidence collection, non-production
+canaries, rollback rehearsal, and independent verification do not receive a
+human gate merely for quality assurance. Cards and seat manifests MUST NOT
+carry a human-gate label for those activities.
+
+### Model routing default
+
+All lifecycle seats use the Luna medium route by default: `sk-codex-mid`
+serving `gpt-5.6-luna`. A stronger model is an opt-in, card-scoped boost
+only when the task shows a real reasoning or capability need. The boost is
+not a human gate and is reported as a routing change; it never changes the
+seat's authority, product scope, or approval requirements.
+
+### Role-scoped runtime scheduling
+
+The generic `skcapstone@<agent>.service` daemon is not a lifecycle seat
+runner. It loads global scheduler work and MUST NOT be used to activate Link,
+Mero, Niobe, Tank, Seraph, or ATLAS. SKCapstone's bounded seat units MUST
+resolve the active seat manifest before registering any recurring callback:
+
+- Link may run only bounded PR triage, independent-review assignment, and
+  merge-eligibility observation.
+- Mero may run only read-only convergence, drift, blocker, and recommendation
+  observations. It MUST NOT register ITIL escalation, auto-close, GTD
+  reconciliation, fleet mutation, merge, deployment, or actuation callbacks.
+- Niobe may run shadow observations only until handoff activation.
+- Tank and Seraph may run only while an eligible exact card names the seat.
+- ATLAS remains frozen and registers no healthy lifecycle beat.
+- Jarvis remains Casey's assistant and is not a lifecycle scheduler principal.
+
+Unknown, inactive, or malformed seat state fails closed. A mailbox poll or
+lifecycle beat records presence and evidence only; neither grants authority.
+
+### GitHub lifecycle controls
+
+The card workflow must agree with repository controls. For each SK product
+repository, protect `main` with pull requests, required status checks, required
+Code Owner review for sensitive paths, stale-review dismissal, conversation
+resolution, no force pushes, no deletion, and no routine-agent bypass. Link
+evaluates only the exact current PR head; a new commit invalidates prior review
+evidence.
+
+Use separate staging and production environments. Production requires a named
+human or Chef reviewer, prevents self-review, accepts only protected release
+refs, and records a deployment receipt plus independent post-deploy
+verification. Tank receives only the capability needed for the named
+environment and operation. Seraph verifies the resulting version and health
+from independent evidence. Workflow permissions and third-party actions are
+least-privilege and pinned to reviewed immutable references. Changes to
+workflow, deployment, identity, and release paths require independent review.
 
 ---
 
@@ -396,7 +493,7 @@ Copy the literal, copy-pasteable block from
 [`templates/SOP.template.md`](./templates/SOP.template.md). Its body looks like this:
 
 ```
-verified: 2026-08-16
+verified: 2026-09-06
 checks:
   - name: entry point exists
     run: skcode-hostd --help
@@ -552,7 +649,7 @@ section 4, "Known gap: an unexecuted test file".
      Every `run:` exits 0 while the documented fact holds, and NONZERO when it drifts.
      All hermetic: shell builtins, coreutils, and stdlib Python 3 only. No network,
      no live host, no pip-installed tool (the CI runner has none).
-verified: 2026-08-16
+verified: 2026-09-06
 checks:
   - name: the gate can still fail (docs_check negative control)
     run: python3 scripts/docs_check.py --self-test
@@ -575,7 +672,7 @@ checks:
   - name: the standards count claimed throughout this SOP still matches the tree
     run: test "$(ls standards/*.md | wc -l)" = 25
   - name: the accepted ADR count claimed in this SOP still matches the tree
-    run: test "$(grep -l '^\*\*Status:\*\* Accepted$' decisions/ADR-*.md | wc -l)" = 3
+    run: test "$(grep -l '^\*\*Status:\*\* Accepted' decisions/ADR-*.md | wc -l)" = 3
   - name: the module schema still has NO authz facet, as SKWORLD_AUTHORIZATION_STANDARD section 7 states
     run: if grep -q '"authz"' reference/skworld-module/skworld.module.schema.json; then exit 1; fi
   - name: the shipped module schema version matches what the authz standard cites
