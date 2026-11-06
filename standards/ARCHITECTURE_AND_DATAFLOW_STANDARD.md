@@ -14,19 +14,47 @@ every repo owes, and how to draw them.
 
 ## Tooling: mermaid first, draw.io only when you must
 
-| | mermaid | draw.io (`.drawio`) |
-|---|---|---|
-| Format | **text** (markdown-embedded) | XML |
-| Git diff / review | ✅ line-level | ⚠️ noisy |
-| Renders on GitHub / in-repo | ✅ inline | ❌ (needs export) |
-| **AI can read & regenerate it** | ✅ | ⚠️ awkward |
-| Stays in sync with code | ✅ (edit in the PR) | ✗ (drifts) |
-| Precise hand-tuned layout | ⚠️ limited | ✅ |
+| | mermaid | draw.io (`.drawio`) | Archify |
+|---|---|---|---|
+| Format | **text** (markdown-embedded) | XML | **text** (JSON source) |
+| Git diff / review | ✅ line-level | ⚠️ noisy | ✅ line-level (JSON source) |
+| Renders on GitHub / in-repo | ✅ inline | ❌ (needs export) | ❌ (self-contained HTML, no inline markdown render) |
+| **AI can read & regenerate it** | ✅ | ⚠️ awkward | ✅ (JSON-IR against a published schema) |
+| Stays in sync with code | ✅ (edit in the PR) | ✗ (drifts) | ✅, when regenerated in the same PR as the source mermaid |
+| Precise hand-tuned layout | ⚠️ limited | ✅ | ✅ (auto-layout, hand-tunable) |
+| Interactive (pan/zoom, search, export) | ❌ | ❌ | ✅ |
+| Source-linked | n/a | n/a | ✅ (JSON source always checked in beside the HTML) |
 
 **Rule:** Use **mermaid by default** — it's the SK house diagram language. Reach for
 **draw.io only** for a large hand-tuned canvas that mermaid can't express; when you
 do, commit the `.drawio` **and** an exported `.svg` (so it renders without the tool),
 under `docs/diagrams/`. Never commit a diagram as a bare PNG with no source.
+
+### Interactive companion diagrams (optional)
+
+Mermaid stays **canonical and mandatory**: it renders inline on GitHub, Forgejo,
+editors, and the hub, and it is what an AI agent reads and regenerates. Nothing in
+this subsection changes that; an interactive companion is an addition, never a
+substitute.
+
+An [Archify](https://github.com/tt-a1i/archify) view is an **optional, derived**
+artifact for the app's `-skworld-io` site and its onboarding pages, where a reader
+benefits from an explorable, pannable diagram and a static image would not be enough.
+
+- Its JSON source **and** the self-contained HTML it renders both get committed:
+  under `docs/diagrams/` in the code repo, and under `diagrams/` in the site repo
+  (the `-skworld-io` counterpart). Never commit a bare Archify HTML with no JSON
+  source beside it, the same rule the draw.io row above already holds every repo to.
+- It is **regenerated in the same PR** that changes the mermaid diagram it was
+  derived from, using Archify's mermaid-input authoring mode: read the mermaid for
+  topology and meaning, then author fresh Archify JSON rather than mechanically
+  rendering mermaid styling. A companion diagram that outlives the mermaid it was
+  drawn from is worse than no companion diagram at all.
+- The companion tool's update-check network call stays **disabled** for every
+  generation; a pinned, reviewed install never phones home to decide what to render.
+- The site links to the HTML in a new tab and shows a PNG export of it inline, so
+  the page still carries the content for a reader who never opens the interactive
+  view.
 
 ---
 
