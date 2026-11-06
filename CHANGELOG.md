@@ -29,6 +29,15 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-06: new `SKMEMORY_NODE_CONFIG_STANDARD` plus
+  `reference/skmemory-node-config/diagrams/` (three Archify companions with JSON
+  source): one owning file `~/.config/skmemory/pg.env` (700/600) with
+  `environment.d/skmemory.conf` as a symlink to it, the acting agent declared in
+  `environment.d/10-skagent.conf` (all four selectors, `SK_DEFAULT_AGENT` is the
+  real declared default, there is no implicit one), shells deriving both via
+  `_sk_derive`, the normative rule "derive, never paste", and runnable
+  verification. Distilled from the 2026-11-06 nor-estate finding of skmemory
+  serving a template store with keyword-only search while reporting nothing wrong.
 - 2026-11-06: `ARCHITECTURE_AND_DATAFLOW_STANDARD`: add a "Required for every
   `-skworld-io` site repo" subsection under "Interactive companion diagrams",
   making `diagrams/<name>.architecture.json` (plus its generated, committed

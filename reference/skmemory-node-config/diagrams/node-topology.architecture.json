@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "skmemory node topology",
+    "output": "node-topology.architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "Agent runtime",
+      "sublabel": "MCP or skmemory CLI",
+      "pos": [
+        40,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "skmemory",
+      "type": "backend",
+      "label": "skmemory",
+      "sublabel": "acting agent from env",
+      "pos": [
+        320,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "SKAGENT"
+    },
+    {
+      "id": "pg",
+      "type": "database",
+      "label": "skmem-pg",
+      "sublabel": "127.0.0.1:5432, derived cache",
+      "pos": [
+        600,
+        200
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "pgvector + BM25 + AGE"
+    },
+    {
+      "id": "flat",
+      "type": "database",
+      "label": "Flat JSON files",
+      "sublabel": "agents/AGENT/memory/",
+      "pos": [
+        320,
+        380
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "source of truth"
+    },
+    {
+      "id": "reconcile",
+      "type": "backend",
+      "label": "reconcile",
+      "sublabel": "flat to pg, idempotent",
+      "pos": [
+        600,
+        380
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "embed",
+      "type": "cloud",
+      "label": "Embed endpoints",
+      "sublabel": "mxbai-embed-large, 1024-dim",
+      "pos": [
+        900,
+        200
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "ordered failover"
+    },
+    {
+      "id": "sqlite",
+      "type": "database",
+      "label": "SQLite index.db",
+      "sublabel": "local, rebuildable",
+      "pos": [
+        320,
+        40
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "syncthing",
+      "type": "messagebus",
+      "label": "Syncthing",
+      "sublabel": "peer nodes",
+      "pos": [
+        40,
+        380
+      ],
+      "size": [
+        150,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "One node (each node has its own skmem-pg)",
+      "wraps": [
+        "skmemory",
+        "pg",
+        "flat",
+        "reconcile",
+        "sqlite"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "client-skmemory",
+      "from": "client",
+      "to": "skmemory",
+      "label": "tools",
+      "variant": "emphasis"
+    },
+    {
+      "id": "skmemory-pg",
+      "from": "skmemory",
+      "to": "pg",
+      "label": "SKMEMORY_PG_DSN",
+      "variant": "security"
+    },
+    {
+      "id": "skmemory-flat",
+      "from": "skmemory",
+      "to": "flat",
+      "label": "write first",
+      "variant": "emphasis"
+    },
+    {
+      "id": "skmemory-sqlite",
+      "from": "skmemory",
+      "to": "sqlite",
+      "label": "index",
+      "variant": "dashed"
+    },
+    {
+      "id": "pg-embed",
+      "from": "pg",
+      "to": "embed",
+      "label": "embed query",
+      "variant": "dashed"
+    },
+    {
+      "id": "flat-reconcile",
+      "from": "flat",
+      "to": "reconcile",
+      "label": "read"
+    },
+    {
+      "id": "reconcile-pg",
+      "from": "reconcile",
+      "to": "pg",
+      "label": "upsert, prune",
+      "variant": "dashed"
+    },
+    {
+      "id": "syncthing-flat",
+      "from": "syncthing",
+      "to": "flat",
+      "label": "sync",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "What is authoritative",
+      "items": [
+        "Flat JSON is the only source of truth",
+        "skmem-pg, SQLite and any Chroma store are rebuilt from it"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Silent degradation",
+      "items": [
+        "Wrong DSN or no embed endpoint gives keyword-only search",
+        "vector_ok null means the probe did not run"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Template scaffold",
+      "items": [
+        "A base_path ending in -template means the node is reading a scaffold",
+        "Fix the declared agent, not the backend"
+      ]
+    }
+  ]
+}

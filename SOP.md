@@ -1,6 +1,6 @@
 # sk-standards - Standard Operating Procedures
 
-`sk-standards` is the canonical home of the SKWorld engineering standards: 28 standards
+`sk-standards` is the canonical home of the SKWorld engineering standards: 29 standards
 documents, two accepted ADRs, the README/SOP templates, copy-paste reference configs,
 eleven validators, and two **reusable GitHub Actions workflows** that other `sk*` repos call.
 It is a **docs-and-reference repo**: nothing here installs, listens, or runs as a
@@ -91,7 +91,7 @@ this repo and runs it against the consumer's tree).
 ```mermaid
 flowchart TD
     subgraph skstd["sk-standards (this repo, no runtime)"]
-      README["README.md<br/>the hub: indexes all 28 standards"]:::doc
+      README["README.md<br/>the hub: indexes all 29 standards"]:::doc
       STD["standards/*.md<br/>28 canonical standards"]:::doc
       TPL["templates/<br/>README + SOP skeletons"]:::doc
       REF["reference/<br/>ingress · systemd · skworld-module"]:::doc
@@ -132,7 +132,7 @@ flowchart TD
 
 The five files to open first, in this order:
 
-1. **`README.md`** - the hub. A one-line "what it governs" for each of the 28 standards,
+1. **`README.md`** - the hub. A one-line "what it governs" for each of the 29 standards,
    plus the ecosystem project graph. If you read one file, read this.
 2. **`standards/SK_REPO_DOC_STANDARD.md`** - what every repo's docs must *contain*: the
    7 required files (section 1), the 9-section `SOP.md` template (section 2), the mermaid
@@ -573,7 +573,7 @@ checks:
   - name: every standard in standards/ is linked from the README hub
     run: ls standards/*.md | while read -r f; do grep -q "$(basename "$f")" README.md || exit 1; done
   - name: the standards count claimed throughout this SOP still matches the tree
-    run: test "$(ls standards/*.md | wc -l)" = 28
+    run: test "$(ls standards/*.md | wc -l)" = 29
   - name: the accepted ADR count claimed in this SOP still matches the tree
     run: test "$(grep -l '^\*\*Status:\*\* Accepted$' decisions/ADR-*.md | wc -l)" = 3
   - name: the module schema still has NO authz facet, as SKWORLD_AUTHORIZATION_STANDARD section 7 states

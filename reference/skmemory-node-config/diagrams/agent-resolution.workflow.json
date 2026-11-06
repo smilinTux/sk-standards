@@ -1,0 +1,278 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "get_active_agent decision path",
+    "quality_profile": "showcase",
+    "output": "agent-resolution.workflow.html"
+  },
+  "lanes": [
+    {
+      "id": "sel",
+      "label": "Explicit selectors"
+    },
+    {
+      "id": "selref",
+      "label": "Selector refusals",
+      "variant": "exception"
+    },
+    {
+      "id": "def",
+      "label": "Declared default"
+    },
+    {
+      "id": "sole",
+      "label": "Sole agent"
+    },
+    {
+      "id": "amb",
+      "label": "Ambiguous",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "start",
+    "sel",
+    "agree",
+    "valid",
+    "ok1"
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "lane": "sel",
+      "col": 0,
+      "type": "external",
+      "label": "Caller",
+      "sublabel": "get_active_agent()",
+      "width": 140
+    },
+    {
+      "id": "sel",
+      "lane": "sel",
+      "col": 1,
+      "type": "backend",
+      "label": "Selector set?",
+      "sublabel": "3 env selectors",
+      "width": 140
+    },
+    {
+      "id": "agree",
+      "lane": "sel",
+      "col": 2,
+      "type": "backend",
+      "label": "All agree?",
+      "sublabel": "distinct values",
+      "width": 140
+    },
+    {
+      "id": "valid",
+      "lane": "sel",
+      "col": 3,
+      "type": "backend",
+      "label": "Eligible?",
+      "sublabel": "healthy profile",
+      "width": 140
+    },
+    {
+      "id": "ok1",
+      "lane": "sel",
+      "col": 4,
+      "type": "database",
+      "label": "Return agent",
+      "sublabel": "real home",
+      "width": 140
+    },
+    {
+      "id": "r1",
+      "lane": "selref",
+      "col": 2,
+      "type": "security",
+      "label": "Return None",
+      "sublabel": "selectors conflict",
+      "width": 140,
+      "tag": "refusal"
+    },
+    {
+      "id": "r2",
+      "lane": "selref",
+      "col": 3,
+      "type": "security",
+      "label": "Return None",
+      "sublabel": "profile invalid",
+      "width": 140,
+      "tag": "refusal"
+    },
+    {
+      "id": "dflt",
+      "lane": "def",
+      "col": 1,
+      "type": "backend",
+      "label": "Default set?",
+      "sublabel": "SK_DEFAULT_AGENT",
+      "width": 140
+    },
+    {
+      "id": "dfltok",
+      "lane": "def",
+      "col": 2,
+      "type": "backend",
+      "label": "Default eligible?",
+      "sublabel": "in list_agents()",
+      "width": 140
+    },
+    {
+      "id": "r3",
+      "lane": "def",
+      "col": 3,
+      "type": "security",
+      "label": "Return None",
+      "sublabel": "default ineligible",
+      "width": 140,
+      "tag": "refusal"
+    },
+    {
+      "id": "solec",
+      "lane": "sole",
+      "col": 1,
+      "type": "backend",
+      "label": "One agent only?",
+      "sublabel": "installed, eligible",
+      "width": 140
+    },
+    {
+      "id": "ok2",
+      "lane": "sole",
+      "col": 2,
+      "type": "database",
+      "label": "Return agent",
+      "sublabel": "real home",
+      "width": 140
+    },
+    {
+      "id": "r4",
+      "lane": "amb",
+      "col": 1,
+      "type": "security",
+      "label": "Return None",
+      "sublabel": "several, none declared",
+      "width": 140,
+      "tag": "refusal"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "start",
+      "to": "sel",
+      "variant": "default"
+    },
+    {
+      "id": "e2",
+      "from": "sel",
+      "to": "agree",
+      "label": "set",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e3",
+      "from": "agree",
+      "to": "valid",
+      "label": "agree",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e4",
+      "from": "valid",
+      "to": "ok1",
+      "label": "yes",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e5",
+      "from": "agree",
+      "to": "r1",
+      "label": "conflict",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e6",
+      "from": "valid",
+      "to": "r2",
+      "label": "no",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e7",
+      "from": "sel",
+      "to": "dflt",
+      "label": "none",
+      "variant": "default"
+    },
+    {
+      "id": "e8",
+      "from": "dflt",
+      "to": "dfltok",
+      "label": "set",
+      "variant": "default"
+    },
+    {
+      "id": "e9",
+      "from": "dfltok",
+      "to": "r3",
+      "label": "no",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e10",
+      "from": "dfltok",
+      "to": "ok2",
+      "label": "yes",
+      "variant": "default"
+    },
+    {
+      "id": "e11",
+      "from": "dflt",
+      "to": "solec",
+      "label": "unset",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e12",
+      "from": "solec",
+      "to": "ok2",
+      "label": "yes",
+      "variant": "default"
+    },
+    {
+      "id": "e13",
+      "from": "solec",
+      "to": "r4",
+      "label": "several",
+      "variant": "security",
+      "role": "error"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Refusal is correct",
+      "items": [
+        "Several agents and nothing declared returns None",
+        "require_memory_profile() raises and names the fix"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Downstream trap",
+      "items": [
+        "A caller that treats None as 'use a template' opens lumina-template",
+        "That is how .41 read 367 memories instead of 51,270"
+      ]
+    }
+  ]
+}
