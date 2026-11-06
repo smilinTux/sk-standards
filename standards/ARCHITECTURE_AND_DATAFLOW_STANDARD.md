@@ -56,6 +56,45 @@ benefits from an explorable, pannable diagram and a static image would not be en
   the page still carries the content for a reader who never opens the interactive
   view.
 
+#### Required for every `-skworld-io` site repo
+
+The paragraphs above make an Archify companion optional for a code repo. A site
+repo (the `<name>-skworld-io` GitHub Pages counterpart of an sk* service) is held
+to a stricter floor, because the whole point of that repo is the reader-facing
+page, not the source code:
+
+- **`diagrams/<name>.architecture.json` is REQUIRED** in every `-skworld-io` site
+  repo, committed with its generated `diagrams/<name>.architecture.html` beside
+  it. `diagrams/<name>.dataflow.json` and `diagrams/<name>.workflow.json` (with
+  their generated HTML) are optional, added only when the service actually has a
+  multi-tier data flow or a release workflow worth showing, same pattern.
+- **The generated HTML is committed, never built at serve time.** GitHub Pages
+  for these sites serves static files from the branch; there is no build step at
+  request time, so an uncommitted or stale HTML file is a broken page, not a
+  pending build.
+- **The site's nav and `docs.html` both link to every generated diagram**, each
+  opening the interactive HTML in a new tab. `skpatch-skworld-io` is the
+  reference implementation: see its `index.html` figure captions and
+  `diagrams/` folder.
+- **The Archify JSON is derived from the service repo's mermaid docs and MUST
+  NOT contradict them.** Same components, same connections, same trust
+  boundaries as the mermaid source named in the preceding rule. A PR that adds
+  or edits a site's Archify JSON without the service repo's mermaid already
+  covering the same shape fails review on this point. This is the review check:
+  the reviewer opens the regenerated HTML next to the current mermaid and
+  confirms neither contradicts the other before approving.
+- **Authoring guide:** [`archify-diagrams.md`](./archify-diagrams.md) has the
+  schema essentials, the exact pinned local regeneration command, the reusable
+  CI workflow call, and this rule's checklist row.
+- **Template:** a new site repo starts from
+  [`templates/site/diagrams/example.architecture.json`](../templates/site/diagrams/example.architecture.json),
+  renamed to `<name>.architecture.json`.
+- **CI enforcement:** the site repo's `.github/workflows/archify.yml` calls the
+  `archify-build` reusable workflow published from `smilinTux/.github`. It fails
+  a pull request if the committed HTML is stale against its JSON, and on a push
+  to `main` it regenerates and commits the HTML itself, so the committed HTML
+  and its JSON source never drift apart.
+
 ---
 
 ## The required diagram set (every service repo)

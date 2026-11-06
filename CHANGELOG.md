@@ -29,6 +29,22 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-06: `ARCHITECTURE_AND_DATAFLOW_STANDARD`: add a "Required for every
+  `-skworld-io` site repo" subsection under "Interactive companion diagrams",
+  making `diagrams/<name>.architecture.json` (plus its generated, committed
+  `diagrams/<name>.architecture.html`) a required artifact for every site repo,
+  with `dataflow`/`workflow` companions optional, linked from the site's nav and
+  its docs index, and bound to the rule that the Archify JSON must not
+  contradict the service repo's mermaid docs. Adds the new authoring guide
+  `standards/archify-diagrams.md` (schema essentials, the exact pinned local
+  regeneration command against `tt-a1i/archify` tag `v3.2.0` commit
+  `208acba8d412335185b2056fedf54b3405df43fb`, note that this is not the
+  unrelated npm package of the same name, the `smilinTux/.github`
+  `archify-build` reusable workflow call, and the review checklist row) and the
+  template `templates/site/diagrams/example.architecture.json` (placeholder
+  values, `example.test` only). Bumps every "27 standards" count in `SOP.md`
+  (including the `docs-evidence` self-check) and the README hub table to 28.
+
 - 2026-11-06: `ARCHITECTURE_AND_DATAFLOW_STANDARD`: add an "Interactive companion
   diagrams" subsection right after the mermaid/draw.io tooling table, and an Archify
   column to that table. Mermaid stays canonical and mandatory; an Archify view is an
