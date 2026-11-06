@@ -26,7 +26,7 @@ the reusable gates in `.github/workflows/`).
 
 | Surface | Path | What it is |
 |---|---|---|
-| The standards | `standards/*.md` | 28 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
+| The standards | `standards/*.md` | 29 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
 | Decision log | `decisions/ADR-*.md` | Four accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering), ADR-0002 (two coding lanes with one merge bar), ADR-0005 (operating-seat separation), and ADR-0006 (the active six-seat lifecycle and Jarvis withdrawal). |
 | Operating seats | `ROSTER.md`, `decisions/ADR-0005-five-operating-seats.md`, `decisions/ADR-0006-dispatch-handoff-niobe-tank-seraph.md` | Niobe dispatches, Link integrates, Mero oversees, Seraph verifies, Tank releases and installs, and ATLAS handles bounded operations. Jarvis is Casey's assistant outside recurring lifecycle work; its emergency tools all require an exact signed Casey direction through one runtime gateway. Fleet dispatch is distinct from application action dispatch. |
 | Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
@@ -92,7 +92,7 @@ this repo and runs it against the consumer's tree).
 flowchart TD
     subgraph skstd["sk-standards (this repo, no runtime)"]
       README["README.md<br/>the hub: indexes all 29 standards"]:::doc
-      STD["standards/*.md<br/>28 canonical standards"]:::doc
+      STD["standards/*.md<br/>29 canonical standards"]:::doc
       TPL["templates/<br/>README + SOP skeletons"]:::doc
       REF["reference/<br/>ingress · systemd · skworld-module"]:::doc
       ADR["decisions/<br/>ADR log"]:::doc
