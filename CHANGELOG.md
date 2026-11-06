@@ -29,6 +29,17 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-06: `ARCHITECTURE_AND_DATAFLOW_STANDARD`: add an "Interactive companion
+  diagrams" subsection right after the mermaid/draw.io tooling table, and an Archify
+  column to that table. Mermaid stays canonical and mandatory; an Archify view is an
+  optional, derived artifact for an app's `-skworld-io` site and onboarding pages,
+  with its JSON source and self-contained HTML both committed (`docs/diagrams/` in
+  the code repo, `diagrams/` in the site repo), regenerated in the same PR as the
+  mermaid it derives from (Archify's mermaid-input mode), never shipped as a bare
+  HTML with no JSON source, and with its update-check network call disabled. Adds
+  the matching one-line rule to `SK_REPO_DOC_STANDARD` section 3 and an optional line
+  to `templates/SOP.template.md`'s Architecture section.
+
 - Roster reconciliation against measured behaviour (chi card-event census,
   30 days to 2026-09-18): fold the dissolved Tank seat into Operations with a
   record of where every duty went (skcapstone PR 751); add per-writer
