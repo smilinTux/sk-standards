@@ -76,7 +76,28 @@ def tier1_presence(repo: Path) -> bool:
             good = _fail(f"missing required doc: {f}")
     if good:
         _ok(f"all {len(REQUIRED)} required docs present")
+    for w in agent_file_warnings(repo):
+        print(f"{WARN}{w}")
     return good
+
+
+# AGENT_INSTRUCTIONS_STANDARD section 6: advisory only, never fails the build,
+# until the fleet rollout is done and AGENTS.md moves into REQUIRED.
+AGENT_FILE = "AGENTS.md"
+FORBIDDEN_AGENT_FILES = ["CLAUDE.md", "GEMINI.md", ".cursorrules", ".windsurfrules",
+                         ".github/copilot-instructions.md"]
+WARN = "  warn "
+
+
+def agent_file_warnings(repo: Path) -> list[str]:
+    out = []
+    if not (repo / AGENT_FILE).exists():
+        out.append(f"missing {AGENT_FILE} (AGENT_INSTRUCTIONS_STANDARD, advisory)")
+    for f in FORBIDDEN_AGENT_FILES:
+        if (repo / f).exists():
+            out.append(f"{f} present: move it into {AGENT_FILE} and delete it "
+                       "(AGENT_INSTRUCTIONS_STANDARD, advisory)")
+    return out
 
 
 # ---------------------------------------------------------------- tier 2
@@ -203,7 +224,30 @@ def self_test() -> bool:
     print("additive control:", "PASS (fragment widening is strictly additive)" if additive_ok
           else "BROKEN (the fragment widening changed the gate's existing behaviour)")
 
-    return passed and additive_ok
+    # ---------------------------------------------------------------- agent file control
+    print("\nagent file control: the AGENTS.md advisory fires, and stays advisory")
+    repo = Path(tempfile.mkdtemp())
+    for f in REQUIRED:
+        (repo / f).write_text("x")
+    (repo / "CLAUDE.md").write_text("x")
+    w_bad = agent_file_warnings(repo)
+    tier1_still_passes = tier1_presence(repo) is True
+    (repo / "CLAUDE.md").unlink()
+    (repo / AGENT_FILE).write_text("x")
+    agent_checks = {
+        "no AGENTS.md is reported": any(AGENT_FILE in w and "missing" in w for w in w_bad),
+        "a CLAUDE.md is reported": any(w.startswith("CLAUDE.md") for w in w_bad),
+        "the warnings never fail tier 1": tier1_still_passes,
+        "a compliant repo gets no warning": agent_file_warnings(repo) == [],
+    }
+    agent_ok = True
+    for name, ok in agent_checks.items():
+        print(f"  {'correct' if ok else 'WRONG '}: {name}")
+        agent_ok = agent_ok and ok
+    print()
+    print("agent file control:", "PASS" if agent_ok else "BROKEN")
+
+    return passed and additive_ok and agent_ok
 
 
 def main() -> int:

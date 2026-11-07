@@ -29,6 +29,14 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-07: new `AGENT_INSTRUCTIONS_STANDARD` plus `templates/AGENTS.template.md`:
+  every repo has exactly one agent instructions file, `AGENTS.md` at the root, and no
+  `CLAUDE.md` (Claude Code reads `AGENTS.md` natively and skips it when a `CLAUDE.md`
+  sits next to it) or other tool-specific copy. Eight required sections in a fixed
+  order, a migration table, and a compliance checklist. `scripts/docs_check.py` tier 1
+  now prints advisory warnings for a missing `AGENTS.md` or a forbidden tool file; they
+  never fail the build until the rollout ends, and the self-test proves both. This repo
+  gains its own `AGENTS.md`. `SK_REPO_DOC_STANDARD` section 1 points to the new standard.
 - 2026-11-06: new `SKMEMORY_NODE_CONFIG_STANDARD` plus
   `reference/skmemory-node-config/diagrams/` (three Archify companions with JSON
   source): one owning file `~/.config/skmemory/pg.env` (700/600) with
