@@ -56,7 +56,7 @@ reusable workflow.
 | **Changing an existing rule** | Say in the PR body which repos this can turn red and how they migrate. A rule change with no migration note is an unscheduled fleet incident. |
 | **Touching a validator or a reusable workflow** (`scripts/docs_check.py`, `scripts/ci_gate_check.py`, `.github/workflows/docs-check.yml`, `.github/workflows/ci-gate-check.yml`) | These run in every consumer's CI at `@main`. See "Changing a gate" below. |
 | **Touching `reference/`** | People copy-paste these into production ingress and unit files. Treat a change like a production config change, not a doc edit. |
-| **New ADR** (`decisions/ADR-NNNN-*.md`) | Follow `ADR-0001`'s header: `Status`, `Date`, `Deciders`, `Extends`, `Purpose`. Record what shipped, not what is planned. |
+| **New ADR** (`decisions/ADR-NNNN-*.md`) | Follow `ADR-0001`'s header: `Status`, `Date`, `Deciders`, `Extends`, `Purpose`. Record what shipped, not what is planned. **READ [`decisions/README.md`](decisions/README.md) BEFORE CHOOSING A NUMBER** to avoid the ADR-0003 collision. |
 
 ### Changing a gate
 
