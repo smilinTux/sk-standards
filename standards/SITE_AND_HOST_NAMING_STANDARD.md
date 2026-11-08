@@ -166,6 +166,36 @@ tailnets can both hold a `zioap01` forever.
     silently renamed by the resolver, which is a naming standard being overruled
     by DNS.
 
+### The mesh resolution namespace: `mesh.<operator>.<org-domain>`
+
+Since 2026-11-08 an estate's default transport is its own **skmesh** (self-hosted NetBird),
+with Tailscale kept as a fallback path. The mesh is then the estate's resolution namespace in
+the sense of rule 15, and it gets a name that states the estate once, in the suffix:
+
+```
+  hostname   zioap01                               bare, identical everywhere
+  mesh FQDN  zioap01.mesh.chef.skworld.io          skmesh dns_domain supplies the estate
+  fallback   zioap01.<tailnet>.ts.net              Tailscale, still valid
+  fqid       zioap01@chef.skworld.io               estate stated once, here
+```
+
+15a. **An estate's skmesh `dns_domain` MUST be `mesh.<operator>.<org-domain>`**
+     (`mesh.chef.skworld.io`, `mesh.cakjr.skworld.io`). It MUST NOT be the
+     NetBird default (`netbird.selfhosted`, the same in every install, so it
+     says nothing about the estate), MUST NOT be under `.local` (reserved for
+     mDNS, RFC 6762, and it collides with Bonjour/Avahi on phones and Linux),
+     and MUST NOT be the bare estate label: the mesh resolver answers its whole
+     zone on every peer, and the estate apex has to stay free to resolve
+     publicly for `/.well-known` discovery.
+15b. **Short names resolve through the mesh search domain.** The mesh pushes its
+     `dns_domain` as a search domain, so `ssh zioap01` works on any peer with mesh
+     DNS on (rule 13). A host whose resolver ignores the mesh (a plain
+     `/etc/resolv.conf` owned by another VPN) is fixed by running
+     systemd-resolved, not by `/etc/hosts` entries.
+15c. **A client tenant is not an estate and gets no `mesh.<operator>` name**
+     from this grammar. Its mesh takes a name under its own domain, chosen by
+     its owner.
+
 **Verified constraints (Tailscale, checked 2026-09-02).** Device sharing is
 available on all plans including the free tier, and the free Personal plan carries
 up to 6 users, unlimited user devices, and 50 tagged resources per tailnet, so
@@ -214,6 +244,16 @@ able to enumerate your whole fleet.**
     general reachability into the estate behind it. This is the same conclusion
     the fleet reached independently: a narrow shared folder between rings rather
     than merged state trees.
+18a. **A routed bridge is allowed on a skmesh, narrowed to single addresses.**
+     Rule 18 follows from a Tailscale limit (shared machines cannot advertise
+     subnets). Between two skmesh estates the equivalent narrow form is one
+     gateway peer per side, a WireGuard link between them, and mesh routes that
+     carry only `/32`s of the enumerated bridge peers, never the other estate's
+     range. Each estate MUST also enforce its own exposed set on its own gateway
+     (a default-drop forward rule for traffic arriving from the link, with
+     ESTABLISHED replies allowed), so a mistake on the far side cannot widen it,
+     and the gateway itself MUST NOT accept new connections from the link.
+     Pattern: `smilinTux/skmesh` `docs/architecture/estate-link.md`.
 19. **The bridge set MUST be enumerated in the registry.** It is the estate's
     entire federation surface, so it is exactly the thing that should be reviewable
     in one place, and a bridge that exists but is not written down is an
@@ -487,3 +527,5 @@ def site_of(hostname, sites):
 - [ ] Every estate's bridge set is enumerated in its registry.
 - [ ] Every bridge node is user-owned, not tag-owned.
 - [ ] No bridge grants general reachability into the estate behind it.
+- [ ] The estate's skmesh `dns_domain` is `mesh.<operator>.<org-domain>`, never the NetBird default or `.local`.
+- [ ] A routed bridge carries only `/32`s of enumerated peers, and each estate enforces its own exposed set on its own gateway.
