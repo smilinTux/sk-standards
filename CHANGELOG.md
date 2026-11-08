@@ -29,6 +29,14 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-08: `SITE_AND_HOST_NAMING_STANDARD` gains the mesh resolution namespace. With
+  skmesh (NetBird) as the estate's default transport and Tailscale as fallback, rules 15a-15c
+  fix the skmesh `dns_domain` as `mesh.<operator>.<org-domain>` (`mesh.chef.skworld.io`,
+  `mesh.cakjr.skworld.io`), never the NetBird default or `.local`, and never the bare estate
+  label, so the apex stays free for `/.well-known`. Short names ride the mesh search domain, and
+  client tenants name their own mesh. Rule 18a allows a routed bridge between two skmeshes when it
+  carries only `/32`s of enumerated peers and each estate enforces its exposed set on its own
+  gateway. Two checklist items added.
 - 2026-11-07: new `AGENT_INSTRUCTIONS_STANDARD` plus `templates/AGENTS.template.md`:
   every repo has exactly one agent instructions file, `AGENTS.md` at the root, and no
   `CLAUDE.md` (Claude Code reads `AGENTS.md` natively and skips it when a `CLAUDE.md`
