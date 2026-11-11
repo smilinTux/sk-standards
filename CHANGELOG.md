@@ -29,6 +29,19 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-10: new `APPLICATION_ACCESS_SSO_STANDARD`: application access through the
+  estate IdP is granted by group membership only, fail closed. `skadmin` (admin
+  everywhere) and `skuser` (an optional baseline bundle, never admin), per-app
+  `app-<app>-admins` and `app-<app>-users`, one declared access mode per app
+  (`admin-only`, `app-groups` with `in_baseline`, `any-account`, `public`), the IdP's own
+  admin group reserved, the domain-wide catch-all bound to `skadmin`, OIDC role maps
+  generated from the same declaration, the fixed `sktest-*` test-account set (MFA bypass scoped to
+  a marker group, per-stack recipe) with a paired allow and deny release probe, lifecycle rules, and conformance checks C1 to C13. Distilled from a
+  live audit where an unbound catch-all provider admitted every authenticated account.
+  Cross-linked from `SKWORLD_AUTHORIZATION_STANDARD`, `UNIFIED_INGRESS_STANDARD` and
+  `IDENTITY_NAMING_STANDARD`. No validator ships here: the check needs a live IdP, so
+  it is specified, not implemented, in this repo.
+
 - 2026-11-07: new `AGENT_INSTRUCTIONS_STANDARD` plus `templates/AGENTS.template.md`:
   every repo has exactly one agent instructions file, `AGENTS.md` at the root, and no
   `CLAUDE.md` (Claude Code reads `AGENTS.md` natively and skips it when a `CLAUDE.md`
