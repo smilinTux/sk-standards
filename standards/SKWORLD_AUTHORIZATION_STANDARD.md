@@ -192,6 +192,7 @@ section MUST be updated to name the ratified version at that time.
 
 ## Related standards
 
+- [APPLICATION_ACCESS_SSO_STANDARD](./APPLICATION_ACCESS_SSO_STANDARD.md): who may reach an application through the IdP (groups and access modes); this standard governs what a resolved subject may do inside it. A group name is never a PDP subject.
 - [IDENTITY_NAMING_STANDARD](./IDENTITY_NAMING_STANDARD.md): how a subject is
   spelled. That standard governs the string; this one governs what it may do.
   It also defines the purity constraint on `decide()` (its section 2.4).
