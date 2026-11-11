@@ -122,9 +122,8 @@ the same lowercase ASCII, hyphen-delimited style so the two grammars look alike,
 nothing more. The username of a human account SHOULD equal the local part of that
 person's fqid so a person is one string everywhere.
 
-Pre-existing groups that already fit `<app>-users` (a hub-users group is the known
-case) are legacy spellings. Rename them with the dual-name approach in section 10, or
-record an explicit exception. Do not run both names indefinitely.
+Pre-existing ad hoc groups (a hub-users group is the known case) are renamed to this
+convention. There is no exception list: see the fail-forward rename in section 10.
 
 ### 3.3 How the global groups relate to the per-application groups
 
@@ -183,10 +182,11 @@ The catch-all forward-auth provider's application is `admin-only`. Any applicati
 has no provider of its own therefore defaults to admins only, which is the correct
 failure.
 
-Consequence: **a catch-all-backed application can only be `admin-only`.** The
+Consequence: **a catch-all-backed application can only be `admin-only`**, and the
+catch-all is `admin-only` only. The
 catch-all decides before the application's own tile or groups are consulted, so
 `app-<app>-users` members would see a tile and then be denied. Any application that
-needs non-admin users MUST have its own provider (a per-host forward-auth provider, or
+needs non-admin users, or delegated admins, MUST have its own provider by default (a per-host forward-auth provider, or
 its own OIDC or proxy provider) with its own bindings. The outpost must select the
 per-host provider over the domain-wide one for that host; verify that on the deployed
 version rather than assuming it (check C7).
@@ -348,33 +348,85 @@ Quarterly, and after any incident touching identity:
   and confirm the baseline set and the review dates;
 - list ineffective grants (C9) and empty groups with no explanation;
 - list accounts in no group, and accounts not in `skuser`, and confirm each is
-  intentional (the community accounts of the audit are exactly this population).
+  intentional (the community accounts of the audit are exactly this population);
+- list group renames made since the last review (section 10, step 5);
+- count human users **excluding** test accounts (prefix `sktest-` and `sksvc-`, section
+  8.5), and list the test accounts separately.
 
 The review output is a dated record, attached to a change, not a chat message.
 
 ### 8.5 Test identities
 
-Each estate has two **test accounts**, so both halves of "who can" and "who cannot" are
-testable:
+Every estate has a fixed, documented set of test accounts. Together they form a closed
+loop: automation can prove every access outcome with no human in it, for per-stack
+tests and for RAD and dev cycles.
 
-| Account | Groups | Purpose |
+| Account | Standing groups | Proves |
 |---|---|---|
-| user-level test account | `skuser` only. No `skadmin`, no `authentik Admins`, no `app-*` group. | Proves the baseline: **allowed** on every `in_baseline` application, **refused** on every non-baseline application, and **refused** wherever admin is required. |
-| admin-level test account | `skadmin` only. **Not** `authentik Admins`. | Proves **allowance**: it must reach every application the admin group is meant to reach. |
+| `sktest-admin` | `skadmin` | Global admin reach: allowed on every application. Never in `authentik Admins`. |
+| `sktest-user` | `skuser` | Baseline allow on every `in_baseline` application, deny on every non-baseline application, deny wherever admin is required. |
+| `sktest-nogroup` | none | Fail closed: denied everywhere except `any-account` and `public`. |
+| `sktest-appadmin` | none | Per-app admin path. The harness adds it to `app-<app>-admins` for one test run and removes it. |
+| `sktest-appuser` | none | Per-app user path. The harness adds it to `app-<app>-users` for one test run and removes it. |
+| `sksvc-test` | none (a service account with an API token) | Logs the human test accounts in headlessly through the IdP flow executor, and manages the `sktest-app*` memberships. |
 
-Rules for both:
+**Standing groups** means access-bearing groups. All five human accounts also belong to
+the marker group `sktest`, which carries no access (section 8.5.1).
 
-- Credentials live in the estate vault, under entries named for the role, never in a
-  repository, a unit file or a CI variable that is echoed. Rotate on the same schedule
-  as other privileged credentials and after any person with vault access leaves.
-- They are for probes only. Nobody signs in as them to do real work; their sign-ins are
-  expected to come from the probe host, and a sign-in from elsewhere is an alert.
-- The admin-level account is the reason the user-level one can be trusted: a probe where
-  only the user account is refused would pass on an application that is simply down.
+#### 8.5.1 MFA bypass, scoped to the test accounts
 
-An application in `app-groups` mode MAY add a further probe: a temporary membership of
-the user-level account in that application's `-users` group for the duration of the
-release gate, removed afterwards, to prove the app-group path itself.
+Automated logins cannot answer an interactive MFA prompt. The bypass is narrow:
+
+- The MFA validation stage skips only for members of `sktest`, or for accounts with no
+  MFA enrolled that are in `sktest`. Nobody else is exempt.
+- `sktest` is a marker. It MUST NOT be bound to any application and MUST NOT appear in
+  any role mapping. The bypass skips MFA, never the access policy: every test account is
+  evaluated by the same bindings as any person (check C11).
+- `sksvc-test` holds a token with the least privilege that can read applications and
+  edit group membership for `app-*` groups. It is not superuser and not in
+  `authentik Admins`. Whether the IdP can scope group edits that tightly differs by
+  release, so confirm it and record the gap if it cannot.
+
+#### 8.5.2 Rules for every test account
+
+- **Credentials in the vault only**, under entries named for the account, never in a
+  repository, a unit file or an echoed CI variable. Rotate with other privileged
+  credentials and after anyone with vault access leaves.
+- **Recognisable by prefix.** `sktest-` for the human accounts, `sksvc-` for the service
+  account. Access reviews and user counts exclude both prefixes (section 8.4).
+- **Easy to filter in IdP logs.** Because the prefixes are fixed, a log filter on the
+  username prefix isolates all test activity. A test-account sign-in from outside the
+  test harness hosts is an alert.
+- **Stale membership is a finding.** `sktest-appadmin` and `sktest-appuser` have no
+  standing groups. A membership that outlives its run, or any group on `sktest-nogroup`,
+  is a conformance finding (checks C12 and C13), because a leftover grant would make the
+  next "user cannot" test pass or fail for the wrong reason.
+- Test accounts are for tests only. Nobody does real work as one.
+
+#### 8.5.3 Per-stack recipe
+
+A stack's test suite, run after deploy and in dev cycles, proves four things for each
+of its applications, using the harness login (the flow executor, then a request to the
+application):
+
+1. **Admin can.** `sktest-admin` reaches the application and, if the application maps
+   OIDC roles, lands in its admin role.
+2. **User can.** If the application is `in_baseline`, `sktest-user` reaches it as a
+   user. If it is `app-groups` and not in baseline, add `sktest-appuser` to
+   `app-<app>-users`, confirm it reaches the application as a user, then remove it
+   (always, in a cleanup step that runs on failure too).
+3. **Nogroup cannot.** `sktest-nogroup` is refused, unless the mode is `any-account` or
+   `public`.
+4. **User cannot reach the admin UI.** `sktest-user` and `sktest-appuser` are refused
+   the application's admin surface (an `admin-only` application, or the admin role and
+   path of an `app-groups` one). `sktest-appadmin`, added to `app-<app>-admins` for the
+   run, reaches it.
+
+Every refusal is paired with a success on the same application in the same run
+(section 9.3). The suite ends by asserting that no `sktest-app*` account holds an
+`app-*` membership.
+
+---
 
 ---
 
@@ -395,7 +447,7 @@ sso-access-check --idp <idp-url> --declarations <path>
 ```
 
 The core loop: list every application (following pagination to the end), list each
-one's bindings, and apply checks C1 to C10 below. Field names for bindings, groups and
+one's bindings, and apply checks C1 to C13 below. Field names for bindings, groups and
 the application primary key must be confirmed against the pinned IdP version before the
 script is trusted.
 
@@ -413,6 +465,9 @@ script is trusted.
 | C8 | A portal tile's groups differ from its gate groups. |
 | C9 | An `app-<app>-*` group has members while the application's mode is `admin-only`, or an application has no declared `access:` block at all. |
 | C10 | A required group (`skadmin`, `skuser`, or a declared `app-<app>-*` group) does not exist, or a group named `app-*` exists for no declared application. |
+| C11 | The `sktest` marker group, or any test account, appears in a binding, tile group or role mapping, or a test account is in `authentik Admins`. |
+| C12 | `sktest-appadmin` or `sktest-appuser` holds any group membership outside a running test, or `sktest-nogroup` holds any group other than `sktest`. |
+| C13 | A test account other than the fixed set exists, a fixed one is missing, or a test account has no vault entry. |
 
 The test for the check is the usual one in
 [`TESTING_AND_CI_STANDARD` section 6](./TESTING_AND_CI_STANDARD.md): the check ships with
@@ -423,24 +478,27 @@ never been seen to fail is not evidence.
 ### 9.3 The probe (the release gate)
 
 The check proves the configuration. The **probe** proves the outcome, by logging in as
-the test accounts and requesting every application.
+the test accounts of section 8.5 and requesting every application.
 
 Expectations, derived from the declared mode:
 
-| Mode | Admin-level test account | User-level test account |
-|---|---|---|
-| `admin-only` | reaches the application | **refused** |
-| `app-groups`, not in baseline | reaches the application | **refused** (until the optional extra probe adds it) |
-| `app-groups`, `in_baseline: true` | reaches the application | reaches the application as a user, and is **not** an admin in it |
-| `any-account` | reaches the application | reaches the application |
-| `public` | reaches the application | reaches the application, with no login |
+| Mode | `sktest-admin` | `sktest-user` | `sktest-nogroup` |
+|---|---|---|---|
+| `admin-only` | reaches | **refused** | **refused** |
+| `app-groups`, not in baseline | reaches | **refused** | **refused** |
+| `app-groups`, `in_baseline: true` | reaches | reaches as a user, not as admin | **refused** |
+| `any-account` | reaches | reaches | reaches |
+| `public` | reaches | reaches, no login | reaches, no login |
+
+The app-scoped accounts (`sktest-appadmin`, `sktest-appuser`) are probed with a
+temporary membership as in section 8.5.3.
 
 Rules for the probe:
 
 - It authenticates through the IdP's own flow, not through a shortcut, so a gate that
   forward auth enforces is the gate being tested.
-- **A refusal only counts when the same application was reached by the admin-level
-  account in the same run.** This closes the false pass of an application that is down.
+- **A refusal only counts when the same application was reached by `sktest-admin`
+  in the same run.** This closes the false pass of an application that is down.
 - "Reached" means a 2xx from the application itself. "Refused" means any outcome that is
   not the application's own content: a 401 or 403, a redirect back to a login or denied
   page. Which of those the IdP produces differs by provider type and release, so the
@@ -462,7 +520,7 @@ report-only and the report is reviewed weekly.
 
 For an estate adopting this standard, in this order. Each step is reversible.
 
-1. **Create `skuser` and the test accounts.** Decide the baseline set. Add people to
+1. **Create `skuser`, `sktest` and the test accounts of section 8.5.** Decide the baseline set. Add people to
    `skuser` only if they should get it; nobody has to be in it.
 2. **Bind the catch-all to `skadmin`.** This is the fail-closed step and the one that
    can lock people out. First list who relies on a catch-all-backed application and is
@@ -470,8 +528,10 @@ For an estate adopting this standard, in this order. Each step is reversible.
    `app-groups`.
 3. **Bind every provider application** with a mode, replacing empty lists.
 4. **Move tiles and OIDC maps off `authentik Admins`** to the derived groups.
-5. **Rename legacy `<app>-users` groups** to `app-<app>-users`: create, copy members,
-   repoint bindings and role maps, run the probe, delete the old group. Never keep both.
+5. **Rename ad hoc groups** to the convention, fail forward, with no exception list:
+   rename the group object in the IdP (bindings follow it by id), fix any downstream
+   application that mapped the old name, run the probe, and record the rename in the
+   access review. Do not create a second group or keep both names.
 6. **Turn the check on** as report-only, then as a gate once green (section 9.4).
 
 What can turn red: an application whose real users are in no gate group, a role map
