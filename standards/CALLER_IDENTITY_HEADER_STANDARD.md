@@ -59,10 +59,13 @@ Rules that apply to every value:
 - **Omit, never guess.** A header whose value the caller does not know is left out. It is
   never sent empty, never sent as a placeholder (`unknown`, `none`, `anonymous`,
   `default`), and never filled from a fallback.
-- **Lower-case, then validate; omit if it still does not match.** The helper lower-cases
-  every value first (the gateway already lower-cases agent ids when it normalizes them,
-  so the canonical form keeps one agent under one key). It then checks the value against
-  the format. A value that still does not match is omitted, never truncated or otherwise
+- **Strip, lower-case, then validate; omit if it still does not match.** The helper
+  strips the same six ASCII whitespace characters as section 2.2 (space, tab, LF, VT, FF,
+  CR) from both ends, then lower-cases every value (the gateway already lower-cases agent
+  ids when it normalizes them, so the canonical form keeps one agent under one key). It
+  then checks the value against the format, and the WHOLE string must match (Python
+  `re.fullmatch`, or `\Z` rather than `$`, because Python's `$` also matches before a
+  final newline). A value that still does not match is omitted, never truncated or otherwise
   rewritten. A malformed header is worse than a missing one, because it looks like data.
   The one derivation this standard defines is the session hash in section 2.2, which
   hashes the stripped raw value before any lower-casing.
