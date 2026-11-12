@@ -124,7 +124,7 @@ by the next person who does not understand it.
 | **Per-host runtime state** | Files that more than one node writes at the same path, each with its own value. | daemon pid and shutdown state, per-host trust snapshots, audit logs, `**/logs/*.log`, the per-run ledger, retry queues, a messenger session | Do two nodes write this exact path? If yes, it conflicts. | Only for atomic-write temporaries. |
 | **Derived outputs** | Anything a peer can rebuild from synced source-of-truth files. | local SQLite indexes and their `-wal`/`-shm`, a retired vector store, a daemon's digest, health and pattern files, memory archives | Can this be regenerated from files that DO replicate? If yes, replicating it only races the rebuild. | No. |
 | **Locks** | Kernel-local advisory locks. | `(?d)**/*.lock` | `flock` state never crosses hosts, so replicating the file is noise at best. | **Yes**: a lock file is disposable. |
-| **Caches and debris** | Platform metadata and build or interpreter caches. | `__pycache__`, `*.pyc`, `venv`, `.DS_Store`, `Thumbs.db`, `(?d)*.tmp`, `.stversions`, backup copies of the ruleset (`.stignore.bak-*`) | Is it regenerable and meaningless on another host? | For temporaries and locks, yes. |
+| **Caches and debris** | Platform metadata, build or interpreter caches, and local-only debris. | `__pycache__`, `*.pyc`, `venv`, `.venv`, `.cache`, `**/*.pid`, `**/*.sync-conflict-*`, `.DS_Store`, `Thumbs.db`, `(?d)*.tmp`, `.stversions`, backup copies of the ruleset (`.stignore.bak-*`) | Is it regenerable and meaningless on another host? | For temporaries and locks, yes. |
 
 Three rules of thumb that decide the hard cases:
 
@@ -138,6 +138,28 @@ Three rules of thumb that decide the hard cases:
 3. **A broad ignore needs a counter-check.** `logs` ignores every directory named
    `logs`, including one that holds source-of-truth. Prefer the narrow pattern
    (`**/logs/*.log`) and check the source-of-truth tree is still replicated (section 7).
+
+### 3.1 Considered, not shared
+
+An earlier packaged template carried more rules than the live reference. Four were kept
+in the canonical shared file, each with a reason comment: `**/*.sync-conflict-*`
+(conflict copies stay local and never cascade into conflicts of conflicts, and existing
+ones are still reported by check C5), `**/*.pid` (a process id means nothing on another
+host), `.cache` and `.venv` (per-host, regenerable).
+
+The rest were **considered and deliberately not shared**, because the live reference does
+not carry them and adopting this layout must not change what replicates:
+
+| Rule | Why it is not in the shared file |
+|---|---|
+| `logs` (blanket) | Ignores every directory named `logs`, including any that holds source of truth. The narrow `**/logs/*.log` is shared instead. |
+| `.git` | A repository inside the folder may be carried by Syncthing today. Ignoring it would change that. |
+| `heartbeats/`, `metrics/` | The live reference ignores the root `/heartbeats` and `metrics/daily` only. The blanket forms would hide more than it does. |
+| `deadletter`, `processing` | Local comms staging; the live reference does not ignore them, so live behaviour stays as it is. |
+| `fleet/workspaces`, `**/dreaming-state.json`, `**/fallbacks.json`, `**/.last_checkpoint` | Not ignored by the live reference. Add one to the shared file (section 5) if it is shown to conflict, with the incident in its comment. |
+
+Considering a rule and leaving it out is a decision, not an omission: this list is where
+the next person looks before re-adding one.
 
 The source of truth is never in this file: memory tiers, soul, seeds, the journal, trust
 records and the coordination board replicate, by omission.

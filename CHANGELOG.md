@@ -40,6 +40,7 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   shared file errors the folder, so it is written first and an existing `.stignore` is
   never overwritten), and conformance checks C1 to C5 read from the daemon's effective
   rules (`/rest/db/ignores`) with a file fallback. Reference implementation: skcapstone.
+  A "considered, not shared" list records the old-template rules deliberately left out.
   No validator ships here: the checks need a node, so they are specified, not implemented,
   in this repo.
 
