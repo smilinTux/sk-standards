@@ -34,7 +34,9 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   `x-sk-caller-agent`, `x-sk-caller-session`), with value formats, omit-never-guess and
   no-extra-call rules, and skgateway code citations at `762ac1a` showing why
   `x-agent-id`, `x-session-id` and `x-sk-service` are routing headers that must not be
-  added for attribution. SOP standards count 32 -> 33.
+  added for attribution. Headers go to skgateway only (origin of `SKGATEWAY_URL`), the
+  session id is minted lowercase hex per session or daemon work cycle, and P3.5 strips the
+  two new headers before any caller sends them. SOP standards count 32 -> 33.
 
 - 2026-11-12: new `SYNCTHING_IGNORE_STANDARD`: the shared sovereign folder's ignore rules
   live in one synced `.stignore-shared` and every node's `.stignore` is a three-line shim
