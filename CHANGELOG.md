@@ -29,6 +29,21 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-12: new `SYNCTHING_IGNORE_STANDARD`: the shared sovereign folder's ignore rules
+  live in one synced `.stignore-shared` and every node's `.stignore` is a three-line shim
+  that `#include`s it, because Syncthing never syncs `.stignore` and per-node copies drift
+  (one node lacked a `/secrets` rule another had; per-host daemon outputs produced about ten
+  conflict copies a day). Defines what is shared vs node-local, the five rule classes
+  (never-replicate secrets, per-host runtime state, derived outputs, locks, caches), the
+  worker allowlist variant (secret rules above the first `!`, closed by a catch-all `**`,
+  no include), how to add a rule (edit the shared file once), the install order (a missing
+  shared file errors the folder, so it is written first and an existing `.stignore` is
+  never overwritten), and conformance checks C1 to C5 read from the daemon's effective
+  rules (`/rest/db/ignores`) with a file fallback. Reference implementation: skcapstone.
+  A "considered, not shared" list records the old-template rules deliberately left out.
+  No validator ships here: the checks need a node, so they are specified, not implemented,
+  in this repo.
+
 - 2026-11-10: new `APPLICATION_ACCESS_SSO_STANDARD`: application access through the
   estate IdP is granted by group membership only, fail closed. `skadmin` (admin
   everywhere) and `skuser` (an optional baseline bundle, never admin), per-app
