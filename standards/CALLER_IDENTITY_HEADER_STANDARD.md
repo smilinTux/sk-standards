@@ -64,7 +64,8 @@ Rules that apply to every value:
   so the canonical form keeps one agent under one key). It then checks the value against
   the format. A value that still does not match is omitted, never truncated or otherwise
   rewritten. A malformed header is worse than a missing one, because it looks like data.
-  The one derivation this standard defines is the session hash in section 2.2.
+  The one derivation this standard defines is the session hash in section 2.2, which
+  hashes the stripped raw value before any lower-casing.
 
 ### 2.1 `x-sk-caller-agent` is resolved, never assumed
 
@@ -98,14 +99,43 @@ Where the value comes from, in order:
 
 1. **Inherited, when `SKFLEET_SESSION_ID` is set.** Interactive and fleet sessions run
    inside a dispatched session inherit it, so every process of that session sends the
-   same id. A value that already matches the format (after lower-casing) is sent as is.
-   Any other value is replaced by the first 32 hex characters of the SHA-256 of its
-   UTF-8 bytes. This is needed today: the dispatcher names a worker session after its
-   lane and card (`sess="%s%s"%(_LANE["prefix"],cid)` in
-   `scripts/fleet/skfleet-rotate.py`, for example `codex-auto-` plus the card id), which
-   is not opaque. The hash keeps one id per session with no coordination between
-   processes, and what it is derived from (a lane name and a card id) is already sent in
-   the clear as `x-sk-card-id`, so it hides nothing that matters and leaks nothing new.
+   same id. The helper derives the header value in exactly these steps:
+   1. **Strip.** Remove leading and trailing whitespace from the raw environment value.
+      Whitespace means exactly these six ASCII characters: space (U+0020), tab (U+0009),
+      line feed (U+000A), vertical tab (U+000B), form feed (U+000C) and carriage return
+      (U+000D). Nothing inside the value is touched.
+   2. **Empty means unset.** A value that is empty after stripping counts as if
+      `SKFLEET_SESSION_ID` were not set, and the helper goes on to rule 2 or 3 below.
+   3. **Already hex: send it lower-cased.** If the stripped value, lower-cased, matches
+      `^[0-9a-f]{16,64}$`, that lower-cased value is sent.
+   4. **Otherwise hash it.** Encode the stripped value as UTF-8, **before any
+      lower-casing**, take its SHA-256, write the digest as lowercase hex, and send the
+      first 32 characters. Because the case is kept, `CODEX-auto-0a1b2c3d` and
+      `codex-auto-0a1b2c3d` give different ids.
+
+   Worked example. The synthetic value `codex-auto-0a1b2c3d` (or the same value with
+   surrounding whitespace, such as a leading space and a trailing newline) gives
+   `c6d5cb64437aa9c4bcb57b501eb9ef93`. To reproduce it:
+
+   ```sh
+   python3 -c 'import hashlib; print(hashlib.sha256("codex-auto-0a1b2c3d".strip(" \t\n\r\x0b\x0c").encode("utf-8")).hexdigest()[:32])'
+   ```
+
+   The hashing is needed today: the dispatcher names a worker session after its lane and
+   card (`sess="%s%s"%(_LANE["prefix"],cid)` in `scripts/fleet/skfleet-rotate.py`, for
+   example `codex-auto-` plus the card id), which is not opaque.
+
+   **The hash is pseudonymous, not anonymizing.** It keeps one id per session with no
+   coordination between processes, and it does not hide what it was made from: anyone
+   who can guess the lane prefix and the card id can recompute it. With today's
+   dispatcher the input is the lane prefix plus a card id, so the resulting id groups
+   requests **by lane and card, not by session**: two dispatches of the same card on the
+   same lane send the same id. Readers must not count distinct values of this header as
+   sessions for fleet work. The input stays safe to hash only because the card id is
+   already sent in the clear as `x-sk-card-id` and a lane prefix is a public label.
+   Therefore **`SKFLEET_SESSION_ID` must never contain a hostname, a node name, a user
+   name or any other private name**: the hash would turn it into a stable id that anyone
+   holding a guess can confirm.
 2. **Minted per interactive session,** when no `SKFLEET_SESSION_ID` is set: one random id
    at session start, for example `uuid.uuid4().hex` or `secrets.token_hex(16)` in Python.
 3. **Minted per work cycle, for daemons and timers.** A long-lived process mints a new id
@@ -144,12 +174,53 @@ direct model server, a third-party provider, a test double), and a label meant f
 gateway's `metrics.db` must not travel there.
 
 **The signal is the `SKGATEWAY_URL` environment variable.** A request goes to skgateway
-when the origin (scheme, host and port) of the URL the caller is about to call equals
-the origin of `SKGATEWAY_URL`. When `SKGATEWAY_URL` is unset, its value is the estate
-default `http://localhost:18780`. The path is ignored, because current callers disagree
-on whether the variable ends in `/v1`. The host names `localhost`, `127.0.0.1` and `::1`
-count as the same host. Anything else is not the gateway, and the helper returns no
-headers.
+when the origin of the URL the caller is about to call equals the origin of
+`SKGATEWAY_URL`. Anything else is not the gateway, and the helper returns no headers.
+
+**Origin comparison (normative).** Both URLs are parsed (in Python,
+`urllib.parse.urlsplit`) and compared part by part. The raw `netloc` string is never
+compared, because it carries case, brackets and an optional port that differ between
+spellings of the same origin.
+
+1. **Scheme:** lower-cased. Only `http` and `https` are accepted.
+2. **Host:** the parsed hostname, lower-cased, with IPv6 brackets removed. The names
+   `localhost`, `127.0.0.1` and `::1` are treated as one host.
+3. **Port:** the explicit port, or the scheme default when it is omitted (80 for `http`,
+   443 for `https`).
+4. **Path, query and fragment:** ignored, because current callers disagree on whether
+   the variable ends in `/v1`.
+
+The two URLs are the same origin when all three of scheme, host and port are equal.
+When `SKGATEWAY_URL` is unset, its value is the estate default `http://localhost:18780`.
+A `SKGATEWAY_URL` that is set but empty (after stripping the whitespace defined in
+section 2.2), or that is malformed (it does not parse, has a scheme other than `http` or
+`https`, has no host, or has a port that is not a number from 1 to 65535), **counts as
+unset, so the default applies**. A target URL that is malformed is not the gateway.
+
+Worked cases, with `SKGATEWAY_URL` unset (so the gateway origin is `http`, `localhost`,
+`18780`):
+
+| Target URL | Gateway? | Why |
+|---|---|---|
+| `http://localhost:18780/v1/chat/completions` | Yes | Same scheme, host and port; path ignored |
+| `http://LOCALHOST:18780` | Yes | Host is lower-cased |
+| `http://127.0.0.1:18780/` | Yes | `127.0.0.1` equals `localhost`; trailing slash is path, ignored |
+| `http://[::1]:18780/v1` | Yes | Brackets removed, `::1` equals `localhost`; `/v1` ignored |
+| `https://localhost:18780` | No | Scheme differs |
+| `http://localhost` | No | Port is the default 80, not 18780 |
+| `http://192.0.2.10:18780/v1` | No | A different host, even if a gateway runs there |
+
+With `SKGATEWAY_URL=http://localhost:18780/v1/` (trailing slash and `/v1`), the results
+are the same, since only the origin counts. With `SKGATEWAY_URL` set to an empty string
+or to `localhost:18780` (no scheme, so malformed), the default applies and the results
+are again the same.
+
+**A gateway on another node gets no headers, and that is intended.** A caller pointed at
+a gateway other than the `SKGATEWAY_URL` origin (for example the skgateway on another
+node, reached by its address) sends none of the four headers, even though the target is
+a real skgateway. The helper cannot tell a remote gateway from any other remote
+endpoint, and guessing from a hostname or port is forbidden below. To attribute such a
+caller, set `SKGATEWAY_URL` to that gateway's URL in the caller's environment.
 
 Why this signal: it is the one most callers already read. skos reads `SKGATEWAY_URL` in
 `src/skos/gtd_triage.py:35`, `src/skos/watchdog/headline.py:40`,
@@ -167,8 +238,9 @@ their URL from another setting still compare it with `SKGATEWAY_URL`:
   (`skwhisper/config.py`), whose default today is not the gateway. Until that setting
   points at the gateway, skwhisper sends no attribution headers, which is correct.
 
-`SK_GATEWAY_URL` (with an underscore), read by one skcapstone helper script
-(`src/skcapstone/data/sk-pi-gateway-sync.py`), is not the signal. A caller must not
+`SK_GATEWAY_URL` (with an underscore) is not the signal. It is read in two skcapstone
+places: `src/skcapstone/data/sk-pi-gateway-sync.py` and
+`src/skcapstone/data/sk-agent-picker.sh:515`. A caller must not
 decide "this is the gateway" from a hostname list, a port alone or a model name.
 
 ---
@@ -260,10 +332,18 @@ identity, and says so in its own card.
   their own reasons (Claude Code sends `x-app: cli`), and its values are public service
   names.
 - **Sequencing (normative).** P3.5's strip of `x-sk-caller-agent` and
-  `x-sk-caller-session` is merged **and deployed** before any caller sends them. The
-  caller cards P3.2, P3.3 and P3.4 depend on P3.5 and do not merge until that deploy is
-  live, so no third-party upstream ever receives either header. A caller may ship
-  `x-app` and `x-sk-card-id` support earlier, since the gateway already handles both.
+  `x-sk-caller-session` is merged **and deployed on every gateway a caller can reach
+  through `SKGATEWAY_URL`** before any caller sends either header. Under the SKRSI node
+  rollout order (noroc2027 first, then .41, then the chi estate), a caller
+  on a node whose gateway has not been deployed yet does not send them. The caller cards
+  P3.2, P3.3 and P3.4 depend on P3.5, so no third-party upstream ever receives either
+  header.
+- **Decision: `x-app` and `x-sk-card-id` may ship first.** A caller PR that adds only
+  `x-app` and `x-sk-card-id` MAY merge before P3.5, because neither header is new to the
+  gateway: `x-sk-card-id` is already stripped before upstream forwarding, and `x-app` is
+  already sent by some runtimes (Claude Code sends `x-app: cli`) and already forwarded. A
+  PR that adds `x-sk-caller-agent` or `x-sk-caller-session` waits for the P3.5 deploy
+  above.
 - The gateway stores the values in its local `metrics.db` only. SKRSI readers aggregate
   them into counts and sums; they do not export raw session ids off the node.
 
@@ -282,8 +362,11 @@ identity, and says so in its own card.
 
 "Anonymous" means the identity the gateway resolved has `method` `anonymous`
 (`src/index.mjs:2353-2358`, the same test the `require_agent_id` gate uses at
-`src/index.mjs:2385`). A verified CapAuth identity and an `x-agent-id` header both give a
-non-anonymous identity, so they always win for `agent_id`. For `session_id`, an
+`src/index.mjs:2385`). A verified CapAuth identity, a registered bearer token
+(method `bearer`, `src/identity/capauth.mjs:461-475`: a token whose hash maps to an agent
+in the registry) and an `x-agent-id` header all give a non-anonymous identity, so they
+always win for `agent_id`. An unregistered bearer token resolves to nothing and falls
+through, so it does not count. For `session_id`, an
 identity's own `session_id` (from `x-session-id` or the verified identity) also wins. The
 caller headers fill `agent_id` and `session_id` only when the resolved identity is
 anonymous, so existing rows keep the meaning they had.
@@ -315,7 +398,7 @@ with a captured request, with no gateway running.
 | C5 | The request body is byte-identical with and without the header helper. |
 | C6 | No new `x-agent-id`, `x-session-id` or `x-sk-service` was added for attribution. Existing deliberate routing uses are named in the caller's docs. |
 | C7 | No value contains a hostname, IP, path, prompt text or secret. The test asserts every format regex. For `x-sk-caller-session` the hex format excludes all of these by construction. For `x-app` and `x-sk-caller-agent` it does not (a node name can match), so the test also asserts that `x-app` is a constant in the caller's code and that the agent value is exactly the resolver's result. |
-| C8 | A request whose target origin differs from the `SKGATEWAY_URL` origin (section 2.4) carries none of the four headers. |
+| C8 | A request whose target origin differs from the `SKGATEWAY_URL` origin (section 2.4, compared by parsed scheme, host and port) carries none of the four headers. This includes a real skgateway on another node: that is intended, and the fix is to set `SKGATEWAY_URL` to it. The test covers the section 2.4 worked cases, and an empty or malformed `SKGATEWAY_URL` falling back to the default. |
 | C9 | A daemon or timer mints a new `x-sk-caller-session` per work cycle: two cycles in the test send two different ids, and the requests of one cycle share one. |
 
 ---
