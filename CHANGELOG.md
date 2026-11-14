@@ -29,6 +29,10 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-14: `skworld.module.schema.json` `content_repo` gains `remote_env` and `dest_env` (node env
+  vars holding the clone URL and destination). The live skos skbrain pack already used both and failed
+  the schema's `additionalProperties: false`. The pack example and the module contract standard now
+  show the generic `skbrain-ops-example` canon (`marker: skbrain.yaml`, `syncthing: false`).
 - 2026-11-14: new `FRAMEWORK_AND_INSTANCE_STANDARD`: the framework/instance rule that skstacks,
   skrsi and skbrain follow (public tagged framework, one private instance per estate pinning it as
   `framework/`, a generated template, a fail-closed scrub check) and the estate wall on a shared forge
