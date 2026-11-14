@@ -221,7 +221,7 @@ These six kinds are exactly what the ops-pack DDL + the skos planner/provisioner
 need and no more: `sql_migration` + `db_roles` reflect the real
 `03-ops-namespace.sql` (which creates `ops` / `ops_brain`, `hybrid_search_ops`,
 and the NOLOGIN `skbrain_ops_rw` / `skbrain_ops_ro` group roles it tells the
-operator to bind out-of-band); `content_repo` acquires the canon (`skbrain-ops`);
+operator to bind out-of-band); `content_repo` acquires the estate's canon (`skbrain-ops-<estate>`, remote and path from node config, see [`FRAMEWORK_AND_INSTANCE_STANDARD`](./FRAMEWORK_AND_INSTANCE_STANDARD.md));
 `seed` runs the idempotent KEDB-floor / CMDB-inventory / initial-projection
 commands; `fleet_objects` installs the scheduling the seat needs to run
 unattended; `doctor` makes the capability assertable. Adding a **source** is a

@@ -29,6 +29,13 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-14: new `FRAMEWORK_AND_INSTANCE_STANDARD`: the framework/instance rule that skstacks,
+  skrsi and skbrain follow (public tagged framework, one private instance per estate pinning it as
+  `framework/`, a generated template, a fail-closed scrub check) and the estate wall on a shared forge
+  (per-estate teams, no agent org owners, no cross-estate credentials). The ITIL and module-contract
+  standards now name the estate's canon (`skbrain-ops-<estate>`) instead of one `skbrain-ops`.
+  SOP standards count 33 -> 34.
+
 - 2026-11-12: new `CALLER_IDENTITY_HEADER_STANDARD`: the attribution headers every `sk*`
   caller adds to its existing skgateway request (`x-app`, `x-sk-card-id`,
   `x-sk-caller-agent`, `x-sk-caller-session`), with value formats, omit-never-guess and
