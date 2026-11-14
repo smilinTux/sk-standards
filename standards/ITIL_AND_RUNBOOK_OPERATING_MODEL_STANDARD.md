@@ -59,7 +59,7 @@ The whole model rests on one split and two gates.
   table. Single-writer-per-file means Syncthing never has a conflict. State is
   **never** committed to git.
 - **DEFINITION** lives in git. Runbooks, known-error pages, and CI definitions
-  are the ops wiki (`skbrain-ops`), version-controlled, reviewed, and projected
+  are the estate's ops wiki (`skbrain-ops-<estate>`, one private canon per estate per [`FRAMEWORK_AND_INSTANCE_STANDARD`](./FRAMEWORK_AND_INSTANCE_STANDARD.md)), version-controlled, reviewed, and projected
   read-only into skmem-pg for RAG and backlinks. Definition is **never** the
   authority for live status.
 
@@ -199,7 +199,7 @@ The KEDB is the join between a diagnosed problem, the workaround that gets a
 service back, and the runbook Atlas follows. Today a `KEDBEntry` is a
 **write-once** record (section 9, D5); the runbook that remediates it is named
 **on the operator adapter action**, not on the KEDB record. The target model
-promotes each `ke-*` id to a canon page in `skbrain-ops/pages/known-errors/`
+promotes each `ke-*` id to a canon page in the estate canon's `pages/known-errors/`
 with an explicit runbook link.
 
 ```mermaid
@@ -212,7 +212,7 @@ flowchart TD
     subgraph runbook_link["Runbook linkage (how a runbook remediates a known error)"]
         ADP["operator adapter action<br/>{name, standard, reversible, blast_radius,<br/>runbook: str, kedb_refs: [ke-*]}"]
         ADP -->|"kedb_refs names the ke-* id"| KE
-        ADP -->|"runbook: prose today -><br/>target: skbrain:runbook-<slug>"| RB["Runbook page (skbrain-ops, target)"]
+        ADP -->|"runbook: prose today -><br/>target: skbrain:runbook-<slug>"| RB["Runbook page (estate canon, target)"]
         RB -.->|"REMEDIATES edge (target projection)"| KE
     end
 
@@ -236,7 +236,7 @@ flowchart TD
   adapter action's runbook.
 - **Runbook linkage (target).** The `runbook` string upgrades additively to a
   canonical slug (`skbrain:runbook-<slug>`) resolving to a page in
-  `skbrain-ops`; the projector writes REMEDIATES / MATCHES / RESOLVED_BY edges so
+  the estate canon; the projector writes REMEDIATES / MATCHES / RESOLVED_BY edges so
   the graph can answer "which runbooks actually resolve which conditions".
 - **Consumption.** `itil_kedb_search` matches a query against
   title/symptoms/root_cause/workaround/tags. Atlas retrieves the same knowledge
@@ -522,7 +522,7 @@ sequenceDiagram
     participant Op as operator / human
     participant ITIL as itil.py (Incident + KEDB)
     participant GTD as coord card + gtd-ingest port
-    participant Git as skbrain-ops (git canon)
+    participant Git as skbrain-ops-<estate> (git canon)
     participant PG as projector -> skmem-pg (ops namespace)
 
     Cond->>Atlas: condition trips (observe on the non-quiet path)
@@ -558,7 +558,7 @@ sequenceDiagram
   `policy.py`, the freeze file, `_protected.json`, and the constitution remain the
   only sources of what Atlas may do. A poisoned or mistaken runbook can misinform
   a proposal but cannot widen authority, because classification and the CAB gate
-  sit downstream of retrieval. `skbrain-ops` is itself a protected path, so
+  sit downstream of retrieval. the estate canon is itself a protected path, so
   harness-driven edits to it always get human review.
 
 ---
@@ -575,7 +575,7 @@ reflection, `impact_analysis`) but not the reconcile or the drift condition
 
 ```mermaid
 flowchart TD
-    DEF["Definition (canon, git)<br/>skbrain-ops/pages/cis/<ci>.md:<br/>type, owner, node, intended relationships/attributes, runbooks"]
+    DEF["Definition (canon, git)<br/>skbrain-ops-<estate>/pages/cis/<ci>.md:<br/>type, owner, node, intended relationships/attributes, runbooks"]
     STATE["State (store)<br/>cmdb.py: operational/degraded/down,<br/>observed attributes + relationships,<br/>seed_from_inventory, impact_analysis"]
     DEF --> RECON["skbrain cmdb reconcile (scheduled, sk-cron-run wrapped)<br/>drift = definition minus state"]
     STATE --> RECON
@@ -648,7 +648,7 @@ An SKWorld service conforms to this operating model when:
    contract (`name`, `standard`, `reversible`, `blast_radius`, `runbook`,
    `kedb_refs`) and passes `adapter.validate_explain` / `validate_observe`.
 3. Every `kedb_ref` it names resolves to a real KEDB entry (a `kedb_seeds.py`
-   seed today, a `skbrain-ops` known-error page under the target), enforced by
+   seed today, a known-error page in the estate canon under the target), enforced by
    the seed drift-guard test.
 4. Fleet-affecting changes go through `propose_change` and the CAB gate; nothing
    irreversible or high-risk is ever auto-approved (the operator seat forces it

@@ -366,12 +366,12 @@
                 "properties": {
                   "kind": { "const": "content_repo" },
                   "name": {
-                    "description": "Logical repo name (e.g. skbrain-ops).",
+                    "description": "Logical repo name (e.g. skbrain-ops-<estate>).",
                     "type": "string",
                     "minLength": 1
                   },
                   "dest": {
-                    "description": "Clone destination path on the node (e.g. ~/clawd/skbrain-ops).",
+                    "description": "Clone destination path on the node (e.g. ~/clawd/skbrain-ops-<estate>); a pack may instead name an env var holding it.",
                     "type": "string",
                     "minLength": 1
                   },
