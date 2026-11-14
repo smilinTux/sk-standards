@@ -12,7 +12,7 @@
   "operator": {
     "contractVersion": 1,
     "cli": "skbrain operator",
-    "repos": ["skos", "skcapstone", "skbrain-ops", "skmemory"],
+    "repos": ["skos", "skcapstone", "skbrain-ops-example", "skmemory"],
     "conditions": [
       "OpsSchemaPresent",
       "ProjectorFresh",
@@ -63,11 +63,13 @@
       },
       {
         "kind": "content_repo",
-        "name": "skbrain-ops",
-        "dest": "~/clawd/skbrain-ops",
+        "name": "skbrain-ops-example",
+        "dest": "~/clawd/skbrain-ops-example",
+        "remote_env": "SKBRAIN_CANON_REMOTE",
+        "dest_env": "SKBRAIN_CANON",
         "private": true,
-        "marker": "CLAUDE.md",
-        "syncthing": true
+        "marker": "skbrain.yaml",
+        "syncthing": false
       },
       { "kind": "seed", "cmd": ["skoperator", "kedb-seed"] },
       { "kind": "seed", "cmd": ["skcapstone", "cmdb", "seed"] },
