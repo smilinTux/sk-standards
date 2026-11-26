@@ -55,12 +55,37 @@ Fleet Dispatcher (`jarvis`), Integrator (`link`), and read-only Overseer
 
 **Templates** (copy into a new repo): [`templates/`](./templates/): a README, a SOP and an AGENTS.md skeleton.
 
-**Public sites.** Every `<name>-skworld-io` static site (GitHub Pages) SHOULD ship the
-**repo-docs viewer** as a default — a drop-in `docs.html` that renders the source
-repo's `docs/*.md` live, in the SKWorld house style, with a committed
-`docs-manifest.json` as the API-rate-limit fallback. Template + adoption SOP live in
-the sovereign `site-repos/_seo-templates/` (`docs.html.tmpl` + `docs-manifest-gen.py`);
-reference implementation: [skcomms.skworld.io/docs.html](https://skcomms.skworld.io/docs.html).
+**Public sites.** Every `<name>-skworld-io` static site (GitHub Pages) carries the same
+floor. Reference implementations: [skrsi.skworld.io](https://skrsi.skworld.io/) for the
+look, [skpatch-skworld-io](https://github.com/smilinTux/skpatch-skworld-io) for the
+diagrams, [skstacks.skworld.io](https://skstacks.skworld.io/) for generated content.
+
+- **House style.** The skworld.io design language: its colour tokens (warm paper,
+  near-black ink, tux orange, deep teal), fonts (Bricolage Grotesque, Public Sans,
+  JetBrains Mono), dark hero topbar, card grid, footer and light/dark toggle. A site
+  that predates it is restyled, not left as its own look.
+- **Repo-docs viewer.** A drop-in `docs.html` renders the source repo's `docs/*.md`
+  live, with a committed `docs-manifest.json` as the API-rate-limit fallback, kept
+  fresh by a daily `refresh-docs-manifest` workflow. Template + adoption SOP live in
+  the sovereign `site-repos/_seo-templates/` (`docs.html.tmpl` + `docs-manifest-gen.py`);
+  reference: [skcomms.skworld.io/docs.html](https://skcomms.skworld.io/docs.html).
+- **Architecture diagram.** Required, per
+  [ARCHITECTURE_AND_DATAFLOW_STANDARD](./standards/ARCHITECTURE_AND_DATAFLOW_STANDARD.md#required-for-every--skworld-io-site-repo).
+- **Social card and metadata.** `og.png` (1200x630, rendered from a committed `og.html`),
+  Open Graph and `summary_large_image` tags, canonical URL, JSON-LD, `robots.txt`,
+  `sitemap.xml`, `llms.txt`. Rename the image when restyling, because X caches cards.
+- **Facts are generated, never typed.** Service counts, catalogs, versions and the latest
+  release come from the source repo through a committed generator, so the page cannot
+  drift from what ships. The generator exits non-zero when an input it reads is missing
+  (a moved path, an empty tag list), never publishes placeholders, and writes nothing
+  when upstream is unchanged.
+- **A scheduled site job is watched, not trusted.** GitHub disables a scheduled workflow
+  after 60 days without repository activity, and a job that commits only on change
+  creates none, so a broken job goes quiet twice: red runs nobody reads, then no runs.
+  Check `gh workflow list -a` for `disabled_inactivity` and recent failures when touching
+  any site. Distilled from skstacks-skworld-io: its `refresh-data` job read a source
+  layout that no longer existed, failed from mid-August 2026, was then disabled, and the
+  site showed 31 of 46 services until it was rebuilt on 2026-11-26.
 
 ---
 
