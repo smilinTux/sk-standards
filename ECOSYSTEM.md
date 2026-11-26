@@ -60,7 +60,7 @@ flowchart TD
     end
 
     INFRA[SKStacks<br/>sovereign deploy fabric]:::infra
-    SITES[*.skworld.io sites<br/>skpqc / capauth / skcomms / skchat<br/>sksecurity / skmemory / cloud9 / skstacks<br/>skos / skvault]:::site
+    SITES[*.skworld.io sites<br/>skpqc / capauth / skcomms / skchat<br/>sksecurity / skmemory / cloud9 / skstacks<br/>skos / skvault / sknet]:::site
 
     %% --- interop contract: vectors is the parity gate the 3 impls satisfy ---
     PY -. conforms to .-> VEC
@@ -186,7 +186,7 @@ FFI is a roadmap, not a live edge).
 | Repo | One line | Relates |
 |---|---|---|
 | 🏗️ [**SKStacks**](https://github.com/smilinTux/SKStacks) | The sovereign **deploy fabric** — stacks the comms + identity services run on. | `deploys` the services. |
-| 🌐 *.skworld.io sites | Landing + docs sites: [skpqc](https://github.com/smilinTux/skpqc-skworld-io) · [capauth](https://github.com/smilinTux/capauth-skworld-io) · [skcomms](https://github.com/smilinTux/skcomms-skworld-io) · [skchat](https://github.com/smilinTux/skchat-skworld-io) · [sksecurity](https://github.com/smilinTux/sksecurity-skworld-io) · [skmemory](https://github.com/smilinTux/skmemory-skworld-io) · [cloud9](https://github.com/smilinTux/cloud9-skworld-io) · [skstacks](https://github.com/smilinTux/skstacks-skworld-io) · [skos](https://github.com/smilinTux/skos-skworld-io) · [skvault](https://github.com/smilinTux/skvault-skworld-io) (`skvault.skworld.io`) · [skharness](https://github.com/smilinTux/skharness-skworld-io) (`skharness.skworld.io`) · [skcode](https://github.com/smilinTux/skcode-skworld-io) (`skcode.skworld.io`). | `document` their repos. |
+| 🌐 *.skworld.io sites | Landing + docs sites: [skpqc](https://github.com/smilinTux/skpqc-skworld-io) · [capauth](https://github.com/smilinTux/capauth-skworld-io) · [skcomms](https://github.com/smilinTux/skcomms-skworld-io) · [skchat](https://github.com/smilinTux/skchat-skworld-io) · [sksecurity](https://github.com/smilinTux/sksecurity-skworld-io) · [skmemory](https://github.com/smilinTux/skmemory-skworld-io) · [cloud9](https://github.com/smilinTux/cloud9-skworld-io) · [skstacks](https://github.com/smilinTux/skstacks-skworld-io) · [skos](https://github.com/smilinTux/skos-skworld-io) · [skvault](https://github.com/smilinTux/skvault-skworld-io) (`skvault.skworld.io`) · [skharness](https://github.com/smilinTux/skharness-skworld-io) (`skharness.skworld.io`) · [skcode](https://github.com/smilinTux/skcode-skworld-io) (`skcode.skworld.io`) · [sknet](https://github.com/smilinTux/sknet-skworld-io) (`sknet.skworld.io`). | `document` their repos. |
 
 ---
 
