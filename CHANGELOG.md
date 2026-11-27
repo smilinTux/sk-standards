@@ -152,6 +152,20 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ### Added
 
+- `CODING_LANES_STANDARD` R6 and `SERVICE_UNIT_STANDARD` section 3: a worktree isolates FILES,
+  not RUNTIME. The existing worktree-per-task rule prevents file conflicts and nothing else, so
+  every failure it does not cover kept happening: on 2026-08-29, with skgateway's user unit
+  pointed at the shared checkout, an `npm install` mutated the running service's dependency tree
+  with no deploy step, five restarts across three branches each silently redeployed whatever was
+  checked out, returning that tree to `main` would have dropped a merged routing fix on the next
+  restart, and a second gateway started from a worktree collided with production on port 18781.
+  R6 now requires per-worktree dependencies (never a shared or symlinked `node_modules`), a
+  distinct port per listener, removal plus prune of a merged worktree, and one editor per file.
+  `SERVICE_UNIT_STANDARD` gains the matching rule that a path named in `ExecStart` IS production
+  and MUST sit on a release ref, because a `git checkout` in a tree a unit points at is a deploy
+  nobody reviewed. The estate is currently non-compliant: 16 user units across 6 shared trees
+  run from a checkout agents branch in.
+
 - Card `20a637fe`: accept and activate the six-seat software lifecycle for
   SKCapstone, SKDashboard, and SKWorld. Niobe dispatches, Link integrates,
   Mero oversees, Seraph verifies, Tank releases and installs, and ATLAS handles
