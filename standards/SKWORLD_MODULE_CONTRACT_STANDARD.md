@@ -221,7 +221,7 @@ These six kinds are exactly what the ops-pack DDL + the skos planner/provisioner
 need and no more: `sql_migration` + `db_roles` reflect the real
 `03-ops-namespace.sql` (which creates `ops` / `ops_brain`, `hybrid_search_ops`,
 and the NOLOGIN `skbrain_ops_rw` / `skbrain_ops_ro` group roles it tells the
-operator to bind out-of-band); `content_repo` acquires the canon (`skbrain-ops`);
+operator to bind out-of-band); `content_repo` acquires the estate's canon (`skbrain-ops-<estate>`, remote and path from node config, see [`FRAMEWORK_AND_INSTANCE_STANDARD`](./FRAMEWORK_AND_INSTANCE_STANDARD.md));
 `seed` runs the idempotent KEDB-floor / CMDB-inventory / initial-projection
 commands; `fleet_objects` installs the scheduling the seat needs to run
 unattended; `doctor` makes the capability assertable. Adding a **source** is a
@@ -287,7 +287,7 @@ Abbreviated (UI + operator facets elided; see §2.1-§2.3 and the example file):
   "operator": {
     "contractVersion": 1,
     "cli": "skbrain operator",
-    "repos": ["skos", "skcapstone", "skbrain-ops", "skmemory"],
+    "repos": ["skos", "skcapstone", "skbrain-ops-example", "skmemory"],
     "conditions": ["OpsSchemaPresent", "ProjectorFresh",
                    "CmdbDriftBounded", "KedbCanonCovered"],
     "proposedStandardActions": ["run-skbrain-sync", "run-cmdb-reconcile"]
@@ -317,8 +317,9 @@ Abbreviated (UI + operator facets elided; see §2.1-§2.3 and the example file):
         "vault_entries": { "skbrain_projector": "SKBRAIN_PG_PROJECTOR_PW",
                            "skbrain_reader": "SKBRAIN_PG_READER_PW" },
         "env_drop_in": "~/.config/environment.d/skbrain.conf" },
-      { "kind": "content_repo", "name": "skbrain-ops", "dest": "~/clawd/skbrain-ops",
-        "private": true, "marker": "CLAUDE.md", "syncthing": true },
+      { "kind": "content_repo", "name": "skbrain-ops-example", "dest": "~/clawd/skbrain-ops-example",
+        "remote_env": "SKBRAIN_CANON_REMOTE", "dest_env": "SKBRAIN_CANON",
+        "private": true, "marker": "skbrain.yaml", "syncthing": false },
       { "kind": "seed", "cmd": ["skoperator", "kedb-seed"] },
       { "kind": "seed", "cmd": ["skcapstone", "cmdb", "seed"] },
       { "kind": "seed", "cmd": ["skbrain", "sync"], "defer_ok": true },

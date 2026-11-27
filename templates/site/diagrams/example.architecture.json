@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Example Component Map",
+    "subtitle": "Placeholder: replace with the real service shape, derived from the mermaid in docs/ARCHITECTURE.md",
+    "output": "example.architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "client", "type": "frontend", "label": "Example Client", "sublabel": "placeholder UI", "pos": [40, 200], "size": [160, 64] },
+    { "id": "api", "type": "backend", "label": "Example API", "sublabel": "placeholder service", "pos": [320, 200], "size": [160, 64] },
+    { "id": "db", "type": "database", "label": "Example Store", "sublabel": "placeholder datastore", "pos": [600, 200], "size": [160, 64] },
+    { "id": "external", "type": "external", "label": "example.test", "sublabel": "placeholder external dependency", "pos": [600, 40], "size": [160, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Example service boundary", "wraps": ["api", "db"] }
+  ],
+  "connections": [
+    { "id": "client-to-api", "from": "client", "to": "api", "label": "placeholder request", "variant": "default" },
+    { "id": "api-to-db", "from": "api", "to": "db", "label": "placeholder read/write", "variant": "default" },
+    { "id": "api-to-external", "from": "api", "to": "external", "label": "placeholder outbound call", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Replace before merge", "items": ["Rename this file to <name>.architecture.json", "Match the components, connections, and boundaries to the service's actual mermaid diagrams, never invent new shape here", "Keep every label and hostname placeholder-free of real cluster, estate, or client names"] }
+  ]
+}

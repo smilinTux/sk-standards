@@ -366,12 +366,12 @@
                 "properties": {
                   "kind": { "const": "content_repo" },
                   "name": {
-                    "description": "Logical repo name (e.g. skbrain-ops).",
+                    "description": "Logical repo name (e.g. skbrain-ops-<estate>).",
                     "type": "string",
                     "minLength": 1
                   },
                   "dest": {
-                    "description": "Clone destination path on the node (e.g. ~/clawd/skbrain-ops).",
+                    "description": "Clone destination path on the node (e.g. ~/clawd/skbrain-ops-<estate>); a pack may instead name an env var holding it.",
                     "type": "string",
                     "minLength": 1
                   },
@@ -380,17 +380,27 @@
                     "type": "array",
                     "items": { "type": "string", "minLength": 1 }
                   },
+                  "remote_env": {
+                    "description": "Name of a node environment variable holding the clone URL (e.g. SKBRAIN_CANON_REMOTE). When set on the node it is tried first; an estate canon has no universal remote, so the node declares it. With no remote at all the step fails closed.",
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "dest_env": {
+                    "description": "Name of a node environment variable holding the clone destination (e.g. SKBRAIN_CANON). When set on the node it overrides dest.",
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
                   "private": {
                     "description": "Whether the repo is private (the provisioner uses the operator's git credentials rather than anonymous clone).",
                     "type": "boolean"
                   },
                   "marker": {
-                    "description": "A file whose presence in the checkout confirms the clone is the expected content repo (e.g. CLAUDE.md).",
+                    "description": "A file whose presence in the checkout confirms the clone is the expected content repo (e.g. skbrain.yaml for an skbrain canon).",
                     "type": "string",
                     "minLength": 1
                   },
                   "syncthing": {
-                    "description": "When true, the provisioner PRINTS (never auto-applies) the Syncthing share instruction for this checkout.",
+                    "description": "When true, the provisioner PRINTS (never auto-applies) the Syncthing share instruction for this checkout. Git-transported canons (skbrain) set false.",
                     "type": "boolean"
                   }
                 }

@@ -72,6 +72,11 @@ is also the kindest doc to hand a tired on-call engineer at 2am.
 | `CHANGELOG.md` | ✅ all | Keep-a-Changelog format, SemVer headers, dated. Every release adds an entry. |
 | `LICENSE` | ✅ all | **Apache-2.0** for new/library `sk*` repos. (Note: some legacy repos carry AGPL-3 — do not relicense without owner sign-off; record the actual license here.) |
 
+**Agent instructions:** every repo also carries `AGENTS.md` at the root and no `CLAUDE.md` or other
+tool-specific copy, per [AGENT_INSTRUCTIONS_STANDARD](./AGENT_INSTRUCTIONS_STANDARD.md). It joins the
+table above (and `REQUIRED` in `scripts/docs_check.py`) once the fleet rollout is done; until then
+`docs-check` reports it as an advisory warning.
+
 ### Crypto components — additional MANDATORY docs
 
 A repo is a **crypto component** if it generates, exchanges, signs, verifies, wraps,
@@ -193,6 +198,10 @@ Every section below is required; omit only with an explicit `N/A — <reason>` l
   exists (payment/auth/handshake/deploy) — see skpayment's Stripe-setup `flowchart TD`.
 - Keep node labels to the real component names (services, ports, bind-mounts) so the
   diagram doubles as an operational map, not decoration.
+- Mermaid is mandatory and canonical; an interactive Archify companion view is
+  optional, derived from it, and regenerated in the same PR (see
+  [`ARCHITECTURE_AND_DATAFLOW_STANDARD`](./ARCHITECTURE_AND_DATAFLOW_STANDARD.md)
+  § Interactive companion diagrams).
 
 ---
 

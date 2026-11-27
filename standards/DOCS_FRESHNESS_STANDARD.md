@@ -72,7 +72,13 @@ new repo spawned from a bad template.
 ### 1.2 Changelog-on-code-change (tier 2)
 
 If a pull request touches `src/**` or `pyproject.toml` but does **not** touch
-`CHANGELOG.md`, fail.
+`CHANGELOG.md`, fail — UNLESS it adds a fragment file: a `.md` file sitting
+directly in `changelog.d/` (not a nested subdirectory, and not that
+directory's own `README.md`/`.gitkeep`/`.gitignore`). A repo does not have to
+adopt `changelog.d/`; a plain `CHANGELOG.md` edit always satisfies this tier
+on its own. The fragment path exists so concurrent PRs stop colliding on the
+same lines of one shared file — see skcapstone's `changelog.d/README.md` for
+the authoring workflow and `scripts/changelog_fragments.py`-style folding.
 
 - Escape hatch: a `docs-exempt` label, or `[skip-changelog]` in the PR title.
 - The gate MUST log when the hatch is used. An unlogged escape hatch becomes the
@@ -138,7 +144,8 @@ way.
 
 - [ ] `.github/workflows/docs-check.yml` present, calling the shared reusable workflow
 - [ ] All 7 required files present (tier 1 green)
-- [ ] `CHANGELOG.md` updated by any PR touching `src/**` or `pyproject.toml` (tier 2)
+- [ ] `CHANGELOG.md` updated (or a `changelog.d/<slug>.md` fragment added) by any
+      PR touching `src/**` or `pyproject.toml` (tier 2)
 - [ ] `SOP.md` carries a `docs-evidence` block with **>= 3** hermetic checks (tier 3)
 - [ ] `verified:` date is within the last 6 months
 - [ ] The gate's negative test is recorded in the PR that introduced it

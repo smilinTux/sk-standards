@@ -237,6 +237,8 @@ already-canonical fqid, never as a second grammar.
 
 ## Related standards
 
+- [APPLICATION_ACCESS_SSO_STANDARD](./APPLICATION_ACCESS_SSO_STANDARD.md): SSO group naming
+  (`app-<app>-admins`). Group names are not subjects and never enter `decide()`.
 - [PROVENANCE_AND_MUTATION_STANDARD](./PROVENANCE_AND_MUTATION_STANDARD.md):
   `actor.id` MUST carry the fqid form defined here, never the deprecated
   `capauth:` wire alias, never free text.
