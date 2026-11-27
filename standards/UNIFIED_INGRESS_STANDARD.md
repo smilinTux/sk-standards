@@ -319,6 +319,7 @@ All four front the **same** SKFed federation endpoints + example app vhosts:
 
 ## Related standards / see also
 
+- [APPLICATION_ACCESS_SSO_STANDARD](./APPLICATION_ACCESS_SSO_STANDARD.md): the IdP forward-auth middleware at the reverse-proxy layer, its fail-closed default and access modes. Public-by-design federation paths stay outside it.
 - [CRYPTOGRAPHY_STANDARD](./CRYPTOGRAPHY_STANDARD.md) — the envelope-layer crypto
   the federation endpoints rely on (why they can be public).
 - [ARCHITECTURE_AND_DATAFLOW_STANDARD](./ARCHITECTURE_AND_DATAFLOW_STANDARD.md) —

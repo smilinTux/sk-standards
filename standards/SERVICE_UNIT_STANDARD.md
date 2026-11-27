@@ -107,6 +107,12 @@ always `status=203/EXEC`: the interpreter moved and the unit did not.
   change.
 - If a unit depends on a mount, declare it (`RequiresMountsFor=`) so it waits
   rather than thrashing while the mount is absent.
+- **`ExecStart` MUST NOT name a tree that agents branch in.** The path a unit
+  names is production: it sits on a release ref, and a `git checkout` in it is a
+  deploy nobody reviewed. Pointing a unit at a shared development checkout means
+  the next restart ships whatever happened to be checked out, and a dependency
+  install in that tree mutates the running service with no deploy step. Observed
+  on skgateway 2026-08-29; see `CODING_LANES_STANDARD` R6.
 - A unit that has been disabled because it is dead should be **deleted**, not
   left disabled-and-forgotten. Record the removal in the SOP.
 

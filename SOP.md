@@ -1,6 +1,6 @@
 # sk-standards - Standard Operating Procedures
 
-`sk-standards` is the canonical home of the SKWorld engineering standards: 27 standards
+`sk-standards` is the canonical home of the SKWorld engineering standards: 34 standards
 documents, two accepted ADRs, the README/SOP templates, copy-paste reference configs,
 eleven validators, and two **reusable GitHub Actions workflows** that other `sk*` repos call.
 It is a **docs-and-reference repo**: nothing here installs, listens, or runs as a
@@ -26,10 +26,10 @@ the reusable gates in `.github/workflows/`).
 
 | Surface | Path | What it is |
 |---|---|---|
-| The standards | `standards/*.md` | 27 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
-| Decision log | `decisions/ADR-*.md` | Three accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering), ADR-0002 (two coding lanes with one merge bar), and ADR-0005 (five operating seats, and gates relaxed by catalog rather than by prompt). ADR-0006 (the dispatcher handoff to Niobe, Tank, and Seraph) is open for architecture review as Proposed; it joins this row when Accepted. |
-| Operating seats | `ROSTER.md`, `decisions/ADR-0005-five-operating-seats.md`, `decisions/ADR-0006-dispatch-handoff-niobe-tank-seraph.md` | Jarvis is Fleet Dispatcher, Link is Integrator, and Mero is the read-only Overseer. Fleet dispatch is distinct from application action dispatch. ADR-0005 follows the open-PR ordering that reserves ADR-0003 for PR 34 and ADR-0004 for PR 36. ADR-0006 proposes the evidence-gated transfer of dispatch from Jarvis to Niobe, with Tank on release and install, Seraph verification-only, and Link arbitrating technical conflicts. |
-| Templates | `templates/README.template.md`, `templates/SOP.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
+| The standards | `standards/*.md` | 34 canonical documents. Every `sk*` repo conforms to these. Indexed from `README.md`. |
+| Decision log | `decisions/ADR-*.md` | Four accepted architecture decisions: ADR-0001 (skos / skharness / skcode layering), ADR-0002 (two coding lanes with one merge bar), ADR-0005 (operating-seat separation), and ADR-0006 (the active six-seat lifecycle and Jarvis withdrawal). |
+| Operating seats | `ROSTER.md`, `decisions/ADR-0005-five-operating-seats.md`, `decisions/ADR-0006-dispatch-handoff-niobe-tank-seraph.md` | Niobe dispatches, Link integrates, Mero oversees, Seraph verifies, Tank releases and installs, and ATLAS handles bounded operations. Jarvis is Casey's assistant outside recurring lifecycle work; its emergency tools all require an exact signed Casey direction through one runtime gateway. Fleet dispatch is distinct from application action dispatch. |
+| Templates | `templates/README.template.md`, `templates/SOP.template.md`, `templates/AGENTS.template.md` | Skeletons a new repo copies. `SOP.template.md` carries the `docs-evidence` block stub. |
 | Reference configs | `reference/ingress/`, `reference/systemd/`, `reference/skworld-module/` | Copy-paste artifacts for the ingress, service-unit, and module-contract standards. Includes a JSON Schema and two worked manifest examples. |
 | Validators | `scripts/` | Eleven validator scripts, including docs, CI, fences, module schema, service units, actuation registry, readiness, authorization, merge gate, coding lanes, and self-healing tiers. |
 | The reusable gates | `.github/workflows/docs-check.yml`, `.github/workflows/ci-gate-check.yml` | Both `workflow_call`-only. Other repos consume them with `uses:`. These are the repo's most-called surfaces. |
@@ -50,8 +50,8 @@ the reusable gates in `.github/workflows/`).
 
 ### Operating-seat runtime procedure
 
-The normative placement, scheduling, health, and cold-standby rules for Link,
-Mero, and the Jarvis fenced consumer are in
+The normative placement, scheduling, health, and cold-standby rules for the six
+lifecycle seats and the Niobe fenced consumer are in
 [`ROSTER.md`](./ROSTER.md#runtime-placement-and-scheduling). `sk-standards`
 documents the contract only. SKCapstone owns the executable, user units, timers,
 locking, revision fencing, evidence writer, installation, and rollback.
@@ -59,8 +59,8 @@ locking, revision fencing, evidence writer, installation, and rollback.
 Operational changes follow this order:
 
 1. Change and independently review SKCapstone source and tests.
-2. Install Link and Mero on `chiap08` with both timers initially disabled.
-3. Pin `active_host=chiap08`, then run one dry cycle per seat and verify exact
+2. Install lifecycle-seat source and units on `chiap08` with new timers initially disabled.
+3. Pin `active_host=chiap08`, then run one dry cycle per recurring seat and verify exact
    evidence and zero mutation.
 4. Enable only the `chiap08` timers and observe one normal cycle per seat.
 5. Install byte-identical Link and Mero standby units on `chiap01` but leave
@@ -91,9 +91,9 @@ this repo and runs it against the consumer's tree).
 ```mermaid
 flowchart TD
     subgraph skstd["sk-standards (this repo, no runtime)"]
-      README["README.md<br/>the hub: indexes all 27 standards"]:::doc
-      STD["standards/*.md<br/>27 canonical standards"]:::doc
-      TPL["templates/<br/>README + SOP skeletons"]:::doc
+      README["README.md<br/>the hub: indexes all 34 standards"]:::doc
+      STD["standards/*.md<br/>34 canonical standards"]:::doc
+      TPL["templates/<br/>README + SOP + AGENTS skeletons"]:::doc
       REF["reference/<br/>ingress · systemd · skworld-module"]:::doc
       ADR["decisions/<br/>ADR log"]:::doc
       DC["scripts/docs_check.py<br/>tiers 1/2/3 + --self-test"]:::val
@@ -132,7 +132,7 @@ flowchart TD
 
 The five files to open first, in this order:
 
-1. **`README.md`** - the hub. A one-line "what it governs" for each of the 27 standards,
+1. **`README.md`** - the hub. A one-line "what it governs" for each of the 34 standards,
    plus the ecosystem project graph. If you read one file, read this.
 2. **`standards/SK_REPO_DOC_STANDARD.md`** - what every repo's docs must *contain*: the
    7 required files (section 1), the 9-section `SOP.md` template (section 2), the mermaid
@@ -573,7 +573,7 @@ checks:
   - name: every standard in standards/ is linked from the README hub
     run: ls standards/*.md | while read -r f; do grep -q "$(basename "$f")" README.md || exit 1; done
   - name: the standards count claimed throughout this SOP still matches the tree
-    run: test "$(ls standards/*.md | wc -l)" = 27
+    run: test "$(ls standards/*.md | wc -l)" = 34
   - name: the accepted ADR count claimed in this SOP still matches the tree
     run: test "$(grep -l '^\*\*Status:\*\* Accepted$' decisions/ADR-*.md | wc -l)" = 3
   - name: the module schema still has NO authz facet, as SKWORLD_AUTHORIZATION_STANDARD section 7 states

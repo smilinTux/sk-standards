@@ -29,6 +29,127 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
 
 ## [Unreleased]
 
+- 2026-11-26: README "Public sites" now states the full floor for `<name>-skworld-io` sites
+  (house style, docs viewer, required diagram, social card and metadata) and two rules
+  learned from skstacks.skworld.io going stale: facts on a site are generated from the
+  source repo by a generator that fails loudly on missing inputs, and scheduled site jobs
+  are checked for failures and for GitHub's 60-day inactivity disable.
+
+- 2026-11-14: `skworld.module.schema.json` `content_repo` gains `remote_env` and `dest_env` (node env
+  vars holding the clone URL and destination). The live skos skbrain pack already used both and failed
+  the schema's `additionalProperties: false`. The pack example and the module contract standard now
+  show the generic `skbrain-ops-example` canon (`marker: skbrain.yaml`, `syncthing: false`).
+
+- 2026-11-14: new `FRAMEWORK_AND_INSTANCE_STANDARD`: the framework/instance rule that skstacks,
+  skrsi and skbrain follow (public tagged framework, one private instance per estate pinning it as
+  `framework/`, a generated template, a fail-closed scrub check) and the estate wall on a shared forge
+  (per-estate teams, no agent org owners, no cross-estate credentials). The ITIL and module-contract
+  standards now name the estate's canon (`skbrain-ops-<estate>`) instead of one `skbrain-ops`.
+  SOP standards count 33 -> 34.
+
+- 2026-11-12: new `CALLER_IDENTITY_HEADER_STANDARD`: the attribution headers every `sk*`
+  caller adds to its existing skgateway request (`x-app`, `x-sk-card-id`,
+  `x-sk-caller-agent`, `x-sk-caller-session`), with value formats, omit-never-guess and
+  no-extra-call rules, and skgateway code citations at `762ac1a` showing why
+  `x-agent-id`, `x-session-id` and `x-sk-service` are routing headers that must not be
+  added for attribution. Headers go to skgateway only (origin of `SKGATEWAY_URL`), the
+  session id is minted lowercase hex per session or daemon work cycle, and P3.5 strips the
+  two new headers before any caller sends them. The "is this the gateway" check compares parsed scheme,
+  host and port, and an inherited non-hex `SKFLEET_SESSION_ID` is hashed by an exact,
+  reproducible rule (pseudonymous, not anonymizing). SOP standards count 32 -> 33.
+
+- 2026-11-12: new `SYNCTHING_IGNORE_STANDARD`: the shared sovereign folder's ignore rules
+  live in one synced `.stignore-shared` and every node's `.stignore` is a three-line shim
+  that `#include`s it, because Syncthing never syncs `.stignore` and per-node copies drift
+  (one node lacked a `/secrets` rule another had; per-host daemon outputs produced about ten
+  conflict copies a day). Defines what is shared vs node-local, the five rule classes
+  (never-replicate secrets, per-host runtime state, derived outputs, locks, caches), the
+  worker allowlist variant (secret rules above the first `!`, closed by a catch-all `**`,
+  no include), how to add a rule (edit the shared file once), the install order (a missing
+  shared file errors the folder, so it is written first and an existing `.stignore` is
+  never overwritten), and conformance checks C1 to C5 read from the daemon's effective
+  rules (`/rest/db/ignores`) with a file fallback. Reference implementation: skcapstone.
+  A "considered, not shared" list records the old-template rules deliberately left out.
+  No validator ships here: the checks need a node, so they are specified, not implemented,
+  in this repo.
+
+- 2026-11-10: new `APPLICATION_ACCESS_SSO_STANDARD`: application access through the
+  estate IdP is granted by group membership only, fail closed. `skadmin` (admin
+  everywhere) and `skuser` (an optional baseline bundle, never admin), per-app
+  `app-<app>-admins` and `app-<app>-users`, one declared access mode per app
+  (`admin-only`, `app-groups` with `in_baseline`, `any-account`, `public`), the IdP's own
+  admin group reserved, the domain-wide catch-all bound to `skadmin`, OIDC role maps
+  generated from the same declaration, the fixed `sktest-*` test-account set (MFA bypass scoped to
+  a marker group, per-stack recipe) with a paired allow and deny release probe, lifecycle rules, and conformance checks C1 to C13. Distilled from a
+  live audit where an unbound catch-all provider admitted every authenticated account.
+  Cross-linked from `SKWORLD_AUTHORIZATION_STANDARD`, `UNIFIED_INGRESS_STANDARD` and
+  `IDENTITY_NAMING_STANDARD`. No validator ships here: the check needs a live IdP, so
+  it is specified, not implemented, in this repo.
+
+- 2026-11-07: new `AGENT_INSTRUCTIONS_STANDARD` plus `templates/AGENTS.template.md`:
+  every repo has exactly one agent instructions file, `AGENTS.md` at the root, and no
+  `CLAUDE.md` (Claude Code reads `AGENTS.md` natively and skips it when a `CLAUDE.md`
+  sits next to it) or other tool-specific copy. Eight required sections in a fixed
+  order, a migration table, and a compliance checklist. `scripts/docs_check.py` tier 1
+  now prints advisory warnings for a missing `AGENTS.md` or a forbidden tool file; they
+  never fail the build until the rollout ends, and the self-test proves both. This repo
+  gains its own `AGENTS.md`. `SK_REPO_DOC_STANDARD` section 1 points to the new standard.
+- 2026-11-06: new `SKMEMORY_NODE_CONFIG_STANDARD` plus
+  `reference/skmemory-node-config/diagrams/` (three Archify companions with JSON
+  source): one owning file `~/.config/skmemory/pg.env` (700/600) with
+  `environment.d/skmemory.conf` as a symlink to it, the acting agent declared in
+  `environment.d/10-skagent.conf` (all four selectors, `SK_DEFAULT_AGENT` is the
+  real declared default, there is no implicit one), shells deriving both via
+  `_sk_derive`, the normative rule "derive, never paste", and runnable
+  verification. Distilled from the 2026-11-06 nor-estate finding of skmemory
+  serving a template store with keyword-only search while reporting nothing wrong.
+- 2026-11-06: `ARCHITECTURE_AND_DATAFLOW_STANDARD`: add a "Required for every
+  `-skworld-io` site repo" subsection under "Interactive companion diagrams",
+  making `diagrams/<name>.architecture.json` (plus its generated, committed
+  `diagrams/<name>.architecture.html`) a required artifact for every site repo,
+  with `dataflow`/`workflow` companions optional, linked from the site's nav and
+  its docs index, and bound to the rule that the Archify JSON must not
+  contradict the service repo's mermaid docs. Adds the new authoring guide
+  `standards/archify-diagrams.md` (schema essentials, the exact pinned local
+  regeneration command against `tt-a1i/archify` tag `v3.2.0` commit
+  `208acba8d412335185b2056fedf54b3405df43fb`, note that this is not the
+  unrelated npm package of the same name, the `smilinTux/.github`
+  `archify-build` reusable workflow call, and the review checklist row) and the
+  template `templates/site/diagrams/example.architecture.json` (placeholder
+  values, `example.test` only). Bumps every "27 standards" count in `SOP.md`
+  (including the `docs-evidence` self-check) and the README hub table to 28.
+
+- 2026-11-06: `ARCHITECTURE_AND_DATAFLOW_STANDARD`: add an "Interactive companion
+  diagrams" subsection right after the mermaid/draw.io tooling table, and an Archify
+  column to that table. Mermaid stays canonical and mandatory; an Archify view is an
+  optional, derived artifact for an app's `-skworld-io` site and onboarding pages,
+  with its JSON source and self-contained HTML both committed (`docs/diagrams/` in
+  the code repo, `diagrams/` in the site repo), regenerated in the same PR as the
+  mermaid it derives from (Archify's mermaid-input mode), never shipped as a bare
+  HTML with no JSON source, and with its update-check network call disabled. Adds
+  the matching one-line rule to `SK_REPO_DOC_STANDARD` section 3 and an optional line
+  to `templates/SOP.template.md`'s Architecture section.
+
+- Roster reconciliation against measured behaviour (chi card-event census,
+  30 days to 2026-09-18): fold the dissolved Tank seat into Operations with a
+  record of where every duty went (skcapstone PR 751); add per-writer
+  permitted and prohibited verb tables so boundaries are checkable instead of
+  prose; add an automation-writers table assigning an owning seat to every
+  measured writer identity, including the nonconformant `jarvis` identity the
+  fleet rotation still writes under (12,230 events, 4,487 after ADR-0006);
+  add a Seraph metric section and re-baseline the Operations section (1,166
+  cycles, zero dispatches, freeze store absent on all five hosts); update the
+  runtime placement table to the measured unit and timer state; reduce
+  `check_lifecycle_seat_alignment.py` to the five canonical seats so the gate
+  passes again (it has failed against skcapstone main since the fold landed);
+  and stamp the Tank amendment on ADR-0006.
+
+- Card `20a637fe`: require every Jarvis emergency lifecycle operation to enter
+  through SKCapstone's signed, exact-action Casey-direction gateway.
+
+- Card `20a637fe`: limit lifecycle roster measurement to SKCapstone,
+  SKDashboard, SKWorld, and the supporting sk-standards repository.
+
 ### Added
 
 - `standards/OBSERVABILITY_AND_SCHEDULING_STANDARD.md` section 5, worker liveness. A
@@ -44,6 +165,31 @@ The `0.1` in the seed commit's subject line was a label in prose, never a tag.
   skipped window over 40 minutes and generations that vanished in transit, against which a
   120s timeout manufactures false worker deaths as routine behaviour. Evidence and reference
   implementation: `.skcapstone/docs/WORKER-BEAT-PROTOCOL.md`.
+
+- `CODING_LANES_STANDARD` R6 and `SERVICE_UNIT_STANDARD` section 3: a worktree isolates FILES,
+  not RUNTIME. The existing worktree-per-task rule prevents file conflicts and nothing else, so
+  every failure it does not cover kept happening: on 2026-08-29, with skgateway's user unit
+  pointed at the shared checkout, an `npm install` mutated the running service's dependency tree
+  with no deploy step, five restarts across three branches each silently redeployed whatever was
+  checked out, returning that tree to `main` would have dropped a merged routing fix on the next
+  restart, and a second gateway started from a worktree collided with production on port 18781.
+  R6 now requires per-worktree dependencies (never a shared or symlinked `node_modules`), a
+  distinct port per listener, removal plus prune of a merged worktree, and one editor per file.
+  `SERVICE_UNIT_STANDARD` gains the matching rule that a path named in `ExecStart` IS production
+  and MUST sit on a release ref, because a `git checkout` in a tree a unit points at is a deploy
+  nobody reviewed. The estate is currently non-compliant: 16 user units across 6 shared trees
+  run from a checkout agents branch in.
+
+- Card `20a637fe`: accept and activate the six-seat software lifecycle for
+  SKCapstone, SKDashboard, and SKWorld. Niobe dispatches, Link integrates,
+  Mero oversees, Seraph verifies, Tank releases and installs, and ATLAS handles
+  bounded operations. All use `sk-codex-mid`, SKMail startup and polling,
+  bounded beats, safe retirement, and notify-only routine gates. Jarvis remains
+  Casey's assistant outside recurring lifecycle work with emergency tools.
+
+- Card `2d2a6d4d`: add SKRSI to the ecosystem index using its canonical name,
+  SK Recursive SELF Improvement, where SELF means Systematic Evaluation,
+  Learning, and Feedback.
 - ADR-0006 (Proposed, card 8d5404ca): the dispatcher handoff. Niobe takes
   exactly the existing Fleet Dispatcher authority from Jarvis; Tank owns
   release/install mechanics and behavioral deployment evidence; Seraph is

@@ -11,6 +11,9 @@ Purpose, scope, what it owns, what it explicitly does NOT do.
 flowchart LR
   A[client] -->|"data + crypto suite"| B[service] --> C[(datastore)]
 ```
+<!-- Optional: an interactive Archify companion view, derived from the mermaid above and
+     regenerated in the same PR, linked for the site/onboarding reader (see
+     ARCHITECTURE_AND_DATAFLOW_STANDARD.md § Interactive companion diagrams). -->
 **Start here:** the 3–5 entry-point files a reader should open first, each with a one-liner.
 
 ## 3. Build
